@@ -1,0 +1,23 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+    ;;
+
+    purge)
+        rm -Rf /run/lxc/lock/var/lib/incus || true
+        rm -Rf /var/cache/incus || true
+        rm -Rf /var/lib/incus || true
+        rm -Rf /var/lib/incus-lxcfs || true
+        rm -Rf /var/log/incus || true
+    ;;
+
+    *)
+    echo "postrm called with unknown argument \`$1'" >&2
+    exit 1
+esac
+
+#DEBHELPER#
+
+exit 0

@@ -1,0 +1,9 @@
+/var/log/incus/incusd.log {
+       copytruncate
+       daily
+       rotate 7
+       delaycompress
+       compress
+       notifempty
+       missingok
+}

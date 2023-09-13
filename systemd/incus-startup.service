@@ -1,0 +1,19 @@
+[Unit]
+Description=Incus - Startup check
+After=incus.socket incus.service
+Requires=incus.socket
+
+[Service]
+Type=oneshot
+Environment=PATH=/opt/incus/bin/:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin
+Environment=INCUS_OVMF_PATH=/opt/incus/share/qemu/
+Environment=LD_LIBRARY_PATH=/opt/incus/lib/
+Environment=INCUS_LXC_TEMPLATE_CONFIG=/opt/incus/share/lxc/config/
+ExecStart=/opt/incus/lib/systemd/incus-startup start
+ExecStop=/opt/incus/lib/systemd/incus-startup stop
+TimeoutStartSec=600s
+TimeoutStopSec=600s
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

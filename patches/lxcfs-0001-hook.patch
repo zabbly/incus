@@ -1,0 +1,20 @@
+--- /opt/incus/share/lxcfs/lxc.mount.hook	2023-09-11 18:08:27.114252754 +0000
++++ ../lxc.mount.hook	2023-09-11 18:16:42.535196861 +0000
+@@ -38,9 +38,17 @@ fi
+ 
+ # Allow nesting lxcfs
+ if [ -d "${LXC_ROOTFS_MOUNT}/var/lib/incus-lxcfs/" ]; then
++    rm -Rf "${LXC_ROOTFS_MOUNT}/var/lib/incus-lxcfs"
++    mkdir -p "${LXC_ROOTFS_MOUNT}/var/lib/incus-lxcfs"
+     mount -n --bind /var/lib/incus-lxcfs "${LXC_ROOTFS_MOUNT}/var/lib/incus-lxcfs/"
+ fi
+ 
++if [ -d "${LXC_ROOTFS_MOUNT}/var/lib/lxcfs/" ]; then
++    rm -Rf "${LXC_ROOTFS_MOUNT}/var/lib/lxcfs"
++    mkdir -p "${LXC_ROOTFS_MOUNT}/var/lib/lxcfs"
++    mount -n --bind /var/lib/incus-lxcfs "${LXC_ROOTFS_MOUNT}/var/lib/lxcfs/"
++fi
++
+ # no need for lxcfs cgroups if we have cgroup namespaces
+ [ -n "$LXC_CGNS_AWARE" ] && [ -f /proc/self/ns/cgroup ] && exit 0
+ 

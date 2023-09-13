@@ -1,0 +1,25 @@
+[Unit]
+Description=Incus - Daemon
+After=network-online.target openvswitch-switch.service incus-lxcfs.service incus.socket
+Requires=network-online.target incus-lxcfs.service incus.socket
+
+[Service]
+EnvironmentFile=-/etc/environment
+EnvironmentFile=-/etc/default/incus
+Environment=PATH=/opt/incus/bin/:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin
+Environment=INCUS_OVMF_PATH=/opt/incus/share/qemu/
+Environment=LD_LIBRARY_PATH=/opt/incus/lib/
+Environment=INCUS_LXC_TEMPLATE_CONFIG=/opt/incus/share/lxc/config/
+ExecStart=/opt/incus/bin/incusd --group incus $INCUS_OPTS --logfile /var/log/incus/incusd.log
+ExecStartPost=/opt/incus/bin/incusd waitready --timeout=600
+KillMode=process
+TimeoutStartSec=600s
+TimeoutStopSec=30s
+Restart=on-failure
+Delegate=yes
+LimitNOFILE=1048576
+LimitNPROC=infinity
+TasksMax=infinity
+
+[Install]
+Also=incus-startup.service incus.socket

@@ -1,0 +1,32 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    configure)
+        # Apply the sysctls.
+        systemctl restart systemd-sysctl || true
+
+        # Apply systemd units.
+        systemctl enable incus-lxcfs.service --now
+        systemctl enable incus.socket --now
+        systemctl enable incus-startup.service --now
+
+        if systemctl is-active incus -q; then
+            systemctl restart incus.service
+        fi
+
+        systemctl reload incus-lxcfs.service
+    ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+
+#DEBHELPER#
+
+exit 0

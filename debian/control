@@ -1,0 +1,59 @@
+Source: incus
+Section: admin
+Priority: optional
+Maintainer: Zabbly ZFS builds <info@zabbly.com>
+Build-Depends: debhelper-compat (= 12)
+Standards-Version: 4.6.2
+Homepage: https://linuxcontainers.org
+Rules-Requires-Root: no
+
+Package: incus
+Architecture: linux-any
+Depends: ${misc:Depends},
+  apparmor,
+  attr,
+  ca-certificates,
+  dnsmasq-base,
+  libacl1,
+  libaio1,
+  libapparmor1,
+  libbsd0,
+  libcap2,
+  libfuse3-3,
+  libgcc-s1,
+  libgnutls30,
+  libjson-glib-1.0-0,
+  libnet1,
+  libnftables1,
+  libnl-3-200,
+  libnuma1,
+  libpixman-1-0,
+  libprotobuf-c1,
+  librados2,
+  librbd1,
+  libseccomp2,
+  libseccomp2,
+  libselinux1,
+  libspice-server1,
+  libudev1,
+  libusb-1.0-0,
+  libusbredirparser1,
+  libuv1,
+  nftables | iptables,
+  rsync,
+  squashfs-tools,
+  xdelta3,
+  xz-utils
+Suggests:
+  btrfs-progs,
+  ceph-common,
+  lvm2,
+  zfsutils-linux | openzfs-zfsutils
+Pre-Depends: ${misc:Pre-Depends}
+Description: Incus -  Container and virtualization daemon
+ Incus provides the ability to run containers and virtual machines locally
+ along with very flexible networking and storage akin to what's offered
+ in a public cloud environment.
+ .
+ This build of Incus is provided for free by Zabbly.
+ Zabbly can be contacted for commercial support and development on Incus.

@@ -1,0 +1,18 @@
+[Unit]
+Description=Incus - LXCFS daemon
+ConditionVirtualization=!container
+Before=incus.service
+
+[Service]
+Environment=LD_LIBRARY_PATH=/opt/incus/lib/
+OOMScoreAdjust=-1000
+ExecStartPre=-/usr/bin/mkdir -p /var/lib/incus-lxcfs
+ExecStart=/opt/incus/bin/lxcfs /var/lib/incus-lxcfs
+KillMode=process
+Restart=on-failure
+ExecStopPost=-/bin/fusermount -u /var/lib/incus-lxcfs
+Delegate=yes
+ExecReload=/bin/kill -USR1 $MAINPID
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,58 @@
+From f6c665e25660aac8f9d5f9d7826549bb58f9b0b8 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@ubuntu.com>
+Date: Wed, 7 Jun 2023 22:53:58 -0400
+Subject: [PATCH] malloc_high() cannot allocate any memory in CSM mode due to
+ an empty ZoneHigh. SeaBIOS cannot find any disk to boot from because device
+ initialization fails.
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The bug was introduced in 1.16.1 (commit dc88f9b) when the meaning of
+BUILD_MAX_HIGHTABLE changed but CSM code was not updated. This patch
+reverts to the previous behavior by using BUILD_MIN_HIGHTABLE in CSM
+methods.
+
+Signed-off-by: José Martínez xose@google.com
+---
+ src/fw/csm.c | 4 ++--
+ src/malloc.c | 6 +++---
+ 2 files changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/src/fw/csm.c b/src/fw/csm.c
+index bc14a92..579debd 100644
+--- a/src/fw/csm.c
++++ b/src/fw/csm.c
+@@ -150,9 +150,9 @@ handle_csm_0002(struct bregs *regs)
+     for (i=0; i < csm_compat_table.E820Length / sizeof(struct e820entry); i++)
+         e820_add(p[i].start, p[i].size, p[i].type);
+ 
+-    if (csm_init_table->HiPmmMemorySizeInBytes > BUILD_MAX_HIGHTABLE) {
++    if (csm_init_table->HiPmmMemorySizeInBytes > BUILD_MIN_HIGHTABLE) {
+         u32 hi_pmm_end = csm_init_table->HiPmmMemory + csm_init_table->HiPmmMemorySizeInBytes;
+-        e820_add(hi_pmm_end - BUILD_MAX_HIGHTABLE, BUILD_MAX_HIGHTABLE, E820_RESERVED);
++        e820_add(hi_pmm_end - BUILD_MIN_HIGHTABLE, BUILD_MIN_HIGHTABLE, E820_RESERVED);
+     }
+ 
+     // For PCIBIOS 1ab10e
+diff --git a/src/malloc.c b/src/malloc.c
+index da84098..30b2c92 100644
+--- a/src/malloc.c
++++ b/src/malloc.c
+@@ -460,10 +460,10 @@ malloc_csm_preinit(u32 low_pmm, u32 low_pmm_size, u32 hi_pmm, u32 hi_pmm_size)
+ {
+     ASSERT32FLAT();
+ 
+-    if (hi_pmm_size > BUILD_MAX_HIGHTABLE) {
++    if (hi_pmm_size > BUILD_MIN_HIGHTABLE) {
+         u32 hi_pmm_end = hi_pmm + hi_pmm_size;
+-        alloc_add(&ZoneTmpHigh, hi_pmm, hi_pmm_end - BUILD_MAX_HIGHTABLE);
+-        alloc_add(&ZoneHigh, hi_pmm_end - BUILD_MAX_HIGHTABLE, hi_pmm_end);
++        alloc_add(&ZoneTmpHigh, hi_pmm, hi_pmm_end - BUILD_MIN_HIGHTABLE);
++        alloc_add(&ZoneHigh, hi_pmm_end - BUILD_MIN_HIGHTABLE, hi_pmm_end);
+     } else {
+         alloc_add(&ZoneTmpHigh, hi_pmm, hi_pmm + hi_pmm_size);
+     }
+-- 
+2.39.2
+

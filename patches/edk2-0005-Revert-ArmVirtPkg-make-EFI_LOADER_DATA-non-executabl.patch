@@ -1,0 +1,31 @@
+From c2df6203da5df1ab015e51f6d6c3049ce7867d69 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Fri, 15 Sep 2023 11:13:23 -0400
+Subject: [PATCH] Revert "ArmVirtPkg: make EFI_LOADER_DATA non-executable"
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This reverts commit 2997ae38739756ecba9b0de19e86032ebc689ef9.
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+---
+ ArmVirtPkg/ArmVirt.dsc.inc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/ArmVirtPkg/ArmVirt.dsc.inc b/ArmVirtPkg/ArmVirt.dsc.inc
+index 3f7bac6bf3..7af9c3a270 100644
+--- a/ArmVirtPkg/ArmVirt.dsc.inc
++++ b/ArmVirtPkg/ArmVirt.dsc.inc
+@@ -365,7 +365,7 @@
+   # reserved ones, with the exception of LoaderData regions, of which OS loaders
+   # (i.e., GRUB) may assume that its contents are executable.
+   #
+-  gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy|0xC000000000007FD5
++  gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy|0xC000000000007FD1
+ 
+   gEfiMdeModulePkgTokenSpaceGuid.PcdCpuStackGuard|TRUE
+ 
+-- 
+2.39.2
+

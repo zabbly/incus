@@ -1,0 +1,9 @@
+# INCUS_OPTS can be used to pass additional arguments to the daemon
+#
+# Common options include:
+#  --group GROUPNAME    # Group of users that can control Incus
+#  --debug              # Debug mode (noisy)
+#  --verbose            # Verbose mode
+#  --syslog             # Log to syslog
+#  --trace              # Trace mode (very noisy)
+INCUS_OPTS=""
