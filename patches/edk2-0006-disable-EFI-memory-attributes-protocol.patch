@@ -1,0 +1,30 @@
+From daa59fad9d3718c1e41b67b8719c408c36f05129 Mon Sep 17 00:00:00 2001
+From: Alexander Mikhalitsyn <aleksandr.mikhalitsyn@canonical.com>
+Date: Thu, 7 Sep 2023 09:07:08 +0200
+Subject: [PATCH] edk2: disable EFI memory attributes protocol
+
+https://github.com/canonical/lxd/issues/12211
+
+Signed-off-by: Alexander Mikhalitsyn <aleksandr.mikhalitsyn@canonical.com>
+---
+ ArmPkg/Drivers/CpuDxe/CpuDxe.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/ArmPkg/Drivers/CpuDxe/CpuDxe.c b/ArmPkg/Drivers/CpuDxe/CpuDxe.c
+index fc63e52784..ffb33c51ba 100644
+--- a/ArmPkg/Drivers/CpuDxe/CpuDxe.c
++++ b/ArmPkg/Drivers/CpuDxe/CpuDxe.c
+@@ -331,8 +331,8 @@ CpuDxeInitialize (
+                   &mCpuHandle,
+                   &gEfiCpuArchProtocolGuid,
+                   &mCpu,
+-                  &gEfiMemoryAttributeProtocolGuid,
+-                  &mMemoryAttribute,
++//                  &gEfiMemoryAttributeProtocolGuid,
++//                  &mMemoryAttribute,
+                   NULL
+                   );
+ 
+-- 
+2.39.2
+

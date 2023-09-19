@@ -352,6 +352,7 @@ jobs:
           patch -p1 < "${REPO}/patches/edk2-0003-boot-delay.patch"
           patch -p1 < "${REPO}/patches/edk2-0004-gcc-errors.patch"
           patch -p1 < "${REPO}/patches/edk2-0005-Revert-ArmVirtPkg-make-EFI_LOADER_DATA-non-executabl.patch"
+          patch -p1 < "${REPO}/patches/edk2-0006-disable-EFI-memory-attributes-protocol.patch"
 
           if [ "$(uname -m)" = "x86_64" ]; then
               cp ../seabios/out/Csm16.bin OvmfPkg/Csm/Csm16/Csm16.bin
