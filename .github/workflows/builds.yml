@@ -528,6 +528,7 @@ jobs:
       - name: Systemd units
         run: |
           cp systemd/*.service systemd/*.socket /opt/incus/lib/systemd/system/
+          cp systemd/incusd /opt/incus/lib/systemd/
           cp systemd/incus-startup /opt/incus/lib/systemd/
 
       - name: Strip and cleanup binaries

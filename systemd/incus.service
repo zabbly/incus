@@ -6,12 +6,8 @@ Requires=network-online.target incus-lxcfs.service incus.socket
 [Service]
 EnvironmentFile=-/etc/environment
 EnvironmentFile=-/etc/default/incus
-Environment=PATH=/opt/incus/bin/:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin
-Environment=INCUS_OVMF_PATH=/opt/incus/share/qemu/
-Environment=LD_LIBRARY_PATH=/opt/incus/lib/
-Environment=INCUS_LXC_TEMPLATE_CONFIG=/opt/incus/share/lxc/config/
-ExecStart=/opt/incus/bin/incusd --group incus $INCUS_OPTS --logfile /var/log/incus/incusd.log
-ExecStartPost=/opt/incus/bin/incusd waitready --timeout=600
+ExecStart=/opt/incus/lib/systemd/incusd --group incus $INCUS_OPTS --logfile /var/log/incus/incusd.log
+ExecStartPost=/opt/incus/lib/systemd/incusd waitready --timeout=600
 KillMode=process
 TimeoutStartSec=600s
 TimeoutStopSec=30s

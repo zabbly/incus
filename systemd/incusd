@@ -1,0 +1,9 @@
+#!/bin/sh
+set -e
+
+export PATH=/opt/incus/bin/:${PATH}
+export INCUS_OVMF_PATH=/opt/incus/share/qemu/
+export LD_LIBRARY_PATH=/opt/incus/lib/
+export INCUS_LXC_TEMPLATE_CONFIG=/opt/incus/share/lxc/config/
+
+exec incusd "$@"
