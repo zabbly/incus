@@ -458,7 +458,7 @@ jobs:
           sed -i 's#libseccomp_minver=".*#libseccomp_minver="0.0"#g' configure
           ./configure \
                   --prefix=/opt/incus \
-                  --libexecdir=lib/qemu \
+                  --libexecdir=bin \
                   --libdir=lib \
                   --disable-bochs \
                   --disable-cloop \
