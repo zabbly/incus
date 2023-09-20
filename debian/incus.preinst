@@ -6,6 +6,10 @@ case "$1" in
         if ! getent group incus >/dev/null; then
             addgroup --system incus
         fi
+
+        if ! getent group incus-admin >/dev/null; then
+            addgroup --system incus-admin
+        fi
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
