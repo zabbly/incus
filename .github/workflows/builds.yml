@@ -536,9 +536,21 @@ jobs:
           rm -Rf /opt/incus/lib/debug/
           rm -Rf /opt/incus/include/
           rm -Rf /opt/incus/lib/pkgconfig/
+          rm /opt/incus/lib/*.a /opt/incus/lib/*.la /opt/incus/lib/*/*.a /opt/incus/lib/*/*.la
+
+          rm /opt/incus/bin/nasm
+          rm /opt/incus/bin/ndisasm
+          rm /opt/incus/bin/qemu-bridge-helper
+          rm /opt/incus/bin/qemu-edid
+          rm /opt/incus/bin/qemu-io
+          rm /opt/incus/bin/qemu-nbd
+          rm /opt/incus/bin/qemu-pr-helper
+          rm /opt/incus/bin/qemu-storage-daemon
+          rm /opt/incus/bin/swtpm_*
+          rm /opt/incus/share/qemu/trace-events-all
+
           strip /opt/incus/bin/*
           strip /opt/incus/lib/*so*
-          rm /opt/incus/lib/*.a /opt/incus/lib/*.la /opt/incus/lib/*/*.a /opt/incus/lib/*/*.la
 
       - name: Make a Debian package
         env:
