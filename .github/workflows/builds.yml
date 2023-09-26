@@ -60,7 +60,7 @@ jobs:
       NVIDIA_CONTAINER_TAG: "v1.14.1"
       QEMU_TAG: "v8.1.1"
       SEABIOS_TAG: "rel-1.16.2"
-      SWTPM_TAG: "v0.8.0"
+      SWTPM_TAG: "v0.8.1"
       VIRTIOFSD_TAG: "v1.8.0"
     steps:
       - name: Checkout code
