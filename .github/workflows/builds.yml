@@ -48,7 +48,7 @@ jobs:
       LXC_TAG: "lxc-5.0.3"
       LXCFS_TAG: "lxcfs-5.0.4"
       INCUS_TAG: "main"
-      RAFT_TAG: "main"
+      RAFT_TAG: "v0.17.3"
       COWSQL_TAG: "main"
       CRIU_TAG: "v3.18"
       EDK2_TAG: "edk2-stable202308"
