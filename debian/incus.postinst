@@ -9,10 +9,15 @@ case "$1" in
         # Apply systemd units.
         systemctl enable incus-lxcfs.service --now
         systemctl enable incus.socket --now
+        systemctl enable incus-user.socket --now
         systemctl enable incus-startup.service --now
 
         if systemctl is-active incus -q; then
             systemctl restart incus.service
+        fi
+
+        if systemctl is-active incus-user -q; then
+            systemctl restart incus-user.service
         fi
 
         systemctl reload incus-lxcfs.service

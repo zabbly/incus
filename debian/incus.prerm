@@ -4,6 +4,7 @@ set -e
 case "$1" in
     remove)
         systemctl disable --now incus-startup.service
+        systemctl disable --now incus-user.service incus-user.socket
         systemctl disable --now incus.service incus.socket
         systemctl disable --now incus-lxcfs.service
     ;;

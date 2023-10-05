@@ -530,6 +530,7 @@ jobs:
           cp systemd/*.service systemd/*.socket /opt/incus/lib/systemd/system/
           cp systemd/incusd /opt/incus/lib/systemd/
           cp systemd/incus-startup /opt/incus/lib/systemd/
+          cp systemd/incus-user /opt/incus/lib/systemd/
 
       - name: Strip and cleanup binaries
         run: |
@@ -570,6 +571,8 @@ jobs:
           ln -s ../../../opt/incus/lib/systemd/system/incus.service pkg/lib/systemd/system/incus.service
           ln -s ../../../opt/incus/lib/systemd/system/incus.socket pkg/lib/systemd/system/incus.socket
           ln -s ../../../opt/incus/lib/systemd/system/incus-startup.service pkg/lib/systemd/system/incus-startup.service
+          ln -s ../../../opt/incus/lib/systemd/system/incus-user.service pkg/lib/systemd/system/incus-user.service
+          ln -s ../../../opt/incus/lib/systemd/system/incus-user.socket pkg/lib/systemd/system/incus-user.socket
           ln -s ../../../opt/incus/lib/systemd/system/incus-lxcfs.service pkg/lib/systemd/system/incus-lxcfs.service
           ln -s /opt/incus/share/bash_completion.d/incus pkg/usr/share/bash-completion/completions/incus
           ln -s /opt/incus/bin/incus pkg/usr/bin/incus
