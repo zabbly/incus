@@ -1,8 +1,10 @@
 # Incus builds
 Incus package builds provided by Zabbly.
 
-Currently only daily builds are available.
-Those are development builds, use at your own risk!
+There are two repositories available:
+
+ * stable (latest release of Incus)
+ * daily (untested daily builds)
 
 ## Availability
 Those packages are built for:
@@ -13,7 +15,24 @@ Those packages are built for:
  * Debian 12 (`bookworm`)
 
 ## Installation
-On any of those, you can add the package repository at `/etc/apt/sources.list.d/zabbly-incus-daily.sources`:
+### Stable repository
+On any of the distributions above, you can add the package repository at `/etc/apt/sources.list.d/zabbly-incus-stable.sources`:
+
+```
+Enabled: yes
+Types: deb
+URIs: https://pkgs.zabbly.com/incus/stable
+Suites: DISTRO
+Components: main
+Architectures: ARCH
+Signed-By: /etc/apt/keyrings/zabbly.asc
+```
+
+Make sure to replace `DISTRO` with one of `focal`, `jammy`, `bullseye` or `bookworm`
+and then replace `ARCH` with one of `amd64` or `arm64`.
+
+### Daily repository
+On any of the distributions above, you can add the package repository at `/etc/apt/sources.list.d/zabbly-incus-daily.sources`:
 
 ```
 Enabled: yes
@@ -28,7 +47,8 @@ Signed-By: /etc/apt/keyrings/zabbly.asc
 Make sure to replace `DISTRO` with one of `focal`, `jammy`, `bullseye` or `bookworm`
 and then replace `ARCH` with one of `amd64` or `arm64`.
 
-After that, add the [GPG keyring](https://pkgs.zabbly.com/key.asc) to `/etc/apt/keyrings/zabbly.asc`:
+### Repository key
+After adding the repository file, add the [GPG keyring](https://pkgs.zabbly.com/key.asc) to `/etc/apt/keyrings/zabbly.asc`:
 ```
 -----BEGIN PGP PUBLIC KEY BLOCK-----
 
@@ -73,6 +93,7 @@ gNkvg3bqIwZ/WoHBnSwOwwAzwarJl/gn8OG6CIeP
 -----END PGP PUBLIC KEY BLOCK-----
 ```
 
+### Installing Incus
 Update your repository list with: `apt-get update`
 
 Then to install Incus, run: `apt-get install incus`
