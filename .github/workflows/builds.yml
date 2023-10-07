@@ -1,8 +1,6 @@
 name: Builds
 on:
   push:
-  schedule:
-    - cron: '0 10 * * *'
 
 permissions:
   contents: read
