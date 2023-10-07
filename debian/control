@@ -44,6 +44,8 @@ Depends: ${misc:Depends},
   squashfs-tools,
   xdelta3,
   xz-utils
+Recommends:
+  sshfs
 Suggests:
   btrfs-progs,
   ceph-common,
