@@ -583,7 +583,7 @@ jobs:
           chmod 700 pkg/var/log/incus
 
           cd pkg
-          dch --package incus --create -D ${CODENAME} -M -m "Automated Incus daily build" -v 0~$(date -u +%Y%m%d%H%M)-$(echo ${PKGOS} | sed "s/-//g") --force-distribution
+          dch --package incus --create -D ${CODENAME} -M -m "Automated Incus daily build" -v $(echo ${INCUS_TAG} | cut -d- -f2)-$(date -u +%Y%m%d%H%M)-$(echo ${PKGOS} | sed "s/-//g") --force-distribution
           dpkg-buildpackage -b
 
           cd ..
