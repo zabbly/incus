@@ -67,6 +67,8 @@ jobs:
       - name: Configure git
         run: |
           git config --global --add advice.detachedHead false
+          git config --global user.email "noreply@zabbly.com"
+          git config --global user.name "Zabbly Incus build"
 
       - name: Install dependencies
         run: |
