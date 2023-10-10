@@ -164,7 +164,7 @@ jobs:
           git clone https://github.com/cowsql/cowsql /build/cowsql --depth 1 -b "${COWSQL_TAG}"
           git clone https://github.com/lxc/lxc /build/lxc --depth 1 -b "${LXC_TAG}"
           git clone https://github.com/lxc/lxcfs /build/lxcfs --depth 1 -b "${LXCFS_TAG}"
-          git clone https://github.com/lxc/incus /build/incus --depth 1 -b "${INCUS_TAG}"
+          git clone https://github.com/lxc/incus /build/incus -b "${INCUS_TAG}"
 
           git clone https://github.com/checkpoint-restore/criu /build/criu --depth 1 -b "${CRIU_TAG}"
           git clone https://github.com/NVIDIA/libnvidia-container /build/libnvidia-container --depth 1 -b "${NVIDIA_CONTAINER_TAG}"
@@ -263,6 +263,8 @@ jobs:
           REPO="${PWD}"
 
           cd /build/incus
+          git cherry-pick 0ff29439248c721ac055052f1f74f7a47cf570e7  # incus-user: Fix bad path
+
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" -tags=libsqlite3 github.com/lxc/incus/cmd/incus-benchmark
           go build -o "/opt/incus/bin/incus-user" -tags=libsqlite3 github.com/lxc/incus/cmd/incus-user
