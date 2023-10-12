@@ -593,6 +593,7 @@ jobs:
           cd ..
           mkdir out
           mv incus_* out/
+          mv incus-client_* out/
 
       - name: Upload resulting build
         uses: actions/upload-artifact@v3
