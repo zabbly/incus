@@ -6,3 +6,7 @@ override_dh_dwz:
 override_dh_strip:
 override_dh_shlibdeps:
 override_dh_installsystemd:
+override_dh_install:
+	dh_install
+	rm debian/incus/usr/bin/incus
+	rm debian/incus/opt/incus/bin/incus
