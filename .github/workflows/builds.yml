@@ -69,6 +69,8 @@ jobs:
       - name: Configure git
         run: |
           git config --global --add advice.detachedHead false
+          git config --global user.email "noreply@zabbly.com"
+          git config --global user.name "Zabbly Incus build"
 
       - name: Install dependencies
         run: |
@@ -141,7 +143,7 @@ jobs:
 
       - name: Install Go
         run: |
-          curl -sL "https://go.dev/dl/go${GOLANG_TAG}.linux-${OS_ARCH}.tar.gz" | tar -C /usr/local/ -zx
+          curl -sL "https://go.dev/dl/${GOLANG_TAG}.linux-${OS_ARCH}.tar.gz" | tar -C /usr/local/ -zx
           go version
 
       - name: Install Rust
@@ -166,7 +168,7 @@ jobs:
           git clone https://github.com/cowsql/cowsql /build/cowsql --depth 1 -b "${COWSQL_TAG}"
           git clone https://github.com/lxc/lxc /build/lxc --depth 1 -b "${LXC_TAG}"
           git clone https://github.com/lxc/lxcfs /build/lxcfs --depth 1 -b "${LXCFS_TAG}"
-          git clone https://github.com/lxc/incus /build/incus --depth 1 -b "${INCUS_TAG}"
+          git clone https://github.com/lxc/incus /build/incus -b "${INCUS_TAG}"
 
           git clone https://github.com/checkpoint-restore/criu /build/criu --depth 1 -b "${CRIU_TAG}"
           git clone https://github.com/NVIDIA/libnvidia-container /build/libnvidia-container --depth 1 -b "${NVIDIA_CONTAINER_TAG}"
