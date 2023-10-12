@@ -1,0 +1,20 @@
+#!/bin/sh
+set -eu
+
+while read line; do
+  set -- ${line}
+  tag="$1"
+  url="$2"
+  pattern="$3"
+
+  version="$(git ls-remote --sort="v:refname" --tags "${url}" 2>/dev/null |
+    grep -v '{}' |
+    grep -v \\.99 |
+    grep -Ev 'rc|beta|alpha' |
+    grep "${pattern}" |
+    tail -1 |
+    sed "s#.*refs/tags/##g")"
+
+  sed -i "s#${tag}: .*#${tag}: \"${version}\"#g" ../.github/workflows/builds.yml
+  echo "${tag} => ${version}"
+done < dependencies
