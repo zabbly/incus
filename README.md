@@ -38,6 +38,7 @@ sub   rsa3072 2023-08-23 [E] [expires: 2025-08-22]
 If so, save the key locally:
 
 ```sh
+mkdir -p /etc/apt/keyrings/
 curl -fsSL https://pkgs.zabbly.com/key.asc -o /etc/apt/keyrings/zabbly.asc
 ```
 
