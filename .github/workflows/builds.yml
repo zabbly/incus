@@ -240,6 +240,8 @@ jobs:
           rsync -a /build/target/lxc/opt/incus/include/ /opt/incus/include/
           rsync -a /build/target/lxc/opt/incus/lib/ /opt/incus/lib/
           mkdir -p /opt/incus/share/lxc/config/common.conf.d/
+          mkdir -p /opt/incus/share/lxc/hooks/
+          cp /build/target/lxc/opt/incus/share/lxc/hooks/nvidia /opt/incus/share/lxc/hooks/
 
       - name: Build LXCFS
         run: |
