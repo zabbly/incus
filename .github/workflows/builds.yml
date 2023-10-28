@@ -267,7 +267,6 @@ jobs:
           REPO="${PWD}"
 
           cd /build/incus
-          git cherry-pick 0ff29439248c721ac055052f1f74f7a47cf570e7  # incus-user: Fix bad path
 
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" -tags=libsqlite3 github.com/lxc/incus/cmd/incus-benchmark
