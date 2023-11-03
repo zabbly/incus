@@ -67,6 +67,7 @@ install_incus() {
     apt-get install -y incus
 
     echo "Incus installed."
+    incus version
 }
 
 uninstall_incus() {
