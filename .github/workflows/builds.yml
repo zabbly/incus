@@ -230,7 +230,7 @@ jobs:
                   -Dseccomp=true \
                   -Dselinux=true \
                   -Dcapabilities=true \
-                  -Dio-uring-event-loop=true
+                  -Dio-uring-event-loop=false
           meson compile -C build
 
           mkdir -p /build/target/lxc/
