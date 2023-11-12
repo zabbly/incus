@@ -12,15 +12,17 @@ case "$1" in
         systemctl enable incus-user.socket --now
         systemctl enable incus-startup.service --now
 
-        if systemctl is-active incus -q; then
+        if systemctl is-active incus.service -q; then
             systemctl restart incus.service
         fi
 
-        if systemctl is-active incus-user -q; then
+        if systemctl is-active incus-user.service -q; then
             systemctl restart incus-user.service
         fi
 
-        systemctl reload incus-lxcfs.service
+        if systemctl is-active incus-lxcfs.service -q; then
+            systemctl reload incus-lxcfs.service
+        fi
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
