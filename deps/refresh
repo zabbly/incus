@@ -1,11 +1,17 @@
 #!/bin/sh
 set -eu
 
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
 while read line; do
   set -- ${line}
   tag="$1"
   url="$2"
   pattern="$3"
+
+  if [ "${tag}" = "INCUS_TAG" ] && [ "${BRANCH}" = "daily" ]; then
+    continue
+  fi
 
   version="$(git ls-remote --sort="v:refname" --tags "${url}" 2>/dev/null |
     grep -v '{}' |
