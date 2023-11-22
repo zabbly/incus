@@ -8,5 +8,14 @@ override_dh_shlibdeps:
 override_dh_installsystemd:
 override_dh_install:
 	dh_install
+
+	# Handle incus
+	mkdir -p debian/incus/opt/incus/ui/
+
+	# Handle incus-client
 	rm debian/incus/usr/bin/incus
 	rm debian/incus/opt/incus/bin/incus
+
+	# Handle incus-ui-canonical
+	mkdir -p debian/incus-ui-canonical/opt/incus/
+	mv debian/incus/opt/incus/ui-canonical debian/incus-ui-canonical/opt/incus/ui

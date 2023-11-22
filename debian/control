@@ -77,3 +77,17 @@ Description: Incus -  Command line client
  .
  This build of Incus is provided for free by Zabbly.
  Zabbly can be contacted for commercial support and development on Incus.
+
+Package: incus-ui-canonical
+Architecture: any
+Pre-Depends: ${misc:Pre-Depends}
+Depends: incus
+Description: Incus - Web interface (canonical)
+ Incus provides the ability to run containers and virtual machines locally
+ along with very flexible networking and storage akin to what's offered
+ in a public cloud environment.
+ .
+ This package contains a web interface based on canonical/lxd-ui.
+ .
+ This build of Incus is provided for free by Zabbly.
+ Zabbly can be contacted for commercial support and development on Incus.
