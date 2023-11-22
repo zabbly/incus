@@ -1,6 +1,7 @@
 #!/bin/sh
 set -e
 
+export INCUS_DOCUMENTATION=/opt/incus/doc/
 export INCUS_LXC_HOOK=/opt/incus/share/lxc/hooks/
 export INCUS_LXC_TEMPLATE_CONFIG=/opt/incus/share/lxc/config/
 export INCUS_OVMF_PATH=/opt/incus/share/qemu/

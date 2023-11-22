@@ -276,6 +276,9 @@ jobs:
           go build -o "/opt/incus/bin/lxc-to-incus" github.com/lxc/incus/cmd/lxc-to-incus
           CGO_ENABLED=0 go build -o "/opt/incus/bin/incus-agent" -tags=agent,netgo github.com/lxc/incus/cmd/incus-agent
 
+          make doc
+          cp -R doc/html /opt/incus/doc
+
           mkdir -p /opt/incus/share/bash_completion.d/
           cp scripts/bash/incus /opt/incus/share/bash_completion.d/incus
 
