@@ -1,0 +1,38 @@
+From a7d17042185267652c280601a9c2dae04bc02c97 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 22 Nov 2023 23:12:29 +0000
+Subject: [PATCH 5/6] [incus] Remove external links
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+---
+ src/pages/storage/UploadCustomImageHint.tsx | 11 -----------
+ 1 file changed, 11 deletions(-)
+
+diff --git a/src/pages/storage/UploadCustomImageHint.tsx b/src/pages/storage/UploadCustomImageHint.tsx
+index b66934e..fbb616d 100644
+--- a/src/pages/storage/UploadCustomImageHint.tsx
++++ b/src/pages/storage/UploadCustomImageHint.tsx
+@@ -9,17 +9,6 @@ const UploadCustomImageHint: FC = () => {
+           <h5 className="p-notification__title">
+             Some image formats need to be modified in order to work with LXD.
+           </h5>
+-          <p>
+-            <a
+-              className="p-notification__action"
+-              href="https://ubuntu.com/tutorials/how-to-install-a-windows-11-vm-using-lxd#1-overview"
+-              target="_blank"
+-              rel="noreferrer"
+-            >
+-              Windows ISO images
+-              <Icon className="external-link-icon" name="external-link" />
+-            </a>
+-          </p>
+         </div>
+       </div>
+     </>
+-- 
+2.34.1
+

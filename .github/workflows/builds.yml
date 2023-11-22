@@ -44,10 +44,11 @@ jobs:
       CGO_CFLAGS: "-I/opt/incus/include/"
       LD_LIBRARY_PATH: "/opt/incus/lib/"
       CPATH: "/opt/incus/include/"
-      PATH: "/opt/incus/bin:/root/.cargo/bin:/usr/local/go/bin:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
+      PATH: "/opt/incus/bin:/root/.cargo/bin:/usr/local/go/bin:/usr/local/node/bin:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
       LXC_TAG: "lxc-5.0.3"
       LXCFS_TAG: "lxcfs-5.0.4"
       INCUS_TAG: "main"
+      INCUS_UI_CANONICAL_TAG: "0.4"
       RAFT_TAG: "v0.18.2"
       COWSQL_TAG: "v1.15.4"
       CRIU_TAG: "v3.18"
@@ -151,6 +152,15 @@ jobs:
           curl -sL https://sh.rustup.rs -o install-rust.sh
           bash install-rust.sh -y
 
+      - name: Install Node
+        run: |
+          [ "${OS_ARCH}" = "amd64" ] && NODE_ARCH=x64
+          [ "${OS_ARCH}" = "arm64" ] && NODE_ARCH=arm64
+
+
+          mkdir /usr/local/node/
+          curl -sL "https://nodejs.org/dist/v20.10.0/node-v20.10.0-linux-${NODE_ARCH}.tar.xz" | tar -C /usr/local/node/ -Jx --strip-components=1
+
       - name: Build environment
         run: |
           mkdir /build/
@@ -181,6 +191,8 @@ jobs:
           git clone https://github.com/stefanberger/swtpm /build/swtpm --depth 1 -b "${SWTPM_TAG}"
           git clone https://gitlab.com/virtio-fs/virtiofsd /build/virtiofsd --depth 1 -b "${VIRTIOFSD_TAG}"
           git clone https://gitlab.com/qemu-project/qemu /build/qemu --depth 1 -b "${QEMU_TAG}"
+
+          git clone https://github.com/canonical/lxd-ui /build/incus-ui-canonical -b "${INCUS_UI_CANONICAL_TAG}"
 
       - name: Build liburing
         run: |
@@ -284,6 +296,34 @@ jobs:
 
           cd /build/incus/cmd/lxd-to-incus
           go build -o "/opt/incus/bin/lxd-to-incus" -tags=libsqlite3 ./
+
+      - name: Build UI (canonical)
+        run: |
+          REPO="${PWD}"
+
+          cd /build/incus-ui-canonical
+
+          # Specific tweaking
+          git am "${REPO}/patches/ui-canonical-0001-incus-Branding.patch"
+          git am "${REPO}/patches/ui-canonical-0002-incus-Remove-some-config-options.patch"
+          git am "${REPO}/patches/ui-canonical-0003-incus-Update-navigation.patch"
+          git am "${REPO}/patches/ui-canonical-0004-incus-Update-certificate-generation.patch"
+          git am "${REPO}/patches/ui-canonical-0005-incus-Remove-external-links.patch"
+          git am "${REPO}/patches/ui-canonical-0006-incus-Remove-Canonical-image-servers.patch"
+
+          # Generic renaming
+          sed -i "s/LXD/Incus/g" src/*/*.ts* src/*/*/*.ts* src/*/*/*/*.ts*
+          sed -i "s/devlxd/guestapi/g" src/*/*.ts* src/*/*/*.ts* src/*/*/*/*.ts*
+          sed -i "s/dev\/lxd/dev\/incus/g" src/*/*.ts* src/*/*/*.ts* src/*/*/*/*.ts*
+          sed -i "s/lxd_/incus_/g" src/*/*.ts* src/*/*/*.ts* src/*/*/*/*.ts*
+          sed -i "s/\"lxd\"/\"incus\"/g" src/*/*.ts* src/*/*/*.ts* src/*/*/*/*.ts*
+
+          npm install yarn --global
+          yarn install
+          yarn build
+
+          mkdir -p /opt/incus/ui-canonical/
+          rsync -a /build/incus-ui-canonical/build/ui/ /opt/incus/ui-canonical/
 
       - name: Build CRIU
         run: |
@@ -599,6 +639,7 @@ jobs:
           mkdir out
           mv incus_* out/
           mv incus-client_* out/
+          mv incus-ui-canonical_* out/
 
       - name: Upload resulting build
         uses: actions/upload-artifact@v3
