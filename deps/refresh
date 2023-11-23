@@ -7,7 +7,7 @@ while read line; do
   set -- ${line}
   tag="$1"
   url="$2"
-  pattern="$3"
+  pattern="${3:-}"
 
   if [ "${tag}" = "INCUS_TAG" ] && [ "${BRANCH}" = "daily" ]; then
     continue
