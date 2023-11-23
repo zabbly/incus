@@ -1,4 +1,4 @@
-From f1d6301d794727d39cd3e2504cc56c0063b6c8c0 Mon Sep 17 00:00:00 2001
+From 04673f3740ea3b5019ff66647806f08f0f261ee3 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Wed, 22 Nov 2023 23:16:13 +0000
 Subject: [PATCH 6/6] [incus] Remove Canonical image servers
@@ -8,14 +8,14 @@ Content-Transfer-Encoding: 8bit
 
 Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
 ---
- src/pages/images/ImageSelector.tsx | 12 ------------
- 1 file changed, 12 deletions(-)
+ src/pages/images/ImageSelector.tsx | 14 --------------
+ 1 file changed, 14 deletions(-)
 
 diff --git a/src/pages/images/ImageSelector.tsx b/src/pages/images/ImageSelector.tsx
-index 2d85c7e..e4e5ded 100644
+index 2d85c7e..a4694b4 100644
 --- a/src/pages/images/ImageSelector.tsx
 +++ b/src/pages/images/ImageSelector.tsx
-@@ -81,16 +81,6 @@ const ImageSelector: FC<Props> = ({ onSelect, onClose }) => {
+@@ -81,25 +81,13 @@ const ImageSelector: FC<Props> = ({ onSelect, onClose }) => {
      },
    );
  
@@ -32,7 +32,16 @@ index 2d85c7e..e4e5ded 100644
    const { data: localImages = [], isLoading: isLocalImageLoading } = useQuery({
      queryKey: [queryKeys.images, project],
      queryFn: () => fetchImageList(project ?? ""),
-@@ -109,8 +99,6 @@ const ImageSelector: FC<Props> = ({ onSelect, onClose }) => {
+   });
+ 
+   const isLoading =
+-    isCiLoading ||
+     isLciLoading ||
+-    isMinimalLoading ||
+     isLocalImageLoading ||
+     isSettingsLoading;
+   const archSupported = getArchitectureAliases(
+@@ -109,8 +97,6 @@ const ImageSelector: FC<Props> = ({ onSelect, onClose }) => {
      ? []
      : localImages
          .map(localLxdToRemoteImage)
