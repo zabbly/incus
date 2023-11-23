@@ -49,8 +49,6 @@ jobs:
       INCUS_UI_CANONICAL_TAG: "0.4"
       RAFT_TAG: "v0.18.2"
       COWSQL_TAG: "v1.15.4"
-      RAFT_TAG: "v0.18.2"
-      COWSQL_TAG: "v1.15.4"
       CRIU_TAG: "v3.18"
       EDK2_TAG: "edk2-stable202308"
       GOLANG_TAG: "go1.21.4"
