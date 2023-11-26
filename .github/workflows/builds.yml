@@ -45,7 +45,7 @@ jobs:
       PATH: "/opt/incus/bin:/root/.cargo/bin:/usr/local/go/bin:/usr/local/node/bin:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
       LXC_TAG: "lxc-5.0.3"
       LXCFS_TAG: "lxcfs-5.0.4"
-      INCUS_TAG: "v0.2.0"
+      INCUS_TAG: "v0.3.0"
       INCUS_UI_CANONICAL_TAG: "0.4"
       RAFT_TAG: "v0.18.2"
       COWSQL_TAG: "v1.15.4"
@@ -279,7 +279,6 @@ jobs:
           REPO="${PWD}"
 
           cd /build/incus
-          git cherry-pick d2bb0d86031cb0c1319914f1fb3842c058edb776  # incusd/auth: Fix handling of trusted certs in CA mode
 
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" -tags=libsqlite3 github.com/lxc/incus/cmd/incus-benchmark
