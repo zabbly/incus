@@ -1,4 +1,4 @@
-From 2651427ccaa0a88318d9c1b2a2eac3d9d8e5ecc5 Mon Sep 17 00:00:00 2001
+From 816d419bd297a805ab5442e495b0f66e6858e6aa Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Wed, 22 Nov 2023 22:59:56 +0000
 Subject: [PATCH 1/6] [incus] Branding
@@ -13,9 +13,9 @@ Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
  public/assets/img/incus-logo.svg    | 129 ++++++++++++++++++++++++++++
  public/assets/img/lxd-logo.svg      |  34 --------
  src/components/Logo.tsx             |   6 +-
- src/sass/_pattern_navigation.scss   |   5 +-
+ src/sass/_pattern_navigation.scss   |   4 +-
  src/util/title.tsx                  |   2 +-
- 7 files changed, 137 insertions(+), 41 deletions(-)
+ 7 files changed, 136 insertions(+), 41 deletions(-)
  create mode 100644 public/assets/img/incus-logo.svg
  delete mode 100644 public/assets/img/lxd-logo.svg
 
@@ -311,10 +311,10 @@ index bcaf07e..92a0a5a 100644
    );
  };
 diff --git a/src/sass/_pattern_navigation.scss b/src/sass/_pattern_navigation.scss
-index a224ef4..26cd8d7 100644
+index a224ef4..4774bb8 100644
 --- a/src/sass/_pattern_navigation.scss
 +++ b/src/sass/_pattern_navigation.scss
-@@ -5,13 +5,14 @@
+@@ -5,13 +5,13 @@
  
    .p-panel__logo-image {
      height: 36px;
@@ -327,7 +327,6 @@ index a224ef4..26cd8d7 100644
      color: #fff;
 -    left: 47px;
 +    left: 70px;
-+    margin-top: 2px;
      position: absolute;
      top: $spv--x-small;
    }
