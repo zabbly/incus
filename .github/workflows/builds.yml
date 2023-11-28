@@ -280,6 +280,8 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick 28123a2efb7810e14f9acd6e3317a487a7c6f9a0  # incusd/auth/openfga: Use chunking
+
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" -tags=libsqlite3 github.com/lxc/incus/cmd/incus-benchmark
           go build -o "/opt/incus/bin/incus-user" -tags=libsqlite3 github.com/lxc/incus/cmd/incus-user
