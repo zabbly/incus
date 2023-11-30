@@ -94,6 +94,24 @@ Then to install Incus, run:
 apt-get install incus
 ```
 
+### Other packages
+
+The repository also includes the following packages:
+
+ - `incus-client`, a package containing only the CLI tool, useful when only managing remote servers
+ - `incus-ui-canonical`, a package containing a rebranded version of the LXD web interface for use with Incus
+
+## Support
+Community support for Incus is provided at https://discuss.linuxcontainers.org
+
+Commercial support for those Incus packages is provided by Zabbly, details at https://zabbly.com/incus
+
+You can also help support the work on Incus and on those packages through:
+
+ - [Github Sponsors](https://gituhb.com/sponsors/stgraber)
+ - [Patreon](https://patreon.com/stgraber)
+ - [Ko-Fi](https://ko-fi.com/stgraber)
+
 ## Repository
 
 This repository gets actively rebased as new releases come out, DO NOT expect a linear git history.
