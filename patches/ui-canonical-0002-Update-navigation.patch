@@ -1,7 +1,7 @@
-From fdf4cc4425d833451fc58d820c6432a8a579260e Mon Sep 17 00:00:00 2001
+From 837f1824fb44a3f9d47370ebb098e09f84e7fd9d Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Wed, 22 Nov 2023 23:02:27 +0000
-Subject: [PATCH 3/6] [incus] Update navigation
+Subject: [PATCH 2/5] Update navigation
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -70,5 +70,5 @@ index 454d98c..90a0de9 100644
  
    const { data: settings } = useSettings();
 -- 
-2.34.1
+2.39.2
 
