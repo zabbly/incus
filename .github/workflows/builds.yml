@@ -315,6 +315,7 @@ jobs:
           git cherry-pick 8697f4f8ec95a4bc996dc5ef2df4c05da48b611d  # incusd/auth/openfga: Handle offline servers
           git cherry-pick fca5c563d0a3071a9091c98007c55a11aaaa6524  # incusd/auth/openfga: Allow for later resources refresh
           git cherry-pick 8c0effd5851f4b9b44dbe4c9219a0597fea9d8c3  # incusd/auth/openfga: Re-sync resources hourly
+          git cherry-pick ed6a5032e2051762fc25e21ae61fbec8ee2af8fb  # incusd/auth/openfga: Fix handling of cluster members
 
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" -tags=libsqlite3 github.com/lxc/incus/cmd/incus-benchmark
