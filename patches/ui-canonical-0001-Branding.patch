@@ -1,7 +1,7 @@
-From 816d419bd297a805ab5442e495b0f66e6858e6aa Mon Sep 17 00:00:00 2001
+From f1d46f436eef27f5721568540f9a0a6703612766 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Wed, 22 Nov 2023 22:59:56 +0000
-Subject: [PATCH 1/6] [incus] Branding
+Subject: [PATCH 1/5] Branding
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -117,7 +117,7 @@ A7ytkO
 
 diff --git a/public/assets/img/incus-logo.svg b/public/assets/img/incus-logo.svg
 new file mode 100644
-index 0000000..4712668
+index 0000000..9caf711
 --- /dev/null
 +++ b/public/assets/img/incus-logo.svg
 @@ -0,0 +1,129 @@
@@ -343,5 +343,5 @@ index 715fd43..a40b0b7 100644
    }, [settings?.config]);
  };
 -- 
-2.34.1
+2.39.2
 

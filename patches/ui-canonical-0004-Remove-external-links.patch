@@ -1,7 +1,7 @@
-From a7d17042185267652c280601a9c2dae04bc02c97 Mon Sep 17 00:00:00 2001
+From 1ada954bbf0220653ad3edec673b83fc32f2c56d Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Wed, 22 Nov 2023 23:12:29 +0000
-Subject: [PATCH 5/6] [incus] Remove external links
+Subject: [PATCH 4/5] Remove external links
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -34,5 +34,5 @@ index b66934e..fbb616d 100644
        </div>
      </>
 -- 
-2.34.1
+2.39.2
 

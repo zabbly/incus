@@ -304,11 +304,11 @@ jobs:
           cd /build/incus-ui-canonical
 
           # Specific tweaking
-          git am "${REPO}/patches/ui-canonical-0001-incus-Branding.patch"
-          git am "${REPO}/patches/ui-canonical-0003-incus-Update-navigation.patch"
-          git am "${REPO}/patches/ui-canonical-0004-incus-Update-certificate-generation.patch"
-          git am "${REPO}/patches/ui-canonical-0005-incus-Remove-external-links.patch"
-          git am "${REPO}/patches/ui-canonical-0006-incus-Remove-Canonical-image-servers.patch"
+          git am "${REPO}/patches/ui-canonical-0001-Branding.patch"
+          git am "${REPO}/patches/ui-canonical-0002-Update-navigation.patch"
+          git am "${REPO}/patches/ui-canonical-0003-Update-certificate-generation.patch"
+          git am "${REPO}/patches/ui-canonical-0004-Remove-external-links.patch"
+          git am "${REPO}/patches/ui-canonical-0005-Remove-Canonical-image-servers.patch"
 
           # Generic renaming
           sed -i "s/LXD/Incus/g" src/*/*.ts* src/*/*/*.ts* src/*/*/*/*.ts*

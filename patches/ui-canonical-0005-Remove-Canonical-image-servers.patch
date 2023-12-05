@@ -1,7 +1,7 @@
-From 04673f3740ea3b5019ff66647806f08f0f261ee3 Mon Sep 17 00:00:00 2001
+From b429729297ed2bf93af12b5f429f5c0122e61a02 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Wed, 22 Nov 2023 23:16:13 +0000
-Subject: [PATCH 6/6] [incus] Remove Canonical image servers
+Subject: [PATCH 5/5] Remove Canonical image servers
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -12,7 +12,7 @@ Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
  1 file changed, 14 deletions(-)
 
 diff --git a/src/pages/images/ImageSelector.tsx b/src/pages/images/ImageSelector.tsx
-index 2d85c7e..a4694b4 100644
+index 3af5f69..868a7fe 100644
 --- a/src/pages/images/ImageSelector.tsx
 +++ b/src/pages/images/ImageSelector.tsx
 @@ -81,25 +81,13 @@ const ImageSelector: FC<Props> = ({ onSelect, onClose }) => {
@@ -41,9 +41,9 @@ index 2d85c7e..a4694b4 100644
      isLocalImageLoading ||
      isSettingsLoading;
    const archSupported = getArchitectureAliases(
-@@ -109,8 +97,6 @@ const ImageSelector: FC<Props> = ({ onSelect, onClose }) => {
-     ? []
+@@ -110,8 +98,6 @@ const ImageSelector: FC<Props> = ({ onSelect, onClose }) => {
      : localImages
+         .filter((image) => !image.cached)
          .map(localLxdToRemoteImage)
 -        .concat([...minimalImages].reverse().sort(byLtsFirst))
 -        .concat([...canonicalImages].reverse().sort(byLtsFirst))
@@ -51,5 +51,5 @@ index 2d85c7e..a4694b4 100644
          .filter((image) => archSupported.includes(image.arch));
  
 -- 
-2.34.1
+2.39.2
 
