@@ -393,7 +393,6 @@ jobs:
           REPO="${PWD}"
 
           cd /build/seabios
-          patch -p1 < "${REPO}/patches/seabios-0001-CSM-memory.patch"
 
           make clean distclean
           echo "CONFIG_QEMU_HARDWARE=y" > .config
