@@ -305,7 +305,6 @@ jobs:
 
           # Specific tweaking
           git am "${REPO}/patches/ui-canonical-0001-incus-Branding.patch"
-          git am "${REPO}/patches/ui-canonical-0002-incus-Remove-some-config-options.patch"
           git am "${REPO}/patches/ui-canonical-0003-incus-Update-navigation.patch"
           git am "${REPO}/patches/ui-canonical-0004-incus-Update-certificate-generation.patch"
           git am "${REPO}/patches/ui-canonical-0005-incus-Remove-external-links.patch"
