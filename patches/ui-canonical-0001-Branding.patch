@@ -1,7 +1,7 @@
-From f1d46f436eef27f5721568540f9a0a6703612766 Mon Sep 17 00:00:00 2001
+From 5a6bbf820b99181cca2cc56a728372ca6f306082 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Wed, 22 Nov 2023 22:59:56 +0000
-Subject: [PATCH 1/5] Branding
+Subject: [PATCH] Branding
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -13,9 +13,9 @@ Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
  public/assets/img/incus-logo.svg    | 129 ++++++++++++++++++++++++++++
  public/assets/img/lxd-logo.svg      |  34 --------
  src/components/Logo.tsx             |   6 +-
- src/sass/_pattern_navigation.scss   |   4 +-
+ src/sass/_pattern_navigation.scss   |   8 +-
  src/util/title.tsx                  |   2 +-
- 7 files changed, 136 insertions(+), 41 deletions(-)
+ 7 files changed, 138 insertions(+), 43 deletions(-)
  create mode 100644 public/assets/img/incus-logo.svg
  delete mode 100644 public/assets/img/lxd-logo.svg
 
@@ -311,10 +311,10 @@ index bcaf07e..92a0a5a 100644
    );
  };
 diff --git a/src/sass/_pattern_navigation.scss b/src/sass/_pattern_navigation.scss
-index a224ef4..4774bb8 100644
+index a224ef4..d68f363 100644
 --- a/src/sass/_pattern_navigation.scss
 +++ b/src/sass/_pattern_navigation.scss
-@@ -5,13 +5,13 @@
+@@ -5,20 +5,20 @@
  
    .p-panel__logo-image {
      height: 36px;
@@ -330,6 +330,23 @@ index a224ef4..4774bb8 100644
      position: absolute;
      top: $spv--x-small;
    }
+ 
+   @include mobile {
+     .logo-text {
+-      left: 38px;
++      left: 66px;
+     }
+   }
+ 
+@@ -28,7 +28,7 @@
+     }
+ 
+     .logo-text {
+-      left: 52px;
++      left: 80px;
+     }
+   }
+ }
 diff --git a/src/util/title.tsx b/src/util/title.tsx
 index 715fd43..a40b0b7 100644
 --- a/src/util/title.tsx
