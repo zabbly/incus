@@ -317,6 +317,8 @@ jobs:
           git cherry-pick 8c0effd5851f4b9b44dbe4c9219a0597fea9d8c3  # incusd/auth/openfga: Re-sync resources hourly
           git cherry-pick ed6a5032e2051762fc25e21ae61fbec8ee2af8fb  # incusd/auth/openfga: Fix handling of cluster members
           git cherry-pick 48325541674a6e7b0cecb5609c87ca45815f2550  # incusd: Use expanded cert fingerprint in authorizer check
+          git cherry-pick 3515a799214894318f06159369dcfa2eb1ff5215  # internal/server/response: Don't re-send headers when streaming
+          git cherry-pick e5a0594c5f4c5995e7a52bdba70976caf5743201  # incusd/operations: Use ManualResponse to send headers early
 
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" -tags=libsqlite3 github.com/lxc/incus/cmd/incus-benchmark
