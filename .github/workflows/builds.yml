@@ -320,6 +320,13 @@ jobs:
           git cherry-pick 3515a799214894318f06159369dcfa2eb1ff5215  # internal/server/response: Don't re-send headers when streaming
           git cherry-pick e5a0594c5f4c5995e7a52bdba70976caf5743201  # incusd/operations: Use ManualResponse to send headers early
           git cherry-pick 84378d05bff07008e9ccb6f0b10737d2cf9bd477  # [lxd-import] lxd/instance/drivers: Set correct RBD content type for qemu drives
+          git cherry-pick 6cb220fd46b8dbb61cabd4aa03e535d74b3ce3ea  # incusd/storage: Use Shutdown context for import from backup
+          git cherry-pick 4feeb19fe3a2507e7b4198ab97d47cbae8ca1937  # incusd/storage: Fix size check for ISO volumes
+          git cherry-pick 9d57c66ce3a4aecac829ae1f41285bcba17df08e  # lxd-to-incus: Add security.devlxd to deprecated keys
+          git cherry-pick 9089a80d8bb9f5ec4b44b09a98242e136fe757d3  # lxd-to-incus: Delete old OVN bridges
+          git cherry-pick b38e618f7a62b7103cbbffbf1860441e20f798c1  # lxd-to-incus: Mangle project and profile descriptions
+          git cherry-pick 3e4ec308d9340c9f091ffc9013db5df2a3849875  # lxd-to-incus: Don't spam the output with command failures
+          git cherry-pick 0a865e0c280efa7e6eed741a1e4979750216477e  # incusd/instance/qemu: Properly set cdrom type
 
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" -tags=libsqlite3 github.com/lxc/incus/cmd/incus-benchmark
