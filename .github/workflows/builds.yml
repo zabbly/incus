@@ -327,6 +327,7 @@ jobs:
           git cherry-pick b38e618f7a62b7103cbbffbf1860441e20f798c1  # lxd-to-incus: Mangle project and profile descriptions
           git cherry-pick 3e4ec308d9340c9f091ffc9013db5df2a3849875  # lxd-to-incus: Don't spam the output with command failures
           git cherry-pick 0a865e0c280efa7e6eed741a1e4979750216477e  # incusd/instance/qemu: Properly set cdrom type
+          git cherry-pick 6223cbf9a5e11f075c8dec36d6710216ec2a33d3  # incusd/endpoints: Also hide read errors from proxies
 
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" -tags=libsqlite3 github.com/lxc/incus/cmd/incus-benchmark
