@@ -6,7 +6,7 @@ Requires=network-online.target incus-lxcfs.service incus.socket
 [Service]
 EnvironmentFile=-/etc/environment
 EnvironmentFile=-/etc/default/incus
-ExecStart=/opt/incus/lib/systemd/incusd --group incus $INCUS_OPTS --logfile /var/log/incus/incusd.log
+ExecStart=/opt/incus/lib/systemd/incusd --group incus-admin $INCUS_OPTS --logfile /var/log/incus/incusd.log
 ExecStartPost=/opt/incus/lib/systemd/incusd waitready --timeout=600
 KillMode=process
 TimeoutStartSec=600s
