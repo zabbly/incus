@@ -5,7 +5,7 @@ Requires=incus-user.socket
 
 [Service]
 EnvironmentFile=-/etc/environment
-ExecStart=/opt/incus/lib/systemd/incus-user
+ExecStart=/opt/incus/lib/systemd/incus-user --group incus
 Restart=on-failure
 
 [Install]
