@@ -10,6 +10,10 @@ case "$1" in
         if ! getent group incus-admin >/dev/null; then
             addgroup --system incus-admin
         fi
+
+        if ! getent passwd incus >/dev/null; then
+            adduser --system --shell /usr/sbin/nologin --home /var/lib/incus --no-create-home --ingroup incus incus
+        fi
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
