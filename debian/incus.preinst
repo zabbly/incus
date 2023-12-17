@@ -10,6 +10,38 @@ case "$1" in
         if ! getent group incus-admin >/dev/null; then
             addgroup --system incus-admin
         fi
+
+        if ! getent passwd incus >/dev/null; then
+            adduser --system --shell /usr/sbin/nologin --home /var/lib/incus --no-create-home --ingroup incus incus
+
+            # Manage subuid/subgid allocation for containers user namespaces
+            # Based on LXD Debian package logic (https://salsa.debian.org/go-team/packages/lxd/-/blob/debian/sid/debian/lxd.preinst)
+            NEXT_UID=1000000
+            while read line; do
+                OLD_IFS=$IFS
+                IFS=":"
+                set -- $line
+                IFS=$OLD_IFS
+                [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] && continue
+
+                LAST=$(($2+$3))
+                [ "$LAST" -gt "$NEXT_UID" ] && NEXT_UID=$LAST
+            done < /etc/subuid
+            usermod --add-subuids ${NEXT_UID}-$(($NEXT_UID+999999999)) root
+
+            NEXT_GID=1000000
+            while read line; do
+                OLD_IFS=$IFS
+                IFS=":"
+                set -- $line
+                IFS=$OLD_IFS
+                [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] && continue
+
+                LAST=$(($2+$3))
+                [ "$LAST" -gt "$NEXT_GID" ] && NEXT_GID=$LAST
+            done < /etc/subgid
+            usermod --add-subgids ${NEXT_GID}-$(($NEXT_GID+999999999)) root
+        fi
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
