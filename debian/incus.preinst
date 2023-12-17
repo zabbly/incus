@@ -14,6 +14,9 @@ case "$1" in
         if ! getent passwd incus >/dev/null; then
             adduser --system --shell /usr/sbin/nologin --home /var/lib/incus --no-create-home --ingroup incus incus
 
+            [ ! -e /etc/subuid ] && touch /etc/subuid
+            [ ! -e /etc/subgid ] && touch /etc/subgid
+
             # Manage subuid/subgid allocation for containers user namespaces
             # Based on LXD Debian package logic (https://salsa.debian.org/go-team/packages/lxd/-/blob/debian/sid/debian/lxd.preinst)
             NEXT_UID=1000000
