@@ -1,6 +1,6 @@
 LXC_TAG https://github.com/lxc/lxc lxc-
 LXCFS_TAG https://github.com/lxc/lxcfs lxcfs-
-INCUS_TAG https://github.com/lxc/incus incus-
+INCUS_TAG https://github.com/lxc/incus v
 INCUS_UI_CANONICAL_TAG https://github.com/canonical/lxd-ui
 RAFT_TAG https://github.com/cowsql/raft v
 COWSQL_TAG https://github.com/cowsql/cowsql v
