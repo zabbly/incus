@@ -45,7 +45,7 @@ jobs:
       PATH: "/opt/incus/bin:/root/.cargo/bin:/usr/local/go/bin:/usr/local/node/bin:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
       LXC_TAG: "lxc-5.0.3"
       LXCFS_TAG: "lxcfs-5.0.4"
-      INCUS_TAG: "v0.3.0"
+      INCUS_TAG: "v0.4.0"
       INCUS_UI_CANONICAL_TAG: "0.5"
       RAFT_TAG: "v0.18.3"
       COWSQL_TAG: "v1.15.4"
@@ -279,55 +279,6 @@ jobs:
           REPO="${PWD}"
 
           cd /build/incus
-
-          git cherry-pick da0a88a2e22beb84d50988158455717838dbc6c4  # lxd-to-incus: Allow bypassing version check
-          git cherry-pick 0f2e8204921bdb22ae8852b92b02f1251039dd3c  # lxd-to-incus: Record PID in backup and log
-          git cherry-pick 28123a2efb7810e14f9acd6e3317a487a7c6f9a0  # incusd/auth/openfga: Use chunking
-          git cherry-pick a581702173122e6636b5d7e5bb75db8af37443cf  # lxd-to-incus: Unmount any leftover mounts
-          git cherry-pick 27fb627d964fda23d482dce3108ea94ad1f0b5ef  # incusd/auth/openfga: Bump timeouts to 10s
-          git cherry-pick 89894918cae1c6ed73c7fbd353d672a2ad6e6e00  # incusd/auth/openfga: Return correct error
-          git cherry-pick f308453aab4e22b5eac1d0a8b3f3894c514e9401  # incusd/apparmor/rsync: Fix in nested containers
-          git cherry-pick c9aded59842dbcd39da1f33fa45adb0567dc4107  # incusd/state: Add new ServerClustered field
-          git cherry-pick 8161cb57ceadb3380f87e0c56c0c0786613dd65a  # incusd: Use ServerClustered
-          git cherry-pick f5bc088d3d9517f5b3d5a4dfa08ba2eecf39054e  # incusd/auth/openfga: Only sync resources on the leader
-          git cherry-pick 3583162af58e90889c7ef7fa52f1625a47f694bb  # incusd/auth: Make volumes location specific
-          git cherry-pick 6ff77e47b4c6d47906deddce3a6553717a251626  # incusd/auth: Make buckets location specific
-          git cherry-pick 12478158ff084f755fc3de2dc9334dcd3082c3af  # incusd/auth: Allow variable identifiers
-          git cherry-pick 0e0b89676e3265f443048a91d898ccb31f0cc218  # incusd/db/cluster: Add location support to URLToEntityType
-          git cherry-pick 72415f771cb39bdaefe888e1b2c74903e06417a2  # incusd/project: Pass location data
-          git cherry-pick f94fa8b3aba850824e9a7cac5e2631763a6ae394  # incusd/storage: Pass location data
-          git cherry-pick 5dc389b3df45f5e8690c473b613a961f6daf4f0c  # incusd: Update for URLToEntityType
-          git cherry-pick 7c70d236625e9e23cb70242ed97af999d59f8f1a  # incusd: Remove duplicate permission check on bucket delete
-          git cherry-pick f3bf714cbc3623a7d4a048ba2a10cf7aa70ebd5a  # incusd: Update OpenFGA resources for location
-          git cherry-pick e97811d568acbeb7e1f2339c06507eddff602aad  # incusd: Update permission checks for buckets
-          git cherry-pick 8260b53c71be5d289976763face5b508e6c5af50  # incusd: Update permission checks for volumes
-          git cherry-pick 12cddd458e935e03538d9674f9540ce895a805ac  # incusd/auth: Add location support in ObjectFromRequest
-          git cherry-pick f422872f0be501d793d68ae2d2d43d5849e72121  # incusd/project: Add ImageProjectFromRecord
-          git cherry-pick abe80a2f3677029fd5e969e855ccc0ce5ebd24f2  # incusd/auth/openfga: Fix diff logic to compare the correct objects
-          git cherry-pick 504471e673714100768c93771e9e78c67b6f8804  # incusd/images: Perform access control after fingerprint expansion
-          git cherry-pick c4c246deb83dbbfde5ad0876eaa360ad7edb74b9  # incusd: Add expansion of image and certificate fingerprints
-          git cherry-pick 0a45f7791342d1d06be3b6b05838dc4a8968784e  # incusd: Add expansion of project names for inheritance
-          git cherry-pick 94505aa720e13f389414c779adf2c7e5cd9abc20  # incusd/images: Record downloaded images with authorizer
-          git cherry-pick 2ba8cf5126046c12898d53f98225e4dd71af51a7  # incusd/images: Don't use request context in authorizer for background operations
-          git cherry-pick deab6407b80e086a10dda17a803ecf9a8a116a23  # incusd/projects: Don't use request context in authorizer for background operations
-          git cherry-pick e4964ef73f6d3b94502c41899020ebe48164a3ab  # incusd/storage/drivers: Add singular helper for volume types
-          git cherry-pick a7431c6973da17a25b190d1038b71b5aa920c4a9  # incusd/storage: Update authorizer for all operations
-          git cherry-pick 8697f4f8ec95a4bc996dc5ef2df4c05da48b611d  # incusd/auth/openfga: Handle offline servers
-          git cherry-pick fca5c563d0a3071a9091c98007c55a11aaaa6524  # incusd/auth/openfga: Allow for later resources refresh
-          git cherry-pick 8c0effd5851f4b9b44dbe4c9219a0597fea9d8c3  # incusd/auth/openfga: Re-sync resources hourly
-          git cherry-pick ed6a5032e2051762fc25e21ae61fbec8ee2af8fb  # incusd/auth/openfga: Fix handling of cluster members
-          git cherry-pick 48325541674a6e7b0cecb5609c87ca45815f2550  # incusd: Use expanded cert fingerprint in authorizer check
-          git cherry-pick 3515a799214894318f06159369dcfa2eb1ff5215  # internal/server/response: Don't re-send headers when streaming
-          git cherry-pick e5a0594c5f4c5995e7a52bdba70976caf5743201  # incusd/operations: Use ManualResponse to send headers early
-          git cherry-pick 84378d05bff07008e9ccb6f0b10737d2cf9bd477  # [lxd-import] lxd/instance/drivers: Set correct RBD content type for qemu drives
-          git cherry-pick 6cb220fd46b8dbb61cabd4aa03e535d74b3ce3ea  # incusd/storage: Use Shutdown context for import from backup
-          git cherry-pick 4feeb19fe3a2507e7b4198ab97d47cbae8ca1937  # incusd/storage: Fix size check for ISO volumes
-          git cherry-pick 9d57c66ce3a4aecac829ae1f41285bcba17df08e  # lxd-to-incus: Add security.devlxd to deprecated keys
-          git cherry-pick 9089a80d8bb9f5ec4b44b09a98242e136fe757d3  # lxd-to-incus: Delete old OVN bridges
-          git cherry-pick b38e618f7a62b7103cbbffbf1860441e20f798c1  # lxd-to-incus: Mangle project and profile descriptions
-          git cherry-pick 3e4ec308d9340c9f091ffc9013db5df2a3849875  # lxd-to-incus: Don't spam the output with command failures
-          git cherry-pick 0a865e0c280efa7e6eed741a1e4979750216477e  # incusd/instance/qemu: Properly set cdrom type
-          git cherry-pick 6223cbf9a5e11f075c8dec36d6710216ec2a33d3  # incusd/endpoints: Also hide read errors from proxies
 
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" -tags=libsqlite3 github.com/lxc/incus/cmd/incus-benchmark
