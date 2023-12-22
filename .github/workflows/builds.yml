@@ -280,6 +280,9 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick 2fbdbe9518f8739d5e4adcca0e9e963e96f41053  # incusd/instances/qemu: Don't fail event sending on missing agent
+          git cherry-pick 697cafa5c7d10e1241787ee42a828f9b87507f55  # incusd/network/ovsdb: Properly close the connections
+
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" -tags=libsqlite3 github.com/lxc/incus/cmd/incus-benchmark
           go build -o "/opt/incus/bin/incus-user" -tags=libsqlite3 github.com/lxc/incus/cmd/incus-user
