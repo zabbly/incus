@@ -282,6 +282,13 @@ jobs:
 
           git cherry-pick 2fbdbe9518f8739d5e4adcca0e9e963e96f41053  # incusd/instances/qemu: Don't fail event sending on missing agent
           git cherry-pick 697cafa5c7d10e1241787ee42a828f9b87507f55  # incusd/network/ovsdb: Properly close the connections
+          git cherry-pick 246c5b89bfc2942e756ff815c79b3cc2053e2d53  # incusd/network/ovn: Use Mutate instead of Update
+          git cherry-pick c19b9f50258532515c96ea971562bdb8d53da813  # incusd/network/ovs: Port BridgeDelete to OVSDB
+          git cherry-pick 9a4e2c6df284ef3e2efcaa42c189d50bcc1d0812  # incusd/network/ovs: Port BridgeAdd to OVSDB
+          git cherry-pick 77f1b61d2e8ba14736c66ea263dfa04217cac420  # incusd/network/ovs: Port BridgePortAdd to OVSDB
+          git cherry-pick 607dc9d56a4b4ab96bcb32fded3fa0796ed28f80  # incusd/network/ovn: Port LogicalSwitchPortIPs to OVSDB
+          git cherry-pick fc5689af87524db5c30596281d9852b166996d01  # incus-doc: Don't try to guess types
+          git cherry-pick fcb3bba3485093db79a4b7a3ee2c01ee3c8ede3f  # doc: Update configs
 
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" -tags=libsqlite3 github.com/lxc/incus/cmd/incus-benchmark
