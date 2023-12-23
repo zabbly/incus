@@ -57,9 +57,10 @@ if [ "$1" = "configure" ]; then
         systemctl restart incus-user.service
     fi
 
-    if systemctl is-active incus-lxcfs.service -q; then
-        systemctl reload incus-lxcfs.service
-    fi
+    # NOTE: Disabled due to LXCFS crash risk.
+    # if systemctl is-active incus-lxcfs.service -q; then
+    #     systemctl reload incus-lxcfs.service
+    # fi
 fi
 
 exit 0
