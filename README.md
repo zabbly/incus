@@ -108,7 +108,7 @@ Commercial support for those Incus packages is provided by Zabbly, details at ht
 
 You can also help support the work on Incus and on those packages through:
 
- - [Github Sponsors](https://gituhb.com/sponsors/stgraber)
+ - [Github Sponsors](https://github.com/sponsors/stgraber)
  - [Patreon](https://patreon.com/stgraber)
  - [Ko-Fi](https://ko-fi.com/stgraber)
 
