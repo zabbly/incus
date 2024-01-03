@@ -16,6 +16,8 @@ Those packages are built for:
 * Debian 11 (`bullseye`) (`amd64` only)
 * Debian 12 (`bookworm`)
 
+Unless otherwise mentioned, packages are built for both `amd64` (Intel/AMD 64bit) and `arm64` (Arm 64bit).
+
 ## Installation
 
 All commands should be run as root.
