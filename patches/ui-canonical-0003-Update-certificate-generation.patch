@@ -100,7 +100,7 @@ index e539588..bc09982 100644
                      <div className="p-code-snippet">
                        <pre className="p-code-snippet__block--icon">
 -                        <code>lxc config trust add --name lxd-ui</code>
-+                        <code>incus config trust add --name incus-ui</code>
++                        <code>incus config trust add incus-ui</code>
                        </pre>
                      </div>
                    </div>
