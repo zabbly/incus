@@ -142,6 +142,12 @@ jobs:
 
           pip3 install meson || pip3 install meson --break-system-packages
 
+      - name: Install backporter debhelper (on focal)
+        if: ${{ matrix.os == 'ubuntu-20.04' }}
+        run: |
+          echo "deb http://archive.ubuntu.com/ubuntu focal-backports main restricted universe multiverse" >> /etc/apt/sources.list
+          apt-get install -t focal-backports debhelper --yes
+
       - name: Install Go
         run: |
           curl -sL "https://go.dev/dl/${GOLANG_TAG}.linux-${OS_ARCH}.tar.gz" | tar -C /usr/local/ -zx
