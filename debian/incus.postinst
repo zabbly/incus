@@ -9,31 +9,35 @@ if [ "$1" = "configure" ]; then
 
         # Manage subuid/subgid allocation for containers user namespaces
         # Based on LXD Debian package logic (https://salsa.debian.org/go-team/packages/lxd/-/blob/debian/sid/debian/lxd.preinst)
-        NEXT_UID=1000000
-        while read line; do
-            OLD_IFS=$IFS
-            IFS=":"
-            set -- $line
-            IFS=$OLD_IFS
-            [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] && continue
+        #
+        # Run in a sub-shell to avoid messing with the script arguments.
+        (
+            NEXT_UID=1000000
+            while read line; do
+                OLD_IFS=$IFS
+                IFS=":"
+                set -- $line
+                IFS=$OLD_IFS
+                [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] && continue
 
-            LAST=$(($2+$3))
-            [ "$LAST" -gt "$NEXT_UID" ] && NEXT_UID=$LAST
-        done < /etc/subuid
-        usermod --add-subuids ${NEXT_UID}-$(($NEXT_UID+999999999)) root
+                LAST=$(($2+$3))
+                [ "$LAST" -gt "$NEXT_UID" ] && NEXT_UID=$LAST
+            done < /etc/subuid
+            usermod --add-subuids ${NEXT_UID}-$(($NEXT_UID+999999999)) root
 
-        NEXT_GID=1000000
-        while read line; do
-            OLD_IFS=$IFS
-            IFS=":"
-            set -- $line
-            IFS=$OLD_IFS
-            [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] && continue
+            NEXT_GID=1000000
+            while read line; do
+                OLD_IFS=$IFS
+                IFS=":"
+                set -- $line
+                IFS=$OLD_IFS
+                [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] && continue
 
-            LAST=$(($2+$3))
-            [ "$LAST" -gt "$NEXT_GID" ] && NEXT_GID=$LAST
-        done < /etc/subgid
-        usermod --add-subgids ${NEXT_GID}-$(($NEXT_GID+999999999)) root
+                LAST=$(($2+$3))
+                [ "$LAST" -gt "$NEXT_GID" ] && NEXT_GID=$LAST
+            done < /etc/subgid
+            usermod --add-subgids ${NEXT_GID}-$(($NEXT_GID+999999999)) root
+        )
     fi
 
     # Apply the sysctls.
