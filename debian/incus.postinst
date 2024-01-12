@@ -54,10 +54,9 @@ case "$1" in
             systemctl restart incus-user.service
         fi
 
-        # NOTE: Disabled due to LXCFS crash risk.
-        # if systemctl is-active incus-lxcfs.service -q; then
-        #     systemctl reload incus-lxcfs.service
-        # fi
+        if systemctl is-active incus-lxcfs.service -q; then
+            systemctl reload incus-lxcfs.service
+        fi
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
