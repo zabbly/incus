@@ -368,6 +368,27 @@ jobs:
 
           cd /build/seabios
 
+          # Build a traditional seabios.
+          make clean distclean
+          echo "CONFIG_QEMU=y" >> .config
+          echo "CONFIG_QEMU_HARDWARE=y" > .config
+          echo "CONFIG_BOOTSPLASH=n" >> .config
+          echo "CONFIG_ROM_SIZE=256" >> .config
+          echo "CONFIG_XEN=n" >> .config
+          echo "CONFIG_PVSCSI=n" >> .config
+          echo "CONFIG_ESP_SCSI=n" >> .config
+          echo "CONFIG_LSI_SCSI=n" >> .config
+          echo "CONFIG_MEGASAS=n" >> .config
+          echo "CONFIG_MPT_SCSI=n" >> .config
+          echo "CONFIG_FLOPPY=n" >> .config
+          echo "CONFIG_FLASH_FLOPPY=n" >> .config
+          make oldnoconfig V=1
+          make V=1 PYTHON=python3
+
+          mkdir -p /opt/incus/share/qemu/
+          cp out/bios.bin /opt/incus/share/qemu/seabios.bin
+
+          # Build a CSM seabios.
           make clean distclean
           echo "CONFIG_QEMU_HARDWARE=y" > .config
           echo "CONFIG_CSM=y" >> .config
