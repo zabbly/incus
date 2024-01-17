@@ -16,6 +16,8 @@ override_dh_install:
 	# Handle incus-client
 	rm debian/incus/usr/bin/incus
 	rm debian/incus/opt/incus/bin/incus
+	rm -R debian/incus/opt/incus/locale
+	rm -R debian/incus/usr/share/locale
 
 	# Handle incus-ui-canonical
 	mkdir -p debian/incus-ui-canonical/opt/incus/
