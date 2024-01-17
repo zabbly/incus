@@ -1,2 +1,4 @@
 usr/bin/incus
+usr/share/locale
 opt/incus/bin/incus
+opt/incus/locale

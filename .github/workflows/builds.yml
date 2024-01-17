@@ -91,6 +91,7 @@ jobs:
             expect \
             flex \
             gawk \
+            gettext \
             git \
             iproute2 \
             libacl1-dev \
@@ -293,6 +294,10 @@ jobs:
           go build -o "/opt/incus/bin/incusd" -tags=libsqlite3 github.com/lxc/incus/cmd/incusd
           go build -o "/opt/incus/bin/lxc-to-incus" github.com/lxc/incus/cmd/lxc-to-incus
           CGO_ENABLED=0 go build -o "/opt/incus/bin/incus-agent" -tags=agent,netgo github.com/lxc/incus/cmd/incus-agent
+
+          make build-mo
+          mkdir -p /opt/incus/locale
+          cp po/*.mo /opt/incus/locale/
 
           make doc
           cp -R doc/html /opt/incus/doc
@@ -655,6 +660,13 @@ jobs:
 
           mkdir -p pkg/var/log/incus
           chmod 700 pkg/var/log/incus
+
+          mkdir -p pkg/usr/share/locale
+          for i in /opt/incus/locale/*.mo; do
+            LANG=$(echo $i | sed -e "s#.*/locale/##g" -e "s#.mo\$##g")
+            mkdir -p pkg/usr/share/locale/${LANG}/LC_MESSAGES
+            ln -s ${i} pkg/usr/share/locale/${LANG}/LC_MESSAGES/incus.mo
+          done
 
           cd pkg
           dch --package incus --create -D ${CODENAME} -M -m "Automated Incus daily build" -v 0~$(date -u +%Y%m%d%H%M)-$(echo ${PKGOS} | sed "s/-//g") --force-distribution
