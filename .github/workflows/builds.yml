@@ -296,6 +296,7 @@ jobs:
           go build -o "/opt/incus/bin/incus-benchmark" -tags=libsqlite3 github.com/lxc/incus/cmd/incus-benchmark
           go build -o "/opt/incus/bin/incus-user" -tags=libsqlite3 github.com/lxc/incus/cmd/incus-user
           go build -o "/opt/incus/bin/incusd" -tags=libsqlite3 github.com/lxc/incus/cmd/incusd
+          go build -o "/opt/incus/bin/lxd-to-incus" -tags=libsqlite3 github.com/lxc/incus/cmd/lxd-to-incus
           go build -o "/opt/incus/bin/lxc-to-incus" github.com/lxc/incus/cmd/lxc-to-incus
           CGO_ENABLED=0 go build -o "/opt/incus/bin/incus-agent" -tags=agent,netgo github.com/lxc/incus/cmd/incus-agent
 
@@ -308,9 +309,6 @@ jobs:
 
           mkdir -p /opt/incus/share/bash_completion.d/
           cp scripts/bash/incus /opt/incus/share/bash_completion.d/incus
-
-          cd /build/incus/cmd/lxd-to-incus
-          go build -o "/opt/incus/bin/lxd-to-incus" -tags=libsqlite3 ./
 
       - name: Build UI (canonical)
         run: |
