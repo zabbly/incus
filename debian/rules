@@ -10,15 +10,23 @@ override_dh_install:
 	dh_install
 	dh_installsysusers
 
+	# Handle incus-base
+	mkdir -p debian/incus-base/opt/incus/ui/
+
 	# Handle incus
-	mkdir -p debian/incus/opt/incus/ui/
+	rm -R debian/incus-base/opt/incus/share/qemu
+	rm -R debian/incus-base/opt/incus/agent
+	rm debian/incus-base/opt/incus/bin/qemu-img
+	rm debian/incus-base/opt/incus/bin/qemu-system-*
+	rm debian/incus-base/opt/incus/bin/virtfs-proxy-helper
+	rm debian/incus-base/opt/incus/bin/virtiofsd
 
 	# Handle incus-client
-	rm debian/incus/usr/bin/incus
-	rm debian/incus/opt/incus/bin/incus
-	rm -R debian/incus/opt/incus/locale
-	rm -R debian/incus/usr/share/locale
+	rm debian/incus-base/usr/bin/incus
+	rm debian/incus-base/opt/incus/bin/incus
+	rm -R debian/incus-base/opt/incus/locale
+	rm -R debian/incus-base/usr/share/locale
 
 	# Handle incus-ui-canonical
 	mkdir -p debian/incus-ui-canonical/opt/incus/
-	mv debian/incus/opt/incus/ui-canonical debian/incus-ui-canonical/opt/incus/ui
+	mv debian/incus-base/opt/incus/ui-canonical debian/incus-ui-canonical/opt/incus/ui
