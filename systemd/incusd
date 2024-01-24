@@ -4,6 +4,7 @@ set -e
 export INCUS_DOCUMENTATION=/opt/incus/doc/
 export INCUS_LXC_HOOK=/opt/incus/share/lxc/hooks/
 export INCUS_LXC_TEMPLATE_CONFIG=/opt/incus/share/lxc/config/
+export INCUS_AGENT_PATH=/opt/incus/agent/
 export INCUS_OVMF_PATH=/opt/incus/share/qemu/
 export INCUS_UI=/opt/incus/ui/
 export LD_LIBRARY_PATH=/opt/incus/lib/
