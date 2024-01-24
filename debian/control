@@ -10,11 +10,34 @@ Rules-Requires-Root: no
 Package: incus
 Architecture: linux-any
 Depends: ${misc:Depends},
+  incus-base (= ${source:Version}),
+  genisoimage,
+  libnuma1,
+  libpixman-1-0,
+  librados2,
+  librbd1,
+  libseccomp2,
+  libspice-server1,
+  libusb-1.0-0,
+  libusbredirparser1
+Pre-Depends: ${misc:Pre-Depends}
+Description: Incus -  Container and virtualization daemon (container-only)
+ Incus provides the ability to run containers and virtual machines locally
+ along with very flexible networking and storage akin to what's offered
+ in a public cloud environment.
+ .
+ This package contains everything needed to run containers and VMs.
+ .
+ This build of Incus is provided for free by Zabbly.
+ Zabbly can be contacted for commercial support and development on Incus.
+
+Package: incus-base
+Architecture: linux-any
+Depends: ${misc:Depends},
   apparmor,
   attr,
   ca-certificates,
   dnsmasq-base,
-  genisoimage,
   incus-client (= ${source:Version}),
   iptables,
   iw,
@@ -30,19 +53,11 @@ Depends: ${misc:Depends},
   libnet1,
   libnftables1,
   libnl-3-200,
-  libnuma1,
-  libpixman-1-0,
   libprotobuf-c1,
-  librados2,
-  librbd1,
-  libseccomp2,
   libseccomp2,
   libselinux1,
-  libspice-server1,
   libsqlite3-0,
   libudev1,
-  libusb-1.0-0,
-  libusbredirparser1,
   libuv1,
   nftables,
   rsync,
@@ -55,10 +70,14 @@ Suggests:
   lvm2,
   zfsutils-linux | openzfs-zfsutils
 Pre-Depends: ${misc:Pre-Depends}
-Description: Incus -  Container and virtualization daemon
+Breaks: incus (<< ${source:Version})
+Replaces: incus (<< ${source:Version})
+Description: Incus -  Container and virtualization daemon (container-only)
  Incus provides the ability to run containers and virtual machines locally
  along with very flexible networking and storage akin to what's offered
  in a public cloud environment.
+ .
+ This package contains only what's needed to run containers.
  .
  This build of Incus is provided for free by Zabbly.
  Zabbly can be contacted for commercial support and development on Incus.

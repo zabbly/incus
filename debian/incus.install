@@ -1,5 +1,6 @@
-etc
-lib
-opt
-usr
-var
+opt/incus/agent
+opt/incus/bin/qemu-img
+opt/incus/bin/qemu-system-*
+opt/incus/bin/virtfs-proxy-helper
+opt/incus/bin/virtiofsd
+opt/incus/share/qemu
