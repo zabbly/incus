@@ -45,7 +45,7 @@ jobs:
       PATH: "/opt/incus/bin:/root/.cargo/bin:/usr/local/go/bin:/usr/local/node/bin:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
       LXC_TAG: "lxc-5.0.3"
       LXCFS_TAG: "lxcfs-5.0.4"
-      INCUS_TAG: "v0.4.0"
+      INCUS_TAG: "v0.5.0"
       INCUS_UI_CANONICAL_TAG: "0.5"
       RAFT_TAG: "v0.19.1"
       COWSQL_TAG: "v1.15.4"
@@ -286,11 +286,6 @@ jobs:
           REPO="${PWD}"
 
           cd /build/incus
-
-          git cherry-pick 2fbdbe9518f8739d5e4adcca0e9e963e96f41053  # incusd/instances/qemu: Don't fail event sending on missing agent
-          git cherry-pick 697cafa5c7d10e1241787ee42a828f9b87507f55  # incusd/network/ovsdb: Properly close the connections
-          git cherry-pick fc5689af87524db5c30596281d9852b166996d01  # incus-doc: Don't try to guess types
-          git cherry-pick fcb3bba3485093db79a4b7a3ee2c01ee3c8ede3f  # doc: Update configs
 
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" -tags=libsqlite3 github.com/lxc/incus/cmd/incus-benchmark
