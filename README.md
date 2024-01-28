@@ -18,6 +18,8 @@ Those packages are built for:
 
 Unless otherwise mentioned, packages are built for both `amd64` (Intel/AMD 64bit) and `arm64` (Arm 64bit).
 
+NOTE: It is often possible to use those packages on other non-LTS Ubuntu releases by picking the closest LTS release prior to the Ubuntu version being run.
+
 ## Installation
 
 All commands should be run as root.
