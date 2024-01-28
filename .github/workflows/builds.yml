@@ -45,7 +45,7 @@ jobs:
       PATH: "/opt/incus/bin:/root/.cargo/bin:/usr/local/go/bin:/usr/local/node/bin:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
       LXC_TAG: "lxc-5.0.3"
       LXCFS_TAG: "lxcfs-5.0.4"
-      INCUS_TAG: "v0.5.0"
+      INCUS_TAG: "v0.5.1"
       INCUS_UI_CANONICAL_TAG: "0.5"
       RAFT_TAG: "v0.19.1"
       COWSQL_TAG: "v1.15.4"
