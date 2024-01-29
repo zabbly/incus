@@ -61,6 +61,7 @@ Depends: ${misc:Depends},
   libuv1,
   nftables,
   rsync,
+  sgdisk,
   squashfs-tools,
   xdelta3,
   xz-utils
