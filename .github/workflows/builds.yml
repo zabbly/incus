@@ -289,6 +289,7 @@ jobs:
 
           git cherry-pick add57027531b82a14db51917828692460c9ebf91  # incusd/instance/qemu/qmp: Don't risk blocking QMP on eject
           git cherry-pick bfdd69289eaae5e0562830116d1e67b5d173eaa9  # incusd/db: Fix error handling in CreateNetworkPeer
+          git cherry-pick aebcd59a3400f255aa9da97d271ec4c2b9ba4eb2  # incusd/instance/qemu/agent-loader: Handle legacy lxd-agent-loader
 
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" -tags=libsqlite3 github.com/lxc/incus/cmd/incus-benchmark
