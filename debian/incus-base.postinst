@@ -12,6 +12,7 @@ if [ "$1" = "configure" ]; then
         #
         # Run in a sub-shell to avoid messing with the script arguments.
         (
+            FOUND_UID=0
             NEXT_UID=1000000
             while read line; do
                 OLD_IFS=$IFS
@@ -20,11 +21,13 @@ if [ "$1" = "configure" ]; then
                 IFS=$OLD_IFS
                 [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] && continue
 
+                [ "$1" = "root" ] && [ "$3" -ge 65536 ] && FOUND_UID=1
+
                 LAST=$(($2+$3))
                 [ "$LAST" -gt "$NEXT_UID" ] && NEXT_UID=$LAST
             done < /etc/subuid
-            usermod --add-subuids ${NEXT_UID}-$(($NEXT_UID+999999999)) root
 
+            FOUND_GID=0
             NEXT_GID=1000000
             while read line; do
                 OLD_IFS=$IFS
@@ -33,10 +36,16 @@ if [ "$1" = "configure" ]; then
                 IFS=$OLD_IFS
                 [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] && continue
 
+                [ "$1" = "root" ] && [ "$3" -ge 65536 ] && FOUND_GID=1
+
                 LAST=$(($2+$3))
                 [ "$LAST" -gt "$NEXT_GID" ] && NEXT_GID=$LAST
             done < /etc/subgid
-            usermod --add-subgids ${NEXT_GID}-$(($NEXT_GID+999999999)) root
+
+            if [ "${FOUND_UID}" = "0" ] || [ "${FOUND_GID}" = "0" ]; then
+                usermod --add-subuids ${NEXT_UID}-$(($NEXT_UID+999999999)) root
+                usermod --add-subgids ${NEXT_GID}-$(($NEXT_GID+999999999)) root
+            fi
         )
     fi
 
