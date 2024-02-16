@@ -1,23 +1,23 @@
-From 837f1824fb44a3f9d47370ebb098e09f84e7fd9d Mon Sep 17 00:00:00 2001
+From 9f44a025b61024f47c8eabcf9a0f25af0d2585da Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Wed, 22 Nov 2023 23:02:27 +0000
-Subject: [PATCH 2/5] Update navigation
+Subject: [PATCH 2/6] Update navigation
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
 Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
 ---
- src/components/Navigation.tsx | 5 ++---
+ src/components/Navigation.tsx | 4 ++--
  src/components/NoMatch.tsx    | 2 +-
  src/context/useDocs.tsx       | 2 +-
- 3 files changed, 4 insertions(+), 5 deletions(-)
+ 3 files changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/src/components/Navigation.tsx b/src/components/Navigation.tsx
-index 0e0c704..93d2db2 100644
+index d2321da..f79deeb 100644
 --- a/src/components/Navigation.tsx
 +++ b/src/components/Navigation.tsx
-@@ -287,7 +287,7 @@ const Navigation: FC = () => {
+@@ -286,7 +286,7 @@ const Navigation: FC = () => {
                    <li className="p-side-navigation__item">
                      <a
                        className="p-side-navigation__link"
@@ -26,7 +26,7 @@ index 0e0c704..93d2db2 100644
                        target="_blank"
                        rel="noreferrer"
                        title="Discussion"
-@@ -302,7 +302,7 @@ const Navigation: FC = () => {
+@@ -301,7 +301,7 @@ const Navigation: FC = () => {
                    <li className="p-side-navigation__item">
                      <a
                        className="p-side-navigation__link"
@@ -35,14 +35,6 @@ index 0e0c704..93d2db2 100644
                        target="_blank"
                        rel="noreferrer"
                        title="Report a bug"
-@@ -314,7 +314,6 @@ const Navigation: FC = () => {
-                       Report a bug
-                     </a>
-                   </li>
--                  <Version />
-                 </ul>
-               </div>
-             </div>
 diff --git a/src/components/NoMatch.tsx b/src/components/NoMatch.tsx
 index 8d5270c..bd9e515 100644
 --- a/src/components/NoMatch.tsx
@@ -70,5 +62,5 @@ index 454d98c..90a0de9 100644
  
    const { data: settings } = useSettings();
 -- 
-2.39.2
+2.34.1
 

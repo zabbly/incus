@@ -1,7 +1,7 @@
-From 5a6bbf820b99181cca2cc56a728372ca6f306082 Mon Sep 17 00:00:00 2001
+From 530478927deddecbcc49efd01cad10ed49f0ca26 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Wed, 22 Nov 2023 22:59:56 +0000
-Subject: [PATCH] Branding
+Subject: [PATCH 1/6] Branding
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -13,9 +13,11 @@ Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
  public/assets/img/incus-logo.svg    | 129 ++++++++++++++++++++++++++++
  public/assets/img/lxd-logo.svg      |  34 --------
  src/components/Logo.tsx             |   6 +-
+ src/pages/login/Login.tsx           |   1 -
  src/sass/_pattern_navigation.scss   |   8 +-
+ src/sass/styles.scss                |   4 -
  src/util/title.tsx                  |   2 +-
- 7 files changed, 138 insertions(+), 43 deletions(-)
+ 9 files changed, 138 insertions(+), 48 deletions(-)
  create mode 100644 public/assets/img/incus-logo.svg
  delete mode 100644 public/assets/img/lxd-logo.svg
 
@@ -310,8 +312,20 @@ index bcaf07e..92a0a5a 100644
      </NavLink>
    );
  };
+diff --git a/src/pages/login/Login.tsx b/src/pages/login/Login.tsx
+index 608f7a0..130198e 100644
+--- a/src/pages/login/Login.tsx
++++ b/src/pages/login/Login.tsx
+@@ -24,7 +24,6 @@ const Login: FC = () => {
+     <CustomLayout>
+       <Row className="empty-state">
+         <Col size={6} className="col-start-large-4">
+-          <Icon name="containers" className="empty-state-icon lxd-icon" />
+           <h1 className="p-heading--4 u-sv-2">Login</h1>
+           {hasOidc && (
+             <>
 diff --git a/src/sass/_pattern_navigation.scss b/src/sass/_pattern_navigation.scss
-index a224ef4..d68f363 100644
+index 92236ef..1373ab0 100644
 --- a/src/sass/_pattern_navigation.scss
 +++ b/src/sass/_pattern_navigation.scss
 @@ -5,20 +5,20 @@
@@ -347,18 +361,33 @@ index a224ef4..d68f363 100644
      }
    }
  }
+diff --git a/src/sass/styles.scss b/src/sass/styles.scss
+index 43f63ae..7aa17ac 100644
+--- a/src/sass/styles.scss
++++ b/src/sass/styles.scss
+@@ -146,10 +146,6 @@ body {
+   @include vf-icon-external-link($color-link);
+ }
+ 
+-.lxd-icon {
+-  background-image: url("data:image/svg+xml,%0A%3Csvg width='38' height='38' viewBox='0 0 38 38' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M28.5311 15.7998V5.71128L18.6554 0L8.77977 5.71128V15.7998L0 20.8683V32.2887L9.87566 38L18.6554 32.9083L27.4352 37.9768L37.3108 32.2655V20.8451L28.5311 15.7998ZM18.6554 2.57113L26.3182 6.99684V15.7998L18.6554 20.2487L10.9694 15.823V7.02002L18.6554 2.57113ZM9.87566 35.431L2.21286 31.0053V22.1538L9.85037 17.7513L17.5595 22.2002V31.0032L9.87355 35.4289L9.87566 35.431ZM35.098 31.0053L27.4352 35.431L19.7724 31.0053V22.2023L27.4816 17.7534L35.1191 22.156V31.0074H35.0959L35.098 31.0053Z' fill='%23D9D9D9'/%3E%3Cpath d='M28.1978 31.9072L32.4085 29.4099V24.4594L28.1978 26.9357V31.9072Z' fill='%23D9D9D9'/%3E%3Cpath d='M27.4119 20.7966L23.2012 23.2223L27.4372 25.627L31.648 23.1507L27.4119 20.7966Z' fill='%23D9D9D9'/%3E%3Cpath d='M22.4635 29.4816L26.6995 31.9558V26.9357L22.415 24.5311L22.4635 29.4816Z' fill='%23D9D9D9'/%3E%3Cpath d='M9.85235 20.7966L5.6416 23.2223L9.87553 25.627L14.0884 23.1507L9.85235 20.7966Z' fill='%23D9D9D9'/%3E%3Cpath d='M4.90371 29.4816L9.13764 31.9558V26.9357L4.87842 24.5311L4.90371 29.4816Z' fill='%23D9D9D9'/%3E%3Cpath d='M10.6387 31.9072L14.8726 29.4099V24.4594L10.6387 26.9357V31.9072Z' fill='%23D9D9D9'/%3E%3Cpath d='M22.8455 7.97052L18.6326 5.63965L14.4219 8.06536L18.6326 10.4447L22.8455 7.97052Z' fill='%23D9D9D9'/%3E%3Cpath d='M17.8946 16.7755V11.7534L13.6606 9.35083L13.6838 14.3245L17.8946 16.7755Z' fill='%23D9D9D9'/%3E%3Cpath d='M19.3955 16.7503L23.6294 14.2529V9.2561L19.3955 11.7535V16.7503Z' fill='%23D9D9D9'/%3E%3C/svg%3E%0A");
+-}
+-
+ .actions-list {
+   display: inline-block;
+   min-width: 8.5rem;
 diff --git a/src/util/title.tsx b/src/util/title.tsx
-index 715fd43..a40b0b7 100644
+index 8a80a11..6b69387 100644
 --- a/src/util/title.tsx
 +++ b/src/util/title.tsx
 @@ -6,6 +6,6 @@ export const setTitle = () => {
  
    useEffect(() => {
-     const host = settings?.config["user.ui_title"] ?? location.hostname;
+     const host = settings?.config?.["user.ui_title"] ?? location.hostname;
 -    document.title = `${host} | LXD UI`;
 +    document.title = `${host} | Incus UI`;
    }, [settings?.config]);
  };
 -- 
-2.39.2
+2.34.1
 
