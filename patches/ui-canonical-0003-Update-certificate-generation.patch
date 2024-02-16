@@ -1,7 +1,7 @@
-From fc477ad289e1be83d2e4350e07563c01c8750468 Mon Sep 17 00:00:00 2001
+From fc42d29bfc591a2f3a31cb7355ac5a6fb2f64614 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Wed, 22 Nov 2023 23:03:33 +0000
-Subject: [PATCH 3/5] Update certificate generation
+Subject: [PATCH 3/6] Update certificate generation
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -92,7 +92,7 @@ index f3cbcae..5d11d80 100644
                </li>
              </ul>
 diff --git a/src/pages/login/CertificateAdd.tsx b/src/pages/login/CertificateAdd.tsx
-index e539588..bc09982 100644
+index e539588..05ed677 100644
 --- a/src/pages/login/CertificateAdd.tsx
 +++ b/src/pages/login/CertificateAdd.tsx
 @@ -52,7 +52,7 @@ const CertificateAdd: FC = () => {
@@ -191,5 +191,5 @@ index b409147..a802f5d 100644
    const der = forge.asn1.toDer(asn1).getBytes();
    const pfx = forge.util.encode64(der);
 -- 
-2.39.2
+2.34.1
 

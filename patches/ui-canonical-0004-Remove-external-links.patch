@@ -1,7 +1,7 @@
-From 1ada954bbf0220653ad3edec673b83fc32f2c56d Mon Sep 17 00:00:00 2001
+From 7d9a5b8d9bbf2408dc8334e34db9f487a691c0b3 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Wed, 22 Nov 2023 23:12:29 +0000
-Subject: [PATCH 4/5] Remove external links
+Subject: [PATCH 4/6] Remove external links
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -12,13 +12,13 @@ Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
  1 file changed, 11 deletions(-)
 
 diff --git a/src/pages/storage/UploadCustomImageHint.tsx b/src/pages/storage/UploadCustomImageHint.tsx
-index b66934e..fbb616d 100644
+index 128c658..22c9a1f 100644
 --- a/src/pages/storage/UploadCustomImageHint.tsx
 +++ b/src/pages/storage/UploadCustomImageHint.tsx
 @@ -9,17 +9,6 @@ const UploadCustomImageHint: FC = () => {
-           <h5 className="p-notification__title">
+           <h3 className="p-notification__title">
              Some image formats need to be modified in order to work with LXD.
-           </h5>
+           </h3>
 -          <p>
 -            <a
 -              className="p-notification__action"
@@ -34,5 +34,5 @@ index b66934e..fbb616d 100644
        </div>
      </>
 -- 
-2.39.2
+2.34.1
 

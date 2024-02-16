@@ -46,7 +46,7 @@ jobs:
       LXC_TAG: "lxc-5.0.3"
       LXCFS_TAG: "lxcfs-5.0.4"
       INCUS_TAG: "v0.5.1"
-      INCUS_UI_CANONICAL_TAG: "0.5"
+      INCUS_UI_CANONICAL_TAG: "0.6"
       RAFT_TAG: "v0.22.0"
       COWSQL_TAG: "v1.15.4"
       CRIU_TAG: "v3.19"
@@ -197,7 +197,7 @@ jobs:
           git clone https://gitlab.com/virtio-fs/virtiofsd /build/virtiofsd --depth 1 -b "${VIRTIOFSD_TAG}"
           git clone https://gitlab.com/qemu-project/qemu /build/qemu --depth 1 -b "${QEMU_TAG}"
 
-          git clone https://github.com/canonical/lxd-ui /build/incus-ui-canonical -b "${INCUS_UI_CANONICAL_TAG}"
+          git clone https://github.com/canonical/lxd-ui /build/incus-ui-canonical --depth 1 -b "${INCUS_UI_CANONICAL_TAG}"
 
       - name: Build liburing
         run: |
@@ -328,6 +328,7 @@ jobs:
           git am "${REPO}/patches/ui-canonical-0003-Update-certificate-generation.patch"
           git am "${REPO}/patches/ui-canonical-0004-Remove-external-links.patch"
           git am "${REPO}/patches/ui-canonical-0005-Remove-Canonical-image-servers.patch"
+          git am "${REPO}/patches/ui-canonical-0006-Remove-version-check.patch"
 
           # Generic renaming
           sed -i "s/LXD/Incus/g" src/*/*.ts* src/*/*/*.ts* src/*/*/*/*.ts*
