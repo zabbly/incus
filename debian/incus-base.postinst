@@ -50,28 +50,38 @@ if [ "$1" = "configure" ]; then
     fi
 
     # Apply the sysctls.
-    systemctl restart systemd-sysctl || true
+    [ -d /run/systemd/system ] && systemctl restart systemd-sysctl || true
 fi
 
 #DEBHELPER#
 
 if [ "$1" = "configure" ]; then
     # Apply systemd units (done after systemd-sysusers has run).
-    systemctl enable incus-lxcfs.service --now
-    systemctl enable incus.socket --now
-    systemctl enable incus-user.socket --now
-    systemctl enable incus-startup.service --now
+    if [ -d /run/systemd/system ]; then
+        # On running systems, enable and start the units.
+        systemctl enable incus-lxcfs.service --now
+        systemctl enable incus.socket --now
+        systemctl enable incus-user.socket --now
+        systemctl enable incus-startup.service --now
 
-    if systemctl is-active incus.service -q; then
-        systemctl restart incus.service
-    fi
+        # Restart or reload anything that's currently running.
+        if systemctl is-active incus.service -q; then
+            systemctl restart incus.service
+        fi
 
-    if systemctl is-active incus-user.service -q; then
-        systemctl restart incus-user.service
-    fi
+        if systemctl is-active incus-user.service -q; then
+            systemctl restart incus-user.service
+        fi
 
-    if systemctl is-active incus-lxcfs.service -q; then
-        systemctl reload incus-lxcfs.service
+        if systemctl is-active incus-lxcfs.service -q; then
+            systemctl reload incus-lxcfs.service
+        fi
+    else
+        # On non-running systems, just enable the units.
+        systemctl enable incus-lxcfs.service
+        systemctl enable incus.socket
+        systemctl enable incus-user.socket
+        systemctl enable incus-startup.service
     fi
 fi
 
