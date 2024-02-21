@@ -3,10 +3,19 @@ set -e
 
 case "$1" in
     remove)
-        systemctl disable --now incus-startup.service
-        systemctl disable --now incus-user.service incus-user.socket
-        systemctl disable --now incus.service incus.socket
-        systemctl disable --now incus-lxcfs.service
+        if [ -d /run/systemd/system ]; then
+            # On running systems, stop and disable the units.
+            systemctl disable --now incus-startup.service
+            systemctl disable --now incus-user.service incus-user.socket
+            systemctl disable --now incus.service incus.socket
+            systemctl disable --now incus-lxcfs.service
+        else
+            # On non-running systems, just disable the units.
+            systemctl disable incus-startup.service
+            systemctl disable incus-user.service incus-user.socket
+            systemctl disable incus.service incus.socket
+            systemctl disable incus-lxcfs.service
+        fi
     ;;
 
     upgrade|deconfigure|failed-upgrade)
