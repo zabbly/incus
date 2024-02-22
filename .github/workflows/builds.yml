@@ -54,7 +54,7 @@ jobs:
       GOLANG_TAG: "go1.21.7"
       LIBTPMS_TAG: "v0.9.6"
       LIBURING_TAG: "liburing-2.5"
-      MINIO_TAG: "RELEASE.2024-02-14T21-36-02Z"
+      MINIO_TAG: "RELEASE.2024-02-17T01-15-57Z"
       NASM_TAG: "nasm-2.16.01"
       NVIDIA_CONTAINER_TAG: "v1.14.5"
       QEMU_TAG: "v8.2.1"
