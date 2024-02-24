@@ -287,6 +287,12 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick bbc4b946355775606da35557e5404ca83a586c67  # incus/image: Fix column handling with --all-projects
+          git cherry-pick 5a2fb02dad734ba60e0a93b8d68d652765a048f2  # incusd/instance/qemu: Relocate image requirement checks
+          git cherry-pick f2cbbe14f0e6375bfcc9543bb66b4f29f2fa3275  # doc/images: Add requirements.cdrom_agent
+          git cherry-pick 847ae8fdbd6fb6043e6ec2b332522a8a668f3228  # incusd/instance/qemu: Add support for requirements.cdrom_agent
+          git cherry-pick 32a4beecbf8098fdbb15ef5f36088956922630f7  # incusd/device/disk: Fix incorrect block volume usage
+
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" -tags=libsqlite3 github.com/lxc/incus/cmd/incus-benchmark
           go build -o "/opt/incus/bin/incus-user" -tags=libsqlite3 github.com/lxc/incus/cmd/incus-user
