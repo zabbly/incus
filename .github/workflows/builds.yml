@@ -294,6 +294,7 @@ jobs:
           git cherry-pick 32a4beecbf8098fdbb15ef5f36088956922630f7  # incusd/device/disk: Fix incorrect block volume usage
           git cherry-pick ab4ddb6e99847d61114bd3f448e68cbc55e5f677  # incusd/network/ovn: Use ParseIPToNet instead of manual IPToNet and net.ParseIP
           git cherry-pick 40d493d18d6500601e05c05f969b78a00be1c322  # incusd/network/ovn: Use listenAddressNet in family check
+          git cherry-pick 54c80d2e8562004fcf5b39d51b4207993a65b1bf  # incusd/instance/drivers: Disable architecture check on incus cp with snapshots
 
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" -tags=libsqlite3 github.com/lxc/incus/cmd/incus-benchmark
