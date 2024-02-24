@@ -292,6 +292,8 @@ jobs:
           git cherry-pick f2cbbe14f0e6375bfcc9543bb66b4f29f2fa3275  # doc/images: Add requirements.cdrom_agent
           git cherry-pick 847ae8fdbd6fb6043e6ec2b332522a8a668f3228  # incusd/instance/qemu: Add support for requirements.cdrom_agent
           git cherry-pick 32a4beecbf8098fdbb15ef5f36088956922630f7  # incusd/device/disk: Fix incorrect block volume usage
+          git cherry-pick ab4ddb6e99847d61114bd3f448e68cbc55e5f677  # incusd/network/ovn: Use ParseIPToNet instead of manual IPToNet and net.ParseIP
+          git cherry-pick 40d493d18d6500601e05c05f969b78a00be1c322  # incusd/network/ovn: Use listenAddressNet in family check
 
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" -tags=libsqlite3 github.com/lxc/incus/cmd/incus-benchmark
