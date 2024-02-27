@@ -87,6 +87,8 @@ Package: incus-client
 Architecture: any
 Recommends:
   sshfs
+Suggests:
+  bash-completion
 Pre-Depends: ${misc:Pre-Depends}
 Breaks: incus (<< ${source:Version})
 Replaces: incus (<< ${source:Version})
