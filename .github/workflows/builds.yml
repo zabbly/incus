@@ -297,6 +297,16 @@ jobs:
           git cherry-pick 54c80d2e8562004fcf5b39d51b4207993a65b1bf  # incusd/instance/drivers: Disable architecture check on incus cp with snapshots
           git cherry-pick b4f45ae6e95c7882680f49210a824c31e69b7285  # incusd/network/bridge: Set local address on all VXLAN tunnels
           git cherry-pick e39888708011f980edce8fb4bda7f13caac3ef7d  # incus/instance/qemu: Fix RecordOutput
+          git cherry-pick 6f122017601037dae2f39448bbbb09453f6f5076  # incusd/network/ovn: Introduce get helper
+          git cherry-pick 8aedf539eca9d474536ed54e9c5a6244fb671d47  # incusd/network/ovn: Add some missing indices
+          git cherry-pick 76bd7520248023da743dd92703f2696c8dc3f5ad  # incusd/network/ovn: Use get helper
+          git cherry-pick 179e13e44277de62bf2a92faf88d5996825fd31c  # incusd/network/ovn: Fix LogicalSwitchPortIPs logic
+          git cherry-pick 90ec61f1a7659b2741df7ebaa605b595d1c18602  # incusd/network/bridge: Fix gofmt
+          git cherry-pick 26dc92a150bbbbd98d5f5a2154b30bad09908aea  # incusd/network/ovn: Fix gofmt
+          git cherry-pick 40ef9440817fd65cba88553e1bc87c8660ffbbce  # cmd/incus: Use proper timestamp check
+          git cherry-pick 469778422f6d87a461d0865a200b631a0bd3e207  # cmd/incus: Use consistent date format and timezone
+          git cherry-pick 2d5115ec5b57034481c07898562243e585599f61  # incusd/db/generate: Fix bad camel case handling
+          git cherry-pick b1d29e8c43d75c0c516eddb0cc5816a9932f3c49  # incusd/images: Properly handle null creation and expiry dates
 
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" -tags=libsqlite3 github.com/lxc/incus/cmd/incus-benchmark
