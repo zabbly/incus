@@ -456,22 +456,6 @@ jobs:
           mkdir -p /opt/incus/share/qemu/
           cp out/bios.bin /opt/incus/share/qemu/seabios.bin
 
-          # Build a CSM seabios.
-          make clean distclean
-          echo "CONFIG_QEMU_HARDWARE=y" > .config
-          echo "CONFIG_CSM=y" >> .config
-          echo "CONFIG_BOOTSPLASH=n" >> .config
-          echo "CONFIG_ROM_SIZE=128" >> .config
-          echo "CONFIG_PVSCSI=n" >> .config
-          echo "CONFIG_ESP_SCSI=n" >> .config
-          echo "CONFIG_LSI_SCSI=n" >> .config
-          echo "CONFIG_MEGASAS=n" >> .config
-          echo "CONFIG_MPT_SCSI=n" >> .config
-          echo "CONFIG_FLOPPY=n" >> .config
-          echo "CONFIG_FLASH_FLOPPY=n" >> .config
-          make oldnoconfig V=1
-          make V=1 PYTHON=python3
-
       - name: Build nasm
         run: |
           REPO="${PWD}"
@@ -499,10 +483,6 @@ jobs:
           patch -p1 < "${REPO}/patches/edk2-0005-Revert-ArmVirtPkg-make-EFI_LOADER_DATA-non-executabl.patch"
           patch -p1 < "${REPO}/patches/edk2-0006-disable-EFI-memory-attributes-protocol.patch"
           patch -p1 < "${REPO}/patches/edk2-0007-disable-UEFI-shell-under-SecureBoot.patch"
-
-          if [ "$(uname -m)" = "x86_64" ]; then
-              cp ../seabios/out/Csm16.bin OvmfPkg/Csm/Csm16/Csm16.bin
-          fi
 
           EDK2_ARCH="X64"
           EDK2_PKG="OvmfPkg/OvmfPkgX64.dsc"
@@ -553,14 +533,6 @@ jobs:
             "/opt/incus/share/qemu/OVMF_CODE.4MB.fd" \
             "/opt/incus/share/qemu/OVMF_VARS.4MB.fd" \
             -DFD_SIZE_4MB
-
-          if [ "$(uname -m)" = "x86_64" ]; then
-              build_edk2 \
-                "/opt/incus/share/qemu/OVMF_CODE.4MB.CSM.fd" \
-                "/opt/incus/share/qemu/OVMF_VARS.4MB.CSM.fd" \
-                -DFD_SIZE_4MB \
-                -DCSM_ENABLE=TRUE
-          fi
 
           ln -s OVMF_CODE.4MB.fd /opt/incus/share/qemu/OVMF_CODE.fd
           ln -s OVMF_VARS.4MB.fd /opt/incus/share/qemu/OVMF_VARS.fd
