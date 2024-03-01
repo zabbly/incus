@@ -26,7 +26,7 @@ override_dh_install:
 	rm debian/incus-base/opt/incus/bin/incus
 	rm -R debian/incus-base/opt/incus/share/bash_completion.d
 	rm -R debian/incus-base/opt/incus/share/locale
-	rm -R debian/incus-base/usr/share/bash_completion.d
+	rm -R debian/incus-base/usr/share/bash-completion
 	rm -R debian/incus-base/usr/share/locale
 
 	# Handle incus-ui-canonical
