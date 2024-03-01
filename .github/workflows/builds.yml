@@ -304,8 +304,8 @@ jobs:
           fi
 
           make build-mo
-          mkdir -p /opt/incus/locale
-          cp po/*.mo /opt/incus/locale/
+          mkdir -p /opt/incus/share/locale
+          cp po/*.mo /opt/incus/share/locale/
 
           make doc
           cp -R doc/html /opt/incus/doc
@@ -668,7 +668,7 @@ jobs:
           chmod 700 pkg/var/log/incus
 
           mkdir -p pkg/usr/share/locale
-          for i in /opt/incus/locale/*.mo; do
+          for i in /opt/incus/share/locale/*.mo; do
             LANG=$(echo $i | sed -e "s#.*/locale/##g" -e "s#.mo\$##g")
             mkdir -p pkg/usr/share/locale/${LANG}/LC_MESSAGES
             ln -s ${i} pkg/usr/share/locale/${LANG}/LC_MESSAGES/incus.mo
