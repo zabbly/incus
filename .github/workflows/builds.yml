@@ -288,6 +288,8 @@ jobs:
           cd /build/incus
 
           git cherry-pick bbc4b946355775606da35557e5404ca83a586c67  # incus/image: Fix column handling with --all-projects
+          git cherry-pick 16095c9721156d8719eb51a9e5e66e12e1a9944c  # Replace util.ValueInSlice with slices.Contains
+          git cherry-pick e08d8385c9a223267a8943a5ca2ffaf33363f91c  # shared/util: Delete ValueInSlice function
           git cherry-pick 5a2fb02dad734ba60e0a93b8d68d652765a048f2  # incusd/instance/qemu: Relocate image requirement checks
           git cherry-pick f2cbbe14f0e6375bfcc9543bb66b4f29f2fa3275  # doc/images: Add requirements.cdrom_agent
           git cherry-pick 847ae8fdbd6fb6043e6ec2b332522a8a668f3228  # incusd/instance/qemu: Add support for requirements.cdrom_agent
@@ -305,12 +307,38 @@ jobs:
           git cherry-pick 26dc92a150bbbbd98d5f5a2154b30bad09908aea  # incusd/network/ovn: Fix gofmt
           git cherry-pick 40ef9440817fd65cba88553e1bc87c8660ffbbce  # cmd/incus: Use proper timestamp check
           git cherry-pick 469778422f6d87a461d0865a200b631a0bd3e207  # cmd/incus: Use consistent date format and timezone
+          git cherry-pick 455868c310538ae65e51adf0a69ba8378e7598d9  # client: Rename network_peer for consistency
+          git cherry-pick 17cb9635aacc651d0ca8be80a0c23dcf691a7d83  # cmd/incusd: Rename network_peer to network_peers
+          git cherry-pick 358907fe175a19d11a90e0dbb8d24c56468cf9af  # shared/api: Rename network_allocation for consistency
+          git cherry-pick 42747d53322d8235a504cb98bcdda23d78ac9ae4  # incusd/db: Fix comment typoes
           git cherry-pick 2d5115ec5b57034481c07898562243e585599f61  # incusd/db/generate: Fix bad camel case handling
+          git cherry-pick 070f4cb41f6959de509f6414692ac23298c83433  # incusd/db/network_peers: Fix duplicate type definitions
+          git cherry-pick 8621f59a9be017d696476b8f7be194dbb69d4f76  # incusd/auth: Drop Permission type
+          git cherry-pick 081f7803f30032079101d95c1c6265447d3ba28f  # incusd/auth: Add boilerplate doc strings
           git cherry-pick b1d29e8c43d75c0c516eddb0cc5816a9932f3c49  # incusd/images: Properly handle null creation and expiry dates
           git cherry-pick 9c285374cb1f84488d3da0bb5e4535021db96819  # incusd/images: Fix reporting of images in multiple projects
+          git cherry-pick d3820c857bfaa7f7070657aeb94a3051f6d58421  # incusd/device/gpu_sriov: Add locking
+          git cherry-pick 769c003d8256d6080a5616c9e6cd44b37a7e97fa  # incusd/device/gpu_sriov: Re-locate vfio-pci loading
+          git cherry-pick b4e97da9f32e0960dc5aad095502665af12e8b77  # incusd/device/gpu_sriov: Rework VF allocation logic
           git cherry-pick e0de0664549cb6031088a88efde97261ef368d73  # incusd/certificates: Improve token handling when clustered
+          git cherry-pick 8df72db5aee7bc6c322051db1fba211c79b75fd0  # cmd/incusd/api_1.0: Update context
+          git cherry-pick fe7742d0ce26e72d2f965d9cbb9054d3a8c84ad6  # cmd/incusd/api_cluster: Update context
+          git cherry-pick 000ab543a5ef5799fd4d316624709e15ac384bc9  # cmd/incusd/api_internal: Update context
+          git cherry-pick d2acfcd31428d1c3fa06734d983ce373980e51f7  # cmd/incusd/daemon: Update context
+          git cherry-pick aea11ec150a54b96ceefe5d70184e4f10b723e3e  # cmd/incusd/api_project: Update context
+          git cherry-pick a5201eed43b6996d456e2b65c2acab6208516305  # cmd/incusd/certificates: Update context
+          git cherry-pick 0fdb06def4487ddb5ec4950415566141fca7d211  # cmd/incusd/images: Update context
+          git cherry-pick 83d712b82debde594a6d315d6d531d3bcc6f9081  # cmd/incusd/instance: Update context
+          git cherry-pick 9d0d06cdd535fdb1cc02c65e5b6ca6f6fa25f97e  # cmd/incusd/network: Update context
+          git cherry-pick e6a75ae11f7a08f6113189052e2f342f6db8cd9c  # cmd/incusd/operations: Update context
+          git cherry-pick fd5fde7cb8ae9ee3e12e109c1e5588c6dddcc035  # cmd/incusd/profiles: Update context
+          git cherry-pick 01da4f413baa5c9b567e47a325cc9b7d2cc6ed94  # cmd/incusd/storage: Update context
+          git cherry-pick 3be19c71862b82ed319fe28a2845c98035eb07ef  # cmd/incusd/warnings: Update context
           git cherry-pick e458381475cc7afa943198b8ea8cfaf8d90be07a  # incusd/devices: Skip isolated threads from NUMA CPUs
           git cherry-pick 5d3664f8dcad1f44f19e4e5c3bf7ca71b603a9ee  # incusd/devices: Restrict CPU threads by NUMA node
+          git cherry-pick 55981092efd001ab2dfda24f6936e58d3dae2ef3  # incusd: Fix import shadowing
+          git cherry-pick 22313c6c6a3ca93416b32ae76017c2d760551792  # incusd/images: Fix potential race condition
+          git cherry-pick 7449c1915c20daa7d745e1a729fbaa1ee69a4559  # incusd/apparmor/qemu: Silence apparmor failures
 
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" -tags=libsqlite3 github.com/lxc/incus/cmd/incus-benchmark
