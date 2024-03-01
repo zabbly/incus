@@ -1,4 +1,6 @@
 usr/bin/incus
+usr/share/bash_completion.d/
 usr/share/locale
 opt/incus/bin/incus
+opt/incus/share/bash_completion.d
 opt/incus/locale
