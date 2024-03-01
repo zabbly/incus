@@ -24,8 +24,8 @@ override_dh_install:
 	# Handle incus-client
 	rm debian/incus-base/usr/bin/incus
 	rm debian/incus-base/opt/incus/bin/incus
-	rm -R debian/incus-base/opt/incus/locale
 	rm -R debian/incus-base/opt/incus/share/bash_completion.d
+	rm -R debian/incus-base/opt/incus/share/locale
 	rm -R debian/incus-base/usr/share/bash_completion.d
 	rm -R debian/incus-base/usr/share/locale
 
