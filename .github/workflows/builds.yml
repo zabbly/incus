@@ -307,6 +307,10 @@ jobs:
           git cherry-pick 469778422f6d87a461d0865a200b631a0bd3e207  # cmd/incus: Use consistent date format and timezone
           git cherry-pick 2d5115ec5b57034481c07898562243e585599f61  # incusd/db/generate: Fix bad camel case handling
           git cherry-pick b1d29e8c43d75c0c516eddb0cc5816a9932f3c49  # incusd/images: Properly handle null creation and expiry dates
+          git cherry-pick 9c285374cb1f84488d3da0bb5e4535021db96819  # incusd/images: Fix reporting of images in multiple projects
+          git cherry-pick e0de0664549cb6031088a88efde97261ef368d73  # incusd/certificates: Improve token handling when clustered
+          git cherry-pick e458381475cc7afa943198b8ea8cfaf8d90be07a  # incusd/devices: Skip isolated threads from NUMA CPUs
+          git cherry-pick 5d3664f8dcad1f44f19e4e5c3bf7ca71b603a9ee  # incusd/devices: Restrict CPU threads by NUMA node
 
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" -tags=libsqlite3 github.com/lxc/incus/cmd/incus-benchmark
