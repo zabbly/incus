@@ -326,13 +326,7 @@ jobs:
           git am "${REPO}/patches/ui-canonical-0004-Remove-external-links.patch"
           git am "${REPO}/patches/ui-canonical-0005-Remove-Canonical-image-servers.patch"
           git am "${REPO}/patches/ui-canonical-0006-Remove-version-check.patch"
-
-          # Generic renaming
-          sed -i "s/LXD/Incus/g" src/*/*.ts* src/*/*/*.ts* src/*/*/*/*.ts*
-          sed -i "s/devlxd/guestapi/g" src/*/*.ts* src/*/*/*.ts* src/*/*/*/*.ts*
-          sed -i "s/dev\/lxd/dev\/incus/g" src/*/*.ts* src/*/*/*.ts* src/*/*/*/*.ts*
-          sed -i "s/lxd_/incus_/g" src/*/*.ts* src/*/*/*.ts* src/*/*/*/*.ts*
-          sed -i "s/\"lxd\"/\"incus\"/g" src/*/*.ts* src/*/*/*.ts* src/*/*/*/*.ts*
+          sed -i -f "${REPO}/patches/ui-canonical-renames.sed" src/*/*.ts* src/*/*/*.ts* src/*/*/*/*.ts*
 
           npm install yarn --global
           yarn install
