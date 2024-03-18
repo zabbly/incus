@@ -182,7 +182,7 @@ jobs:
           git clone https://github.com/cowsql/raft /build/raft --depth 1 -b "${RAFT_TAG}"
           git clone https://github.com/cowsql/cowsql /build/cowsql --depth 1 -b "${COWSQL_TAG}"
           git clone https://github.com/lxc/lxc /build/lxc --depth 1 -b "${LXC_TAG}"
-          git clone https://github.com/lxc/lxcfs /build/lxcfs --depth 1 -b "${LXCFS_TAG}"
+          git clone https://github.com/lxc/lxcfs /build/lxcfs -b "${LXCFS_TAG}"
           git clone https://github.com/lxc/incus /build/incus -b "${INCUS_TAG}"
 
           git clone https://github.com/checkpoint-restore/criu /build/criu --depth 1 -b "${CRIU_TAG}"
@@ -265,6 +265,21 @@ jobs:
           REPO="${PWD}"
 
           cd /build/lxcfs
+
+          git cherry-pick df44c8fed37c7a1aee652f02ce3e1670e6ad7485  # proc_loadavg: fix ABBA deadlock between read/refresh
+          git cherry-pick fcb2484a30b04afa0e634b746618920c3e3840c0  # proc: Fix /proc/cpuinfo not respecting personality
+          git cherry-pick d5ae1d6169488114c4420bd4c3396a3bdc3e4548  # proc_loadavg.c: Fix incompatible integer to pointer conversion
+          git cherry-pick e47f37dfe768bd6d34f8d14f429fce0436759ba6  # cgroups: cleanup and remove unused cgroup2_devices code
+          git cherry-pick a42c36e26f29cb6e544f3985af0626d815bf7142  # cpuview: pass a correct argument to lxcfs_debug
+          git cherry-pick 46ea130e96d0245f01845975280ab56b59be6d05  # lxcfs: Add startup message
+          git cherry-pick d5ddf34a069f983d7446985bd7472dd98d6a770b  # proc: fix MemAvailable in /proc/meminfo to exclude tmpfs files
+          git cherry-pick 4aefe5151bec6b705132b72b67600fc0c3c14d95  # systemd: mkdir -p the target mount dir
+          git cherry-pick fd702e4718bb2a1aeafe9643700101ea46265d7e  # typofix: fix incorrect printing in lxcfs help interface
+          git cherry-pick e58ca0ec9108da9ab20107660253ae6af4ffc109  # Add macro pivot&bpf for loongarch64
+          git cherry-pick 5762ba8fdf6cf28f98e00aa2a1b37eba192dba64  # lxc.mount.hook: Skip cpu sysfs logic if missing target
+          git cherry-pick 25a3cb05deb25c91cd9bea2f7292e0b89087898a  # sysfs: forbid write()
+          git cherry-pick b27f3ec6bac3dd4cd4c5b76e71e9236fddcaae66  # github: workaround CI issue with ASAN
+
           meson setup build \
                   --prefix=/opt/incus \
                   --libdir=/opt/incus/lib \
