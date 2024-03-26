@@ -51,6 +51,14 @@ if [ "$1" = "configure" ]; then
 
     # Apply the sysctls.
     [ -d /run/systemd/system ] && systemctl restart systemd-sysctl || true
+
+    # Cleanup old systemd units.
+    for unit in incus.socket incus-user.socket incus-startup.service incus-lxcfs.service; do
+        [ -L "/etc/systemd/system/${unit}" ] || continue
+        [ "$(readlink -f "/etc/systemd/system/${unit}")" = "/dev/null" ] && continue
+
+        rm -f "/etc/systemd/system/${unit}"
+    done
 fi
 
 #DEBHELPER#
