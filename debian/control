@@ -104,6 +104,26 @@ Description: Incus - Command line client
  This build of Incus is provided for free by Zabbly.
  Zabbly can be contacted for commercial support and development on Incus.
 
+Package: incus-extra
+Architecture: any
+Pre-Depends: ${misc:Pre-Depends}
+Breaks: incus (<< ${source:Version})
+Replaces: incus (<< ${source:Version})
+Description: Incus - Extra tools
+ Incus provides the ability to run containers and virtual machines locally
+ along with very flexible networking and storage akin to what's offered
+ in a public cloud environment.
+ .
+ This package contains the following additional command line tools:
+  - fuidshift
+  - incus-benchmark
+  - incus-migrate
+  - incus-simplestreams
+  - lxc-to-incus
+ .
+ This build of Incus is provided for free by Zabbly.
+ Zabbly can be contacted for commercial support and development on Incus.
+
 Package: incus-ui-canonical
 Architecture: any
 Pre-Depends: ${misc:Pre-Depends}
