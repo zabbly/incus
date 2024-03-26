@@ -288,12 +288,15 @@ jobs:
           REPO="${PWD}"
 
           cd /build/incus
+          go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/cmd/incus
-          go build -o "/opt/incus/bin/incus-benchmark" -tags=libsqlite3 github.com/lxc/incus/cmd/incus-benchmark
-          go build -o "/opt/incus/bin/incus-user" -tags=libsqlite3 github.com/lxc/incus/cmd/incus-user
+          go build -o "/opt/incus/bin/incus-benchmark" github.com/lxc/incus/cmd/incus-benchmark
+          go build -o "/opt/incus/bin/incus-migrate" github.com/lxc/incus/cmd/incus-migrate
+          go build -o "/opt/incus/bin/incus-simplestreams" github.com/lxc/incus/cmd/incus-simplestreams
+          go build -o "/opt/incus/bin/incus-user" github.com/lxc/incus/cmd/incus-user
           go build -o "/opt/incus/bin/incusd" -tags=libsqlite3 github.com/lxc/incus/cmd/incusd
-          go build -o "/opt/incus/bin/lxd-to-incus" -tags=libsqlite3 github.com/lxc/incus/cmd/lxd-to-incus
           go build -o "/opt/incus/bin/lxc-to-incus" github.com/lxc/incus/cmd/lxc-to-incus
+          go build -o "/opt/incus/bin/lxd-to-incus" -tags=libsqlite3 github.com/lxc/incus/cmd/lxd-to-incus
 
           mkdir -p /opt/incus/agent
           if [ "$(uname -m)" = "x86_64" ]; then
@@ -619,8 +622,13 @@ jobs:
           cp -R etc pkg/etc
           mv /opt/incus/lib/systemd/system pkg/lib/systemd/system
           ln -s /opt/incus/share/bash_completion.d/incus pkg/usr/share/bash-completion/completions/incus
+
           ln -s /opt/incus/bin/incus pkg/usr/bin/incus
           ln -s /opt/incus/bin/lxd-to-incus pkg/usr/bin/lxd-to-incus
+
+          ln -s /opt/incus/bin/fuidshift pkg/usr/bin/fuidshift
+          ln -s /opt/incus/bin/incus-migrate pkg/usr/bin/incus-migrate
+          ln -s /opt/incus/bin/incus-simplestreams pkg/usr/bin/incus-simplestreams
 
           mkdir -p pkg/var/lib/incus
           chmod 711 pkg/var/lib/incus
