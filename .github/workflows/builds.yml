@@ -314,7 +314,7 @@ jobs:
           cp -R doc/html /opt/incus/doc
 
           mkdir -p /opt/incus/share/bash_completion.d/
-          cp scripts/bash/incus /opt/incus/share/bash_completion.d/incus
+          /opt/incus/bin/incus completion bash > /opt/incus/share/bash_completion.d/incus
 
       - name: Build UI (canonical)
         run: |
