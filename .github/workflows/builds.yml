@@ -56,12 +56,12 @@ jobs:
       GOLANG_TAG: "go1.21.8"
       LIBTPMS_TAG: "v0.9.6"
       LIBURING_TAG: "liburing-2.5"
-      MINIO_TAG: "RELEASE.2024-03-15T01-07-19Z"
+      MINIO_TAG: "RELEASE.2024-03-21T23-13-43Z"
       NASM_TAG: "nasm-2.16.01"
       NVIDIA_CONTAINER_TAG: "v1.14.6"
       QEMU_TAG: "v8.2.2"
       SEABIOS_TAG: "rel-1.16.3"
-      SWTPM_TAG: "v0.8.1"
+      SWTPM_TAG: "v0.8.2"
       VIRTIOFSD_TAG: "v1.10.1"
     steps:
       - name: Checkout code
