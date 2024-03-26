@@ -146,7 +146,7 @@ index e8ce222..3c23645 100644
                        onClick={() =>
                          downloadText(
 -                          `lxd-ui-${location.hostname}.crt`,
-+                          `incus-ui-${location.hostname}.crt`,
++                          `incus-ui.crt`,
                            certs.crt,
                          )
                        }
@@ -155,7 +155,7 @@ index e8ce222..3c23645 100644
                          ? () =>
                              downloadBase64(
 -                              `lxd-ui-${location.hostname}.pfx`,
-+                              `incus-ui-${location.hostname}.pfx`,
++                              `incus-ui.pfx`,
                                certs.pfx,
                              )
                          : undefined
