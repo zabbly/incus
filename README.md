@@ -105,6 +105,20 @@ The repository also includes the following packages:
  - `incus-client`, a package containing only the CLI tool, useful when only managing remote servers
  - `incus-ui-canonical`, a package containing a rebranded version of the LXD web interface for use with Incus
 
+### Setting up the UI
+
+When using `incus-ui-canonical`, you will need to have Incus listen on the network.
+This is done either by enabling it during `incus admin init` or by setting a listener through `incus config set`.
+
+For example:
+```
+incus config set core.https_address :8443
+```
+
+After that, you can access the UI through https://localhost:8443, accept the self-signed certificate and follow the login instructions.
+
+As `incus-ui-canonical` is a re-branded version of the LXD UI, you can find useful information in [their documentation](https://documentation.ubuntu.com/lxd/en/latest/howto/access_ui/).
+
 ## Support
 Community support for Incus is provided at https://discuss.linuxcontainers.org
 
