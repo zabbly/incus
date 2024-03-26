@@ -620,7 +620,7 @@ jobs:
           cp bin/* pkg/usr/bin/
           cp -R /opt/incus pkg/opt/
           cp -R etc pkg/etc
-          mv /opt/incus/lib/systemd/system pkg/lib/systemd/system
+          mv pkg/opt/incus/lib/systemd/system pkg/lib/systemd/system
           ln -s /opt/incus/share/bash_completion.d/incus pkg/usr/share/bash-completion/completions/incus
 
           ln -s /opt/incus/bin/incus pkg/usr/bin/incus
