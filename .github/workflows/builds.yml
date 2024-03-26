@@ -679,18 +679,13 @@ jobs:
           [ "${PKGOS}" = "ubuntu-20.04" ] && CODENAME=focal
           [ "${PKGOS}" = "ubuntu-22.04" ] && CODENAME=jammy
 
-          mkdir -p pkg/ pkg/lib/systemd/system/ pkg/opt/ pkg/usr/bin/ pkg/usr/share/bash-completion/completions/
+          mkdir -p pkg/ pkg/lib/systemd/ pkg/opt/ pkg/usr/bin/ pkg/usr/share/bash-completion/completions/
 
           cp -R debian pkg/debian
           cp bin/* pkg/usr/bin/
           cp -R /opt/incus pkg/opt/
           cp -R etc pkg/etc
-          ln -s ../../../opt/incus/lib/systemd/system/incus.service pkg/lib/systemd/system/incus.service
-          ln -s ../../../opt/incus/lib/systemd/system/incus.socket pkg/lib/systemd/system/incus.socket
-          ln -s ../../../opt/incus/lib/systemd/system/incus-startup.service pkg/lib/systemd/system/incus-startup.service
-          ln -s ../../../opt/incus/lib/systemd/system/incus-user.service pkg/lib/systemd/system/incus-user.service
-          ln -s ../../../opt/incus/lib/systemd/system/incus-user.socket pkg/lib/systemd/system/incus-user.socket
-          ln -s ../../../opt/incus/lib/systemd/system/incus-lxcfs.service pkg/lib/systemd/system/incus-lxcfs.service
+          mv /opt/incus/lib/systemd/system pkg/lib/systemd/system
           ln -s /opt/incus/share/bash_completion.d/incus pkg/usr/share/bash-completion/completions/incus
           ln -s /opt/incus/bin/incus pkg/usr/bin/incus
           ln -s /opt/incus/bin/lxd-to-incus pkg/usr/bin/lxd-to-incus
