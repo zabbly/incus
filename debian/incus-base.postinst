@@ -53,7 +53,7 @@ if [ "$1" = "configure" ]; then
     [ -d /run/systemd/system ] && systemctl restart systemd-sysctl || true
 
     # Cleanup old systemd units.
-    for unit in incus.socket incus-user.socket incus-startup.service incus-lxcfs.service; do
+    for unit in incus.service incus.socket incus-user.service incus-user.socket incus-startup.service incus-lxcfs.service; do
         [ -L "/etc/systemd/system/${unit}" ] || continue
         [ "$(readlink -f "/etc/systemd/system/${unit}")" = "/dev/null" ] && continue
 
