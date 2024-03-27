@@ -302,6 +302,11 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick c5f14a37946a7abcaf00b19bb117e6b5f05986b8  # incusd/network_integrations: Filter config keys
+          git cherry-pick 9d0d9bcec0f077178f6e2809ea6bc83e4ae2776e  # incusd: Reload OIDC on claim changes
+          git cherry-pick b3865ed0f34229883fce14e740ed3f27b8424daf  # incusd/device/usb: Fix devices with missing serial
+          git cherry-pick d459bcc9ab38a8c6e5439875afd8852a8ecad737  # incusd/network/ovn: Fix typo in default transit switch pattern
+
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" github.com/lxc/incus/cmd/incus-benchmark
