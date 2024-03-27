@@ -652,6 +652,7 @@ jobs:
           mv incus_* out/
           mv incus-base_* out/
           mv incus-client_* out/
+          mv incus-extra_* out/
           mv incus-ui-canonical_* out/
 
       - name: Upload resulting build
