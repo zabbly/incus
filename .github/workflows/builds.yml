@@ -292,6 +292,9 @@ jobs:
           git cherry-pick 9d0d9bcec0f077178f6e2809ea6bc83e4ae2776e  # incusd: Reload OIDC on claim changes
           git cherry-pick b3865ed0f34229883fce14e740ed3f27b8424daf  # incusd/device/usb: Fix devices with missing serial
           git cherry-pick d459bcc9ab38a8c6e5439875afd8852a8ecad737  # incusd/network/ovn: Fix typo in default transit switch pattern
+          git cherry-pick 350fa762a4e5044a25ff4650fc85f7c9e6763f2b  # incusd/recover: Handle instances last
+          git cherry-pick 37b42288f867d77ae2770a9eb69e0b3a9c35df4a  # shared/ioprogress: Support simple readers
+          git cherry-pick 00ab5275b8e363b405553ea5d327c6999e6e88ae  # incusd/storage/btrfs: Report migration progress from receiver
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/cmd/incus
