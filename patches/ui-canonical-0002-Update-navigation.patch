@@ -1,4 +1,4 @@
-From 9f44a025b61024f47c8eabcf9a0f25af0d2585da Mon Sep 17 00:00:00 2001
+From 817df8d589407bbba6648890a77f6f9917b5241c Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Wed, 22 Nov 2023 23:02:27 +0000
 Subject: [PATCH 2/6] Update navigation
@@ -14,29 +14,29 @@ Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
  3 files changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/src/components/Navigation.tsx b/src/components/Navigation.tsx
-index d2321da..f79deeb 100644
+index de10688..169957c 100644
 --- a/src/components/Navigation.tsx
 +++ b/src/components/Navigation.tsx
-@@ -286,7 +286,7 @@ const Navigation: FC = () => {
+@@ -261,7 +261,7 @@ const Navigation: FC = () => {
                    <li className="p-side-navigation__item">
                      <a
                        className="p-side-navigation__link"
 -                      href="https://discourse.ubuntu.com/c/lxd/126"
 +                      href="https://discuss.linuxcontainers.org"
                        target="_blank"
-                       rel="noreferrer"
+                       rel="noopener noreferrer"
                        title="Discussion"
-@@ -301,7 +301,7 @@ const Navigation: FC = () => {
+@@ -276,7 +276,7 @@ const Navigation: FC = () => {
                    <li className="p-side-navigation__item">
                      <a
                        className="p-side-navigation__link"
 -                      href="https://github.com/canonical/lxd-ui/issues/new"
 +                      href="https://github.com/zabbly/incus/issues/new"
                        target="_blank"
-                       rel="noreferrer"
+                       rel="noopener noreferrer"
                        title="Report a bug"
 diff --git a/src/components/NoMatch.tsx b/src/components/NoMatch.tsx
-index 8d5270c..bd9e515 100644
+index a088c54..65216fa 100644
 --- a/src/components/NoMatch.tsx
 +++ b/src/components/NoMatch.tsx
 @@ -13,7 +13,7 @@ const NoMatch: FC = () => {
@@ -46,21 +46,21 @@ index 8d5270c..bd9e515 100644
 -              href="https://github.com/canonical/lxd-ui/issues/new"
 +              href="https://github.com/zabbly/incus/issues/new"
                target="_blank"
-               rel="noreferrer"
+               rel="noopener noreferrer"
                title="Report a bug"
 diff --git a/src/context/useDocs.tsx b/src/context/useDocs.tsx
-index 454d98c..90a0de9 100644
+index 900688f..be3e593 100644
 --- a/src/context/useDocs.tsx
 +++ b/src/context/useDocs.tsx
 @@ -1,7 +1,7 @@
- import { useSettings } from "context/useSettings";
+ import { useSupportedFeatures } from "./useSupportedFeatures";
  
  export const useDocs = (): string => {
 -  const remoteBase = "https://documentation.ubuntu.com/lxd/en/latest";
 +  const remoteBase = "/documentation";
    const localBase = "/documentation";
  
-   const { data: settings } = useSettings();
+   const { hasLocalDocumentation } = useSupportedFeatures();
 -- 
 2.34.1
 

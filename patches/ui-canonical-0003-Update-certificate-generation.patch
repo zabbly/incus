@@ -1,4 +1,4 @@
-From fc42d29bfc591a2f3a31cb7355ac5a6fb2f64614 Mon Sep 17 00:00:00 2001
+From fbff82d6b95282be0f95de7b5d6bac8c784c927a Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Wed, 22 Nov 2023 23:03:33 +0000
 Subject: [PATCH 3/6] Update certificate generation
@@ -15,7 +15,7 @@ Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
  4 files changed, 19 insertions(+), 19 deletions(-)
 
 diff --git a/src/pages/login/BrowserImport.tsx b/src/pages/login/BrowserImport.tsx
-index f3cbcae..5d11d80 100644
+index cc9c87a..d8ff1a4 100644
 --- a/src/pages/login/BrowserImport.tsx
 +++ b/src/pages/login/BrowserImport.tsx
 @@ -25,7 +25,7 @@ const BrowserImport: FC<Props> = ({ sendPfx }) => {
@@ -92,7 +92,7 @@ index f3cbcae..5d11d80 100644
                </li>
              </ul>
 diff --git a/src/pages/login/CertificateAdd.tsx b/src/pages/login/CertificateAdd.tsx
-index e539588..05ed677 100644
+index 0e86797..9d227e5 100644
 --- a/src/pages/login/CertificateAdd.tsx
 +++ b/src/pages/login/CertificateAdd.tsx
 @@ -52,7 +52,7 @@ const CertificateAdd: FC = () => {
@@ -114,7 +114,7 @@ index e539588..05ed677 100644
                  </Col>
                </Row>
 diff --git a/src/pages/login/CertificateGenerate.tsx b/src/pages/login/CertificateGenerate.tsx
-index e8ce222..3c23645 100644
+index 2ea99de..39dce9f 100644
 --- a/src/pages/login/CertificateGenerate.tsx
 +++ b/src/pages/login/CertificateGenerate.tsx
 @@ -82,7 +82,7 @@ const CertificateGenerate: FC = () => {

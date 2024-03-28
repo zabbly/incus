@@ -1,4 +1,4 @@
-From 530478927deddecbcc49efd01cad10ed49f0ca26 Mon Sep 17 00:00:00 2001
+From 525b40343fb835c6d5498769c3464c6524f17b14 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Wed, 22 Nov 2023 22:59:56 +0000
 Subject: [PATCH 1/6] Branding
@@ -294,7 +294,7 @@ index 272ef59..0000000
 -</svg>
 \ No newline at end of file
 diff --git a/src/components/Logo.tsx b/src/components/Logo.tsx
-index bcaf07e..92a0a5a 100644
+index cf7faa8..b1b06d2 100644
 --- a/src/components/Logo.tsx
 +++ b/src/components/Logo.tsx
 @@ -15,11 +15,11 @@ const Logo: FC = () => {
@@ -313,7 +313,7 @@ index bcaf07e..92a0a5a 100644
    );
  };
 diff --git a/src/pages/login/Login.tsx b/src/pages/login/Login.tsx
-index 608f7a0..130198e 100644
+index 8b2a9c5..97317e3 100644
 --- a/src/pages/login/Login.tsx
 +++ b/src/pages/login/Login.tsx
 @@ -24,7 +24,6 @@ const Login: FC = () => {
@@ -362,7 +362,7 @@ index 92236ef..1373ab0 100644
    }
  }
 diff --git a/src/sass/styles.scss b/src/sass/styles.scss
-index 43f63ae..7aa17ac 100644
+index f43f5cb..2566066 100644
 --- a/src/sass/styles.scss
 +++ b/src/sass/styles.scss
 @@ -146,10 +146,6 @@ body {
@@ -377,10 +377,10 @@ index 43f63ae..7aa17ac 100644
    display: inline-block;
    min-width: 8.5rem;
 diff --git a/src/util/title.tsx b/src/util/title.tsx
-index 8a80a11..6b69387 100644
+index 3ef659b..879efb9 100644
 --- a/src/util/title.tsx
 +++ b/src/util/title.tsx
-@@ -6,6 +6,6 @@ export const setTitle = () => {
+@@ -6,6 +6,6 @@ export const setTitle = (): void => {
  
    useEffect(() => {
      const host = settings?.config?.["user.ui_title"] ?? location.hostname;

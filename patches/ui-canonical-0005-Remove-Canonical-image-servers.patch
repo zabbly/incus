@@ -1,4 +1,4 @@
-From 98fcec984025deeb3a93cdd1618e3d47abb0d0cd Mon Sep 17 00:00:00 2001
+From 6cabdc1d4d37f3177a258725d25e7b09aa9bec63 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Wed, 22 Nov 2023 23:16:13 +0000
 Subject: [PATCH 5/6] Remove Canonical image servers
@@ -12,7 +12,7 @@ Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
  1 file changed, 10 insertions(+), 24 deletions(-)
 
 diff --git a/src/pages/images/ImageSelector.tsx b/src/pages/images/ImageSelector.tsx
-index f026ec3..91333be 100644
+index 33a4fa7..2123eb4 100644
 --- a/src/pages/images/ImageSelector.tsx
 +++ b/src/pages/images/ImageSelector.tsx
 @@ -33,13 +33,9 @@ interface Props {
@@ -82,8 +82,8 @@ index f026ec3..91333be 100644
 +        if (item.server === linuxContainersServer) {
 +          return "Linux Containers";
          }
+         return "Custom";
        };
- 
 -- 
 2.34.1
 
