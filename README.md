@@ -49,12 +49,24 @@ uid                      Zabbly Kernel Builds <info@zabbly.com>
 sub   rsa3072 2023-08-23 [E] [expires: 2025-08-22]
 ```
 
-If so, save the key locally:
+If so, make sure the directory /etc/apt/keyrings exists:
 
 ```sh
 mkdir -p /etc/apt/keyrings/
+```
+
+and save the key locally with either curl:
+
+```sh
 curl -fsSL https://pkgs.zabbly.com/key.asc -o /etc/apt/keyrings/zabbly.asc
 ```
+
+or wget
+
+```sh
+wget -O /etc/apt/keyrings/zabbly.asc https://pkgs.zabbly.com/key.asc
+```
+
 
 ### 6.0 LTS repository
 
