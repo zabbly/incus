@@ -34,6 +34,14 @@ Packages provided by the repository are signed. In order to verify the integrity
 curl -fsSL https://pkgs.zabbly.com/key.asc | gpg --show-keys --fingerprint
 ```
 
+or if your system has wget instead of curl use
+
+```sh
+wget -q -O - https://pkgs.zabbly.com/key.asc | gpg --show-keys --fingerprint
+```
+
+You should get a return that is:
+
 ```sh
 pub   rsa3072 2023-08-23 [SC] [expires: 2025-08-22]
       4EFC 5906 96CB 15B8 7C73  A3AD 82CC 8797 C838 DCFD
