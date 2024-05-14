@@ -61,7 +61,7 @@ and save the key locally with either curl:
 curl -fsSL https://pkgs.zabbly.com/key.asc -o /etc/apt/keyrings/zabbly.asc
 ```
 
-or wget
+or wget:
 
 ```sh
 wget -O /etc/apt/keyrings/zabbly.asc https://pkgs.zabbly.com/key.asc
