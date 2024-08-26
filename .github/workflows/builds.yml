@@ -183,7 +183,7 @@ jobs:
 
       - name: Build environment
         run: |
-          mkdir /build/
+          mkdir -p /build/
           mkdir -p \
             /opt/incus/bin/ \
             /opt/incus/include/ \
@@ -217,7 +217,7 @@ jobs:
 
           git clone https://github.com/canonical/lxd-ui /build/incus-ui-canonical --depth 1 -b "${INCUS_UI_CANONICAL_TAG}"
 
-          mkdir /build/nasm/
+          mkdir -p /build/nasm/
           curl -sL "https://www.nasm.us/pub/nasm/releasebuilds/$(echo ${NASM_TAG} | cut -d- -f2)/${NASM_TAG}.tar.gz" | tar -C /build/nasm/ -zx --strip-components=1
 
       - name: Build liburing
@@ -382,7 +382,7 @@ jobs:
           patch -p1 < "${REPO}/patches/nvidia-0002-pre-load-libdl.patch"
           make prefix=/
 
-          mkdir /build/target/libnvidia-container
+          mkdir -p /build/target/libnvidia-container
           DESTDIR=/build/target/libnvidia-container make install prefix=/
           rsync -a /build/target/libnvidia-container/bin/ /opt/incus/bin/
           rsync -a /build/target/libnvidia-container/include/ /opt/incus/include/
@@ -590,7 +590,7 @@ jobs:
                   --enable-virtfs
           make
 
-          mkdir /build/target/qemu/
+          mkdir -p /build/target/qemu/
           DESTDIR=/build/target/qemu/ make install
           rsync -a /build/target/qemu/opt/incus/bin/ /opt/incus/bin/
           rsync -a /build/target/qemu/opt/incus/lib/ /opt/incus/lib/
@@ -692,7 +692,7 @@ jobs:
           dpkg-buildpackage -b
 
           cd ..
-          mkdir out
+          mkdir -p out
           mv incus_* out/
           mv incus-base_* out/
           mv incus-client_* out/
