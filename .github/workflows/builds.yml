@@ -26,11 +26,11 @@ jobs:
             arch: arm64
     runs-on:
       - self-hosted
-      - cpu-4
-      - mem-4G
-      - disk-50G
-      - arch-${{ matrix.arch }}
-      - image-${{ matrix.os }}
+      #- cpu-4
+      #- mem-4G
+      #- disk-50G
+      #- arch-${{ matrix.arch }}
+      #- image-${{ matrix.os }}
 
     env:
       OS_ARCH: ${{ matrix.arch }}
