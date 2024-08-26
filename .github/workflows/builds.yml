@@ -194,7 +194,7 @@ jobs:
       - name: Get the code
         run: |
 
-          test -d /build/liburing && git pull https://github.com/axboe/liburing /build/liburing --depth 1 origin "${LIBURING_TAG}" \
+          test -d /build/liburing && cd /build/liburing  ; git pull https://github.com/axboe/liburing --depth 1 origin "${LIBURING_TAG}" \
           || git clone https://github.com/axboe/liburing /build/liburing --depth 1 -b "${LIBURING_TAG}"
 
 
