@@ -193,7 +193,11 @@ jobs:
 
       - name: Get the code
         run: |
-          git clone https://github.com/axboe/liburing /build/liburing --depth 1 -b "${LIBURING_TAG}"
+          
+          test -d /build/liburing && git pull https://github.com/axboe/liburing /build/liburing --depth 1 -b "${LIBURING_TAG}" \
+          || git clone https://github.com/axboe/liburing /build/liburing --depth 1 -b "${LIBURING_TAG}"
+
+
           git clone https://github.com/cowsql/raft /build/raft --depth 1 -b "${RAFT_TAG}"
           git clone https://github.com/cowsql/cowsql /build/cowsql --depth 1 -b "${COWSQL_TAG}"
           git clone https://github.com/lxc/lxc /build/lxc --depth 1 -b "${LXC_TAG}"
