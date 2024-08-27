@@ -194,11 +194,18 @@ jobs:
       - name: Get the code
         run: |
 
-          if [ -d "/build/liburing" ] ; then
-            git pull https://github.com/axboe/liburing --depth 1 origin "${LIBURING_TAG}"
+          GIT_DIR="/build/liburing"
+          GIT_URL="https://github.com/axboe/liburing"
+          GIT_TAG="${LIBURING_TAG}"
+
+          if [ -d "$GIT_DIR" ] ; then
+            cd "$GIT_DIR"
+            git fetch
+            git checkout tags/"${GIT_TAG}"
           else
-            git clone https://github.com/axboe/liburing /build/liburing --depth 1 -b "${LIBURING_TAG}"
+            git clone "$GIT_URL" "$GIT_DIR" --depth 1 -b "${GIT_TAG}"
           fi
+
 
 
 
