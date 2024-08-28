@@ -219,6 +219,7 @@ jobs:
           git clone https://gitlab.com/qemu-project/qemu /build/qemu --depth 1 -b "${QEMU_TAG}"
 
 
+          git clone https://github.com/canonical/lxd-ui /build/incus-ui-canonical --depth 1 -b "${INCUS_UI_CANONICAL_TAG}"
 
 
 
