@@ -694,7 +694,7 @@ jobs:
           done
 
           cd pkg
-          dch --package incus --create -D ${CODENAME} -M -m "Automated Incus daily build" -v 1:0~$(date -u +%Y%m%d%H%M)-$(echo ${PKGOS} | sed "s/-//g") --force-distribution
+          dch --package incus --create -D ${CODENAME} -M -m "Automated Incus daily build" -v 1:0~$(echo ${PKGOS} | sed "s/-//g")~$(date -u +%Y%m%d%H%M) --force-distribution
           dpkg-buildpackage -b
 
           cd ..
