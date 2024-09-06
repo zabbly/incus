@@ -34,6 +34,7 @@ jobs:
 
     env:
       OS_ARCH: ${{ matrix.arch }}
+      OS_NAME: ${{ matrix.os }}
       HOME: "/root/"
       PKG_CONFIG_PATH: "/opt/incus/lib/pkgconfig/"
       CGO_LDFLAGS: "-L/opt/incus/lib/"
@@ -49,14 +50,14 @@ jobs:
       COWSQL_TAG: "v1.15.6"
       CRIU_TAG: "v3.19"
       EDK2_TAG: "edk2-stable202408"
-      GOLANG_TAG: "go1.23.0"
+      GOLANG_TAG: "go1.23.1"
       LIBTPMS_TAG: "v0.9.6"
       LIBURING_TAG: "liburing-2.7"
-      MINIO_TAG: "RELEASE.2024-08-26T15-33-07Z"
+      MINIO_TAG: "RELEASE.2024-08-29T01-40-52Z"
       MINIO_MC_TAG: "RELEASE.2024-08-26T10-49-58Z"
       NASM_TAG: "nasm-2.16.03"
       NVIDIA_CONTAINER_TAG: "v1.16.1"
-      QEMU_TAG: "v9.0.2"
+      QEMU_TAG: "v9.1.0"
       SEABIOS_TAG: "rel-1.16.3"
       SKOPEO_TAG: "v1.16.1"
       SWTPM_TAG: "v0.9.0"
@@ -145,6 +146,7 @@ jobs:
             xorriso
 
           pip3 install meson || pip3 install meson --break-system-packages
+          pip3 install tomli || pip3 install tomli --break-system-packages
 
       - name: Install backported debhelper (on focal)
         if: ${{ matrix.os == 'ubuntu-20.04' }}
@@ -195,6 +197,9 @@ jobs:
         run: |
 
           rm -rf /build/
+
+          # Ubuntu 20.04 is no longer supported by recent QEMU.
+          [ "${OS_NAME}" = "ubuntu-20.04" ] && QEMU_TAG="v9.0.2"
 
           git clone https://github.com/axboe/liburing /build/liburing --depth 1 -b "${LIBURING_TAG}"
           git clone https://github.com/cowsql/raft /build/raft --depth 1 -b "${RAFT_TAG}"
@@ -364,6 +369,7 @@ jobs:
           git am "${REPO}/patches/ui-canonical-0017-Wait-for-projects-list-to-be-loaded.patch"
           git am "${REPO}/patches/ui-canonical-0018-Respect-image-profile-list.patch"
           git am "${REPO}/patches/ui-canonical-0019-Add-support-for-LVM-Cluster.patch"
+          git am "${REPO}/patches/ui-canonical-0020-Fix-stateful-snapshots-creation.patch"
           sed -i -f "${REPO}/patches/ui-canonical-renames.sed" src/*/*.ts* src/*/*/*.ts* src/*/*/*/*.ts* src/*/*/*/*/*.ts*
 
           npm install yarn --global
@@ -556,7 +562,6 @@ jobs:
         run: |
           cd /build/qemu
           sed -i "s/^unset target_list$/target_list=\"$(uname -m)-softmmu\"/" configure
-          sed -i 's#libseccomp_minver=".*#libseccomp_minver="0.0"#g' configure
           ./configure \
                   --prefix=/opt/incus \
                   --libexecdir=bin \
