@@ -74,6 +74,7 @@ Recommends:
 Suggests:
   btrfs-progs,
   ceph-common,
+  incus-extra,
   lvm2,
   zfsutils-linux | openzfs-zfsutils
 Pre-Depends: ${misc:Pre-Depends}
@@ -84,7 +85,8 @@ Description: Incus - Container and virtualization daemon (container-only)
  along with very flexible networking and storage akin to what's offered
  in a public cloud environment.
  .
- This package contains only what's needed to run containers.
+ This package contains only what's needed to run containers; if you want
+ more, consider installing the incus-extra package.
  .
  This build of Incus is provided for free by Zabbly.
  Zabbly can be contacted for commercial support and development on Incus.
