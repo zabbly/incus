@@ -47,7 +47,7 @@ jobs:
       PATH: "/opt/incus/bin:/root/.cargo/bin:/usr/local/go/bin:/usr/local/node/bin:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
       LXC_TAG: "v6.0.2"
       LXCFS_TAG: "v6.0.2"
-      INCUS_TAG: "v6.5.0"
+      INCUS_TAG: "v6.6.0"
       INCUS_UI_CANONICAL_TAG: "0.12"
       RAFT_TAG: "v0.22.1"
       COWSQL_TAG: "v1.15.6"
@@ -316,35 +316,6 @@ jobs:
           REPO="${PWD}"
 
           cd /build/incus
-
-          git cherry-pick 0b4ebf48ab3de5692168cb056e90a814d52338ce  # incus/network: Fix capitalization in network list
-          git cherry-pick 622a1487db2a2902816bbd83dd688b1df0bdadb0  # i18n: Update translation templates
-          git cherry-pick b6c1dd079a7e558d01f6e19bea2d61134acbeed7  # incusd/storage/drivers/lvm: Cache VG extent size
-          git cherry-pick 17cba6ecb8900c8fc462e8ab59a1cd509567a91d  # incusd/instance/qemu: Always re-generate the nvram symlink
-          git cherry-pick 86fdc2528a0e3a75b1d3e815e2c119f4e3fdc432  # incusd/network/ovn: LSP dynamic allocation can't be done per protocol
-          git cherry-pick 572afb06f66f83ca95efa1b9386fceeaa1c9e11b  # incusd/instance/qemu: Set O_DIRECT when passing in FDs
-          git cherry-pick d1f3c43fdda266f4d2cffa27a195fb33d8eae44a  # Translated using Weblate (French)
-          git cherry-pick cf8632cc07ac384b096d62a4e3a82afdb422288d  # incusd/apparmor: Only initialize with the daemon
-          git cherry-pick 0c37b7e3ec65b4d0e166e2127d9f1835320165b8  # incusd/instance/qemu: Make O_DIRECT conditional on directCache
-          git cherry-pick 58eeb4eeee8a9e7f9fa9c62443d00f0ec6797078  # incusd/instance/qemu: Force threads I/O mode for unsafe/writeback
-          git cherry-pick 4acc15c0dcab2fe4c076eb8422bc1215fc5d4d7a  # incusd/instance/qemu: Move away from deprecated fd: syntax
-          git cherry-pick 2684f7993ead016a8ae8579751b80e13f81d511a  # doc: Fix network load-balancer typo
-          git cherry-pick 34d40ab5c7aacf3502979d008a94f270f2de3bb8  # incusd/network/ovn: Fix group of load-balancer config keys
-          git cherry-pick 5f3bb2e9d0d24ca527030cac0d36e384a9d83334  # doc: Update metadata
-          git cherry-pick b77c1ee8aca2da814a534ad45ab21223a0f8faf5  # incusd/apparmor: Add sys_rawio for QEMU 9.1
-          git cherry-pick 62dee371d6205956ef0ea17ec3ed06482bb8d5f3  # doc: Fix limits.memory default value unit
-          git cherry-pick 40ba91f6703e0095de5bbe8ad64f0084498c9e73  # incusd/storage/zfs: Make sure the zvol is a block device
-          git cherry-pick b390684968aa62facf38203a14cb7ecf25c508b9  # incusd/apparmor: Don't attempt unloading profiles when apparmor is disabled
-          git cherry-pick d69eb911d452f9e3ee9f184f1d3e568a14d75f84  # internal/instance: Fix unit for limits.memory
-          git cherry-pick b92d02eb5077ea1dce01515c2449b319666f13a9  # doc: Update metadata
-          git cherry-pick f491d1a1fc2aba4754c6577e3ab8502ea65d6993  # Added translation using Weblate (Norwegian Bokmål)
-          git cherry-pick bf77cadcebf7f76cda4b1384874675250ed15dc8  # Translated using Weblate (Norwegian Bokmål)
-          git cherry-pick 40c533300acb7666feb736c3131f60db52be651b  # doc/installing: Add Rocky Linux 9
-          git cherry-pick 39111047246db671f441bed1034d3a1c4837d976  # incus/storage_volume: Fix snapshot listing
-          git cherry-pick ec2a946f6621897462801efcc9a54b141ec8c63a  # i18n: Update translation templates
-          git cherry-pick ef9e0bdbb5ce6fa92620af72b27b5d21c14ba6aa  # Added translation using Weblate (Indonesian)
-          git cherry-pick c3f84edbe4b7ebe5e4109e82b4173113504dc10b  # scripts: fix empty-incus.sh instances delete
-          git cherry-pick 79c0a4ec8c1b7137bfa95b3ae1d749724816186c  # incusd/network/ovn: Properly handle lack of a protocol on LB checker
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
