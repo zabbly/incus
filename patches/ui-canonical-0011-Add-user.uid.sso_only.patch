@@ -1,7 +1,7 @@
 From 77d4234574d8686e9e24178ac060d1a05e16427d Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Fri, 2 Aug 2024 19:09:01 +0000
-Subject: [PATCH 11/20] Add user.uid.sso_only
+Subject: [PATCH 11/21] Add user.uid.sso_only
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit

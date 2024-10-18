@@ -383,6 +383,7 @@ jobs:
           git am "${REPO}/patches/ui-canonical-0018-Respect-image-profile-list.patch"
           git am "${REPO}/patches/ui-canonical-0019-Add-support-for-LVM-Cluster.patch"
           git am "${REPO}/patches/ui-canonical-0020-Fix-stateful-snapshots-creation.patch"
+          git am "${REPO}/patches/ui-canonical-0021-Update-PWA-definition.patch"
           sed -i -f "${REPO}/patches/ui-canonical-renames.sed" src/*/*.ts* src/*/*/*.ts* src/*/*/*/*.ts* src/*/*/*/*/*.ts*
 
           npm install yarn --global

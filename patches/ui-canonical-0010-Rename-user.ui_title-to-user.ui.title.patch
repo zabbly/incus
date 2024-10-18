@@ -1,7 +1,7 @@
 From 89157d970860c6d7fe26d1063054c387a079fa69 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Fri, 2 Aug 2024 18:48:03 +0000
-Subject: [PATCH 10/20] Rename user.ui_title to user.ui.title
+Subject: [PATCH 10/21] Rename user.ui_title to user.ui.title
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
