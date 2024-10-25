@@ -1,7 +1,7 @@
 From 4b6001a481732a80c34eaf3d1e4dc5264200667a Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Sat, 3 Aug 2024 04:06:54 +0000
-Subject: [PATCH 12/21] Skip LXD identity API
+Subject: [PATCH 12/22] Skip LXD identity API
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit

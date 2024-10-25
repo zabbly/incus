@@ -1,7 +1,7 @@
 From 2eb54f8799a939a0b8c6d5637bc73f982467d79a Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Sun, 4 Aug 2024 05:28:49 +0000
-Subject: [PATCH 16/21] Make migration an action
+Subject: [PATCH 16/22] Make migration an action
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit

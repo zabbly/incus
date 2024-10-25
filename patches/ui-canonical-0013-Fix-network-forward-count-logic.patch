@@ -1,7 +1,7 @@
 From 0a6ed3b409e788bfa42530a29149e1e9864a78c0 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Sat, 3 Aug 2024 04:55:42 +0000
-Subject: [PATCH 13/21] Fix network forward count logic
+Subject: [PATCH 13/22] Fix network forward count logic
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit

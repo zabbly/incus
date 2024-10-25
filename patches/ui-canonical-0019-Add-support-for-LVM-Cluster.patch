@@ -1,7 +1,7 @@
 From 1ffede19c9b1b62de01b25a9fc258013b8591e62 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Fri, 9 Aug 2024 05:14:57 +0000
-Subject: [PATCH 19/21] Add support for LVM Cluster
+Subject: [PATCH 19/22] Add support for LVM Cluster
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
