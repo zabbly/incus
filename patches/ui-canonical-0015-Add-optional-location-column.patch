@@ -1,7 +1,7 @@
 From 4b58db331c721dae66a0e97b1e0cec80c1d99828 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Sun, 4 Aug 2024 04:07:45 +0000
-Subject: [PATCH 15/21] Add optional location column
+Subject: [PATCH 15/22] Add optional location column
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit

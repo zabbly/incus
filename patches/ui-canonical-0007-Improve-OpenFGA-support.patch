@@ -1,7 +1,7 @@
 From f7e8504feab449dba9c9427d3675bb38add45312 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Thu, 28 Mar 2024 15:54:43 +0000
-Subject: [PATCH 07/21] Improve OpenFGA support
+Subject: [PATCH 07/22] Improve OpenFGA support
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
