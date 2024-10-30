@@ -47,6 +47,7 @@ jobs:
       PATH: "/opt/incus/bin:/root/.cargo/bin:/usr/local/go/bin:/usr/local/node/bin:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
 
       # Linux Containers projects
+      DISTROBUILDER_TAG: "distrobuilder-3.1"
       INCUS_TAG: "v6.0.2"
       INCUS_UI_CANONICAL_TAG: "0.12"
       LXCFS_TAG: "v6.0.2"
@@ -201,6 +202,7 @@ jobs:
           # Ubuntu 20.04 is no longer supported by recent QEMU.
           [ "${OS_NAME}" = "ubuntu-20.04" ] && QEMU_TAG="v9.0.2"
 
+          git clone https://github.com/lxc/distrobuilder /build/distrobuilder --depth 1 -b "${DISTROBUILDER_TAG}"
           git clone https://github.com/lxc/lxc /build/lxc --depth 1 -b "${LXC_TAG}"
           git clone https://github.com/lxc/lxcfs /build/lxcfs --depth 1 -b "${LXCFS_TAG}"
           git clone https://github.com/lxc/incus /build/incus -b "${INCUS_TAG}"
@@ -378,6 +380,11 @@ jobs:
 
           mkdir -p /opt/incus/ui-canonical/
           rsync -a /build/incus-ui-canonical/build/ui/ /opt/incus/ui-canonical/
+
+      - name: Build Distrobuilder
+        run: |
+          cd /build/distrobuilder
+          go build -o "/opt/incus/bin/distrobuilder" github.com/lxc/distrobuilder/distrobuilder
 
       - name: Build CRIU
         run: |
@@ -677,6 +684,7 @@ jobs:
 
           ln -s /opt/incus/bin/lxd-to-incus pkg/usr/bin/lxd-to-incus
 
+          ln -s /opt/incus/bin/distrobuilder pkg/usr/bin/distrobuilder
           ln -s /opt/incus/bin/fuidshift pkg/usr/bin/fuidshift
           ln -s /opt/incus/bin/incus-migrate pkg/usr/bin/incus-migrate
           ln -s /opt/incus/bin/incus-simplestreams pkg/usr/bin/incus-simplestreams
