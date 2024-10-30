@@ -4,6 +4,8 @@ set -eu
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
 while read line; do
+  [ "${line}" = "" ] && continue
+
   set -- ${line}
   tag="$1"
   url="$2"
