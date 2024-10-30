@@ -1,7 +1,9 @@
+usr/bin/distrobuilder
 usr/bin/fuidshift
 usr/bin/incus-migrate
 usr/bin/incus-simplestreams
 usr/bin/lxc-to-incus
+opt/incus/bin/distrobuilder
 opt/incus/bin/fuidshift
 opt/incus/bin/incus-migrate
 opt/incus/bin/incus-simplestreams

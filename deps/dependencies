@@ -1,3 +1,4 @@
+DISTROBUILDER_TAG https://github.com/lxc/distrobuilder distrobuilder-
 INCUS_TAG https://github.com/lxc/incus v
 INCUS_UI_CANONICAL_TAG https://github.com/canonical/lxd-ui
 LXCFS_TAG https://github.com/lxc/lxcfs v

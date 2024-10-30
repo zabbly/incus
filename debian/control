@@ -120,6 +120,7 @@ Description: Incus - Extra tools
  in a public cloud environment.
  .
  This package contains the following additional command line tools:
+  - distrobuilder
   - fuidshift
   - incus-benchmark
   - incus-migrate
