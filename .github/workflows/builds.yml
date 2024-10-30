@@ -45,22 +45,26 @@ jobs:
       LD_LIBRARY_PATH: "/opt/incus/lib/"
       CPATH: "/opt/incus/include/"
       PATH: "/opt/incus/bin:/root/.cargo/bin:/usr/local/go/bin:/usr/local/node/bin:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
-      LXC_TAG: "v6.0.2"
-      LXCFS_TAG: "v6.0.2"
+
+      # Linux Containers projects
       INCUS_TAG: "v6.6.0"
       INCUS_UI_CANONICAL_TAG: "0.12"
-      RAFT_TAG: "v0.22.1"
+      LXCFS_TAG: "v6.0.2"
+      LXC_TAG: "v6.0.2"
+
+      # External dependencies
       COWSQL_TAG: "v1.15.6"
       CRIU_TAG: "v4.0"
       EDK2_TAG: "edk2-stable202408"
       GOLANG_TAG: "go1.23.2"
       LIBTPMS_TAG: "v0.9.6"
       LIBURING_TAG: "liburing-2.7"
-      MINIO_TAG: "RELEASE.2024-10-02T17-50-41Z"
       MINIO_MC_TAG: "RELEASE.2024-10-02T08-27-28Z"
+      MINIO_TAG: "RELEASE.2024-10-02T17-50-41Z"
       NASM_TAG: "nasm-2.16.03"
       NVIDIA_CONTAINER_TAG: "v1.16.2"
       QEMU_TAG: "v9.0.2"
+      RAFT_TAG: "v0.22.1"
       SEABIOS_TAG: "rel-1.16.3"
       SKOPEO_TAG: "v1.16.1"
       SWTPM_TAG: "v0.9.0"
@@ -202,29 +206,26 @@ jobs:
           # Ubuntu 20.04 is no longer supported by recent QEMU.
           [ "${OS_NAME}" = "ubuntu-20.04" ] && QEMU_TAG="v9.0.2"
 
-          git clone https://github.com/axboe/liburing /build/liburing --depth 1 -b "${LIBURING_TAG}"
-          git clone https://github.com/cowsql/raft /build/raft --depth 1 -b "${RAFT_TAG}"
-          git clone https://github.com/cowsql/cowsql /build/cowsql --depth 1 -b "${COWSQL_TAG}"
           git clone https://github.com/lxc/lxc /build/lxc --depth 1 -b "${LXC_TAG}"
           git clone https://github.com/lxc/lxcfs /build/lxcfs --depth 1 -b "${LXCFS_TAG}"
           git clone https://github.com/lxc/incus /build/incus -b "${INCUS_TAG}"
+          git clone https://github.com/canonical/lxd-ui /build/incus-ui-canonical --depth 1 -b "${INCUS_UI_CANONICAL_TAG}"
 
-          git clone https://github.com/opencontainers/umoci /build/umoci --depth 1 -b "${UMOCI_TAG}"
-          git clone https://github.com/containers/skopeo /build/skopeo --depth 1 -b "${SKOPEO_TAG}"
-
+          git clone https://github.com/axboe/liburing /build/liburing --depth 1 -b "${LIBURING_TAG}"
           git clone https://github.com/checkpoint-restore/criu /build/criu --depth 1 -b "${CRIU_TAG}"
-          git clone https://github.com/NVIDIA/libnvidia-container /build/libnvidia-container --depth 1 -b "${NVIDIA_CONTAINER_TAG}"
-          git clone https://github.com/minio/minio /build/minio --depth 1 -b "${MINIO_TAG}"
+          git clone https://github.com/containers/skopeo /build/skopeo --depth 1 -b "${SKOPEO_TAG}"
+          git clone https://github.com/cowsql/cowsql /build/cowsql --depth 1 -b "${COWSQL_TAG}"
+          git clone https://github.com/cowsql/raft /build/raft --depth 1 -b "${RAFT_TAG}"
           git clone https://github.com/minio/mc /build/mc --depth 1 -b "${MINIO_MC_TAG}"
-
-          git clone https://gitlab.com/qemu-project/seabios /build/seabios --depth 1 -b "${SEABIOS_TAG}"
-          git clone https://github.com/tianocore/edk2 /build/edk2 --recurse-submodules --shallow-submodules --depth 1 -b "${EDK2_TAG}"
+          git clone https://github.com/minio/minio /build/minio --depth 1 -b "${MINIO_TAG}"
+          git clone https://github.com/NVIDIA/libnvidia-container /build/libnvidia-container --depth 1 -b "${NVIDIA_CONTAINER_TAG}"
+          git clone https://github.com/opencontainers/umoci /build/umoci --depth 1 -b "${UMOCI_TAG}"
           git clone https://github.com/stefanberger/libtpms /build/libtpms --depth 1 -b "${LIBTPMS_TAG}"
           git clone https://github.com/stefanberger/swtpm /build/swtpm --depth 1 -b "${SWTPM_TAG}"
-          git clone https://gitlab.com/virtio-fs/virtiofsd /build/virtiofsd --depth 1 -b "${VIRTIOFSD_TAG}"
+          git clone https://github.com/tianocore/edk2 /build/edk2 --recurse-submodules --shallow-submodules --depth 1 -b "${EDK2_TAG}"
           git clone https://gitlab.com/qemu-project/qemu /build/qemu --depth 1 -b "${QEMU_TAG}"
-
-          git clone https://github.com/canonical/lxd-ui /build/incus-ui-canonical --depth 1 -b "${INCUS_UI_CANONICAL_TAG}"
+          git clone https://gitlab.com/qemu-project/seabios /build/seabios --depth 1 -b "${SEABIOS_TAG}"
+          git clone https://gitlab.com/virtio-fs/virtiofsd /build/virtiofsd --depth 1 -b "${VIRTIOFSD_TAG}"
 
           mkdir /build/nasm/
           curl -sL "https://www.nasm.us/pub/nasm/releasebuilds/$(echo ${NASM_TAG} | cut -d- -f2)/${NASM_TAG}.tar.gz" | tar -C /build/nasm/ -zx --strip-components=1

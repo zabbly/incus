@@ -1,19 +1,20 @@
-LXC_TAG https://github.com/lxc/lxc v
-LXCFS_TAG https://github.com/lxc/lxcfs v
 INCUS_TAG https://github.com/lxc/incus v
 INCUS_UI_CANONICAL_TAG https://github.com/canonical/lxd-ui
-RAFT_TAG https://github.com/cowsql/raft v
+LXCFS_TAG https://github.com/lxc/lxcfs v
+LXC_TAG https://github.com/lxc/lxc v
+
 COWSQL_TAG https://github.com/cowsql/cowsql v
 CRIU_TAG https://github.com/checkpoint-restore/criu v
 EDK2_TAG https://github.com/tianocore/edk2 edk2-stable
 GOLANG_TAG https://github.com/golang/go go
 LIBTPMS_TAG https://github.com/stefanberger/libtpms v
 LIBURING_TAG https://github.com/axboe/liburing liburing-
-MINIO_TAG https://github.com/minio/minio RELEASE.20
 MINIO_MC_TAG https://github.com/minio/mc RELEASE.20
+MINIO_TAG https://github.com/minio/minio RELEASE.20
 NASM_TAG https://github.com/netwide-assembler/nasm nasm-
 NVIDIA_CONTAINER_TAG https://github.com/NVIDIA/libnvidia-container v
 QEMU_TAG https://gitlab.com/qemu-project/qemu v
+RAFT_TAG https://github.com/cowsql/raft v
 SEABIOS_TAG https://gitlab.com/qemu-project/seabios rel-
 SKOPEO_TAG https://github.com/containers/skopeo v
 SWTPM_TAG https://github.com/stefanberger/swtpm v
