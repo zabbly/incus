@@ -14,7 +14,7 @@ MINIO_MC_TAG https://github.com/minio/mc RELEASE.20
 MINIO_TAG https://github.com/minio/minio RELEASE.20
 NASM_TAG https://github.com/netwide-assembler/nasm nasm-
 NVIDIA_CONTAINER_TAG https://github.com/NVIDIA/libnvidia-container v
-QEMU_TAG https://gitlab.com/qemu-project/qemu v
+QEMU_TAG https://gitlab.com/qemu-project/qemu v9.0
 RAFT_TAG https://github.com/cowsql/raft v
 SEABIOS_TAG https://gitlab.com/qemu-project/seabios rel-
 SKOPEO_TAG https://github.com/containers/skopeo v
