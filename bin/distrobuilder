@@ -1,0 +1,4 @@
+#!/bin/sh
+export PATH=/opt/incus/bin/:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin
+export LD_LIBRARY_PATH=/opt/incus/lib/
+exec distrobuilder "$@"
