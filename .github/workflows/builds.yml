@@ -71,7 +71,7 @@ jobs:
       VIRTIOFSD_TAG: "v1.11.1"
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Configure git
         run: |
@@ -714,7 +714,7 @@ jobs:
           mv incus-ui-canonical_* out/
 
       - name: Upload resulting build
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         continue-on-error: true
         with:
           name: ${{ matrix.os }}-${{ matrix.arch }}
