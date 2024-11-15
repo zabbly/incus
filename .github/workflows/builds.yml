@@ -48,7 +48,7 @@ jobs:
 
       # Linux Containers projects
       DISTROBUILDER_TAG: "distrobuilder-3.1"
-      INCUS_TAG: "v6.6.0"
+      INCUS_TAG: "v6.7.0"
       INCUS_UI_CANONICAL_TAG: "0.12"
       LXCFS_TAG: "v6.0.2"
       LXC_TAG: "v6.0.2"
@@ -319,12 +319,6 @@ jobs:
           REPO="${PWD}"
 
           cd /build/incus
-
-          git cherry-pick eb3b8e68ceb0a9ada748ccc019e85259e718ccea  # doc: Correct name of macvlan modes
-          git cherry-pick e1e902ec66e54fbb4ab642cb5e556aba93daccbb  # incusd/device/nic: Correct name of macvlan modes
-          git cherry-pick d9fdfc543dd2e14154fbe4a06f648b050f2657ba  # fix: fix slice init length
-          git cherry-pick 7c429b8317e45ad6502683028a45df01e64dcd05  # internal/instance: fix live update VM's limits.memory configuration when use a percentage value
-          git cherry-pick 8483614debd5c6d49b67dd1f681dd0e61c5f39a8  # incusd/instance/lxc: Remove restrictions on /run
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
