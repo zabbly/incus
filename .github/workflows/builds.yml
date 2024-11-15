@@ -190,7 +190,7 @@ jobs:
 
 
           mkdir /usr/local/node/
-          curl -sL "https://nodejs.org/dist/v20.10.0/node-v20.10.0-linux-${NODE_ARCH}.tar.xz" | tar -C /usr/local/node/ -Jx --strip-components=1
+          curl -sL "https://nodejs.org/dist/v22.11.0/node-v22.11.0-linux-${NODE_ARCH}.tar.xz" | tar -C /usr/local/node/ -Jx --strip-components=1
 
       - name: Build environment
         run: |
