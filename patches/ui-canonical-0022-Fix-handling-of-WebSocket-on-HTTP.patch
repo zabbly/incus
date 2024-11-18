@@ -1,7 +1,7 @@
 From c4cdf9942f533d78b6cf310954e30f35e602c69c Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Fri, 25 Oct 2024 19:23:24 +0000
-Subject: [PATCH 22/22] Fix handling of WebSocket on HTTP
+Subject: [PATCH 22/23] Fix handling of WebSocket on HTTP
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit

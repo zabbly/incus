@@ -1,7 +1,7 @@
 From d0a27e54bce7a5f5604c8ddfec3abf5d2e72ba13 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Sun, 4 Aug 2024 17:55:07 +0000
-Subject: [PATCH 18/22] Respect image profile list
+Subject: [PATCH 18/23] Respect image profile list
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
