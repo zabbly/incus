@@ -1,7 +1,7 @@
 From d2cabcfebc52148aa6571b1dc5a34d5447e878a1 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Fri, 16 Feb 2024 17:32:51 +0000
-Subject: [PATCH 06/22] Remove version check
+Subject: [PATCH 06/23] Remove version check
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit

@@ -1,0 +1,30 @@
+From 224911f5d6d8d2e111e3f759be280b00e9ae8d35 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Mon, 18 Nov 2024 22:12:52 +0000
+Subject: [PATCH 23/23] Fix documentation path
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+License: GPL-3.0-only (without Canonical CLA)
+---
+ src/components/Navigation.tsx | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/components/Navigation.tsx b/src/components/Navigation.tsx
+index db7c8fc..962b980 100644
+--- a/src/components/Navigation.tsx
++++ b/src/components/Navigation.tsx
+@@ -483,7 +483,7 @@ const Navigation: FC = () => {
+                   <li className="p-side-navigation__item">
+                     <a
+                       className="p-side-navigation__link"
+-                      href={docBaseLink}
++                      href={docBaseLink+"/"}
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       title="Documentation"
+-- 
+2.34.1
+
