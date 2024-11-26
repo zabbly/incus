@@ -1,4 +1,4 @@
-From f7e8504feab449dba9c9427d3675bb38add45312 Mon Sep 17 00:00:00 2001
+From 83a970d5ea9926d46e5929f387a1423571219f5e Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Thu, 28 Mar 2024 15:54:43 +0000
 Subject: [PATCH 07/23] Improve OpenFGA support
@@ -16,10 +16,10 @@ License: GPL-3.0-only (without Canonical CLA)
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/util/helpers.tsx b/src/util/helpers.tsx
-index 9dd1078..720549f 100644
+index 4bd0a53..de6e029 100644
 --- a/src/util/helpers.tsx
 +++ b/src/util/helpers.tsx
-@@ -169,7 +169,7 @@ export const checkDuplicateName = (
+@@ -172,7 +172,7 @@ export const checkDuplicateName = (
    const signal = deduplicateController.signal;
    return fetch(`/1.0/${target}/${candidate}?project=${project}`, {
      signal,

@@ -1,105 +1,74 @@
-From 2eb54f8799a939a0b8c6d5637bc73f982467d79a Mon Sep 17 00:00:00 2001
+From bf55a083a85f5e35ea919d2ff41d94a28785f9be Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
-Date: Sun, 4 Aug 2024 05:28:49 +0000
+Date: Tue, 26 Nov 2024 22:09:00 +0000
 Subject: [PATCH 16/23] Make migration an action
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
 Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
-License: GPL-3.0-only (without Canonical CLA)
 ---
- src/api/instances.tsx                         |  6 ++--
- src/pages/instances/MigrateInstanceForm.tsx   | 13 ++++----
- .../actions/InstanceStateActions.tsx          | 23 +++++++++----
- .../instances/actions/MigrateInstanceBtn.tsx  | 33 ++++++++-----------
- .../instances/forms/EditInstanceDetails.tsx   | 13 --------
+ src/api/instances.tsx                         |  6 ++---
+ src/pages/instances/InstanceDetailActions.tsx |  7 ------
+ .../actions/InstanceStateActions.tsx          | 23 ++++++++++++++-----
+ .../instances/actions/MigrateInstanceBtn.tsx  | 13 +++++------
  src/sass/styles.scss                          |  2 +-
+ src/util/instanceMigration.tsx                |  2 +-
  src/util/instanceTable.tsx                    |  2 +-
- 7 files changed, 42 insertions(+), 50 deletions(-)
+ 7 files changed, 29 insertions(+), 26 deletions(-)
 
 diff --git a/src/api/instances.tsx b/src/api/instances.tsx
-index 13cc0e4..a931b59 100644
+index 0664c59..ca51066 100644
 --- a/src/api/instances.tsx
 +++ b/src/api/instances.tsx
-@@ -87,15 +87,15 @@ export const renameInstance = (
+@@ -89,12 +89,11 @@ export const renameInstance = (
  };
  
  export const migrateInstance = (
 -  name: string,
 -  project: string,
 +  instance: LxdInstance,
-   target: string,
+   target?: string,
+   pool?: string,
  ): Promise<LxdOperationResponse> => {
-   return new Promise((resolve, reject) => {
--    fetch(`/1.0/instances/${name}?project=${project}&target=${target}`, {
-+    fetch(`/1.0/instances/${instance.name}?project=${instance.project}&target=${target}`, {
+-  let url = `/1.0/instances/${name}?project=${project}`;
++  let url = `/1.0/instances/${instance.name}?project=${instance.project}`;
+   if (target) {
+     url += `&target=${target}`;
+   }
+@@ -104,6 +103,7 @@ export const migrateInstance = (
        method: "POST",
        body: JSON.stringify({
          migration: true,
 +        live: instance.type === "virtual-machine" && instance.status === "Running",
+         pool,
        }),
      })
-       .then(handleResponse)
-diff --git a/src/pages/instances/MigrateInstanceForm.tsx b/src/pages/instances/MigrateInstanceForm.tsx
-index ff91c71..18d4262 100644
---- a/src/pages/instances/MigrateInstanceForm.tsx
-+++ b/src/pages/instances/MigrateInstanceForm.tsx
-@@ -1,4 +1,5 @@
- import { FC, KeyboardEvent } from "react";
-+import { LxdInstance } from "types/instance";
- import {
-   ActionButton,
-   Button,
-@@ -13,8 +14,7 @@ import { LxdClusterMember } from "types/cluster";
- interface Props {
-   close: () => void;
-   migrate: (target: string) => void;
--  instance: string;
--  location: string;
-+  instance: LxdInstance;
-   members: LxdClusterMember[];
- }
+diff --git a/src/pages/instances/InstanceDetailActions.tsx b/src/pages/instances/InstanceDetailActions.tsx
+index 506c923..5082100 100644
+--- a/src/pages/instances/InstanceDetailActions.tsx
++++ b/src/pages/instances/InstanceDetailActions.tsx
+@@ -1,7 +1,6 @@
+ import { FC, cloneElement, useState } from "react";
+ import DeleteInstanceBtn from "./actions/DeleteInstanceBtn";
+ import { LxdInstance } from "types/instance";
+-import MigrateInstanceBtn from "./actions/MigrateInstanceBtn";
+ import CreateImageFromInstanceBtn from "./actions/CreateImageFromInstanceBtn";
+ import DuplicateInstanceBtn from "./actions/DuplicateInstanceBtn";
+ import { ContextualMenu } from "@canonical/react-components";
+@@ -24,12 +23,6 @@ const InstanceDetailActions: FC<Props> = ({ instance, project, isLoading }) => {
+     : "p-segmented-control__button";
  
-@@ -22,10 +22,9 @@ const MigrateInstanceForm: FC<Props> = ({
-   close,
-   migrate,
-   instance,
--  location,
-   members,
- }) => {
--  const memberNames = members.map((member) => member.server_name);
-+  const memberNames = members.map((member) => member.server_name).sort();
- 
-   const MigrateSchema = Yup.object().shape({
-     target: Yup.string().min(1, "This field is required"),
-@@ -33,7 +32,7 @@ const MigrateInstanceForm: FC<Props> = ({
- 
-   const formik = useFormik({
-     initialValues: {
--      target: memberNames.find((member) => member !== location) ?? "",
-+      target: memberNames.find((member) => member !== instance.location) ?? "",
-     },
-     validationSchema: MigrateSchema,
-     onSubmit: (values) => {
-@@ -51,7 +50,7 @@ const MigrateInstanceForm: FC<Props> = ({
-     <Modal
-       close={close}
-       className="migrate-instance-modal"
--      title={`Migrate instance ${instance}`}
-+      title={`Migrate instance ${instance.name}`}
-       buttonRow={
-         <>
-           <Button
-@@ -85,7 +84,7 @@ const MigrateInstanceForm: FC<Props> = ({
-             return {
-               label: member,
-               value: member,
--              disabled: member === location,
-+              disabled: member === instance.location,
-             };
-           })}
-         />
+   const menuElements = [
+-    <MigrateInstanceBtn
+-      key="migrate"
+-      instance={instance}
+-      project={project}
+-      classname={classname}
+-    />,
+     <CreateImageFromInstanceBtn
+       key="publish"
+       instance={instance}
 diff --git a/src/pages/instances/actions/InstanceStateActions.tsx b/src/pages/instances/actions/InstanceStateActions.tsx
 index 86503b8..043177f 100644
 --- a/src/pages/instances/actions/InstanceStateActions.tsx
@@ -148,131 +117,44 @@ index 86503b8..043177f 100644
    );
  };
 diff --git a/src/pages/instances/actions/MigrateInstanceBtn.tsx b/src/pages/instances/actions/MigrateInstanceBtn.tsx
-index 6add3f2..192e4a4 100644
+index e20b4b7..bc47813 100644
 --- a/src/pages/instances/actions/MigrateInstanceBtn.tsx
 +++ b/src/pages/instances/actions/MigrateInstanceBtn.tsx
 @@ -1,5 +1,5 @@
  import { FC } from "react";
--import { Button } from "@canonical/react-components";
+-import { ActionButton, Icon } from "@canonical/react-components";
 +import { Button, Icon } from "@canonical/react-components";
- import MigrateInstanceForm from "pages/instances/MigrateInstanceForm";
  import usePortal from "react-useportal";
- import { migrateInstance } from "api/instances";
-@@ -12,18 +12,10 @@ import ItemName from "components/ItemName";
- import { useToastNotification } from "context/toastNotificationProvider";
- 
- interface Props {
--  instance: string;
--  location: string;
--  project: string;
--  onFinish: (newLocation: string) => void;
-+  instance: LxdInstance;
- }
- 
--const MigrateInstanceBtn: FC<Props> = ({
--  instance,
--  location,
--  project,
--  onFinish,
--}) => {
-+const MigrateInstanceBtn: FC<Props> = ({ instance }) => {
-   const eventQueue = useEventQueue();
-   const toastNotify = useToastNotification();
-   const { openPortal, closePortal, isOpen, Portal } = usePortal();
-@@ -42,17 +34,16 @@ const MigrateInstanceBtn: FC<Props> = ({
-     toastNotify.success(
-       <>
-         Migration finished for instance{" "}
--        <ItemName item={{ name: instance }} bold />
-+        <ItemName item={{ name: instance.name }} bold />
-       </>,
-     );
--    onFinish(newTarget);
-     void queryClient.invalidateQueries({
-       queryKey: [queryKeys.instances, instance],
-     });
-   };
- 
-   const notifyFailure = (e: unknown) => {
--    toastNotify.failure(`Migration failed on instance ${instance}`, e);
-+    toastNotify.failure(`Migration failed on instance ${instance.name}`, e);
-   };
- 
-   const handleFailure = (msg: string) => {
-@@ -63,14 +54,14 @@ const MigrateInstanceBtn: FC<Props> = ({
-   };
- 
-   const handleMigrate = (target: string) => {
--    migrateInstance(instance, project, target)
-+    migrateInstance(instance, target)
-       .then((operation) => {
-         eventQueue.set(
-           operation.metadata.id,
-           () => handleSuccess(target),
-           handleFailure,
-         );
--        toastNotify.info(`Migration started for instance ${instance}`);
-+        toastNotify.info(`Migration started for instance ${instance.name}`);
-         closePortal();
-       })
-       .catch((e) => {
-@@ -87,13 +78,17 @@ const MigrateInstanceBtn: FC<Props> = ({
-             close={closePortal}
-             migrate={handleMigrate}
-             instance={instance}
--            location={location}
-             members={members}
-           />
+ import { LxdInstance } from "types/instance";
+ import { useInstanceLoading } from "context/instanceLoading";
+@@ -29,17 +29,16 @@ const MigrateInstanceBtn: FC<Props> = ({ instance, classname }) => {
+           <MigrateInstanceModal close={closePortal} instance={instance} />
          </Portal>
        )}
--      <Button className="instance-migrate" onClick={openPortal} type="button">
--        Migrate
+-      <ActionButton
+-        onClick={openPortal}
+-        type="button"
+-        className={classNames("u-no-margin--bottom has-icon", classname)}
 +      <Button
 +        appearance="base"
-+        loading={isLoading}
+         loading={isLoading}
 +        className="has-icon is-dense"
 +        onClick={openPortal}
-+      >
-+        <Icon name="connected" />
-       </Button>
+         disabled={isDisabled}
+         title="Migrate instance"
+       >
+         <Icon name="machines" />
+-        <span>Migrate</span>
+-      </ActionButton>
++      </Button>
      </>
    );
-diff --git a/src/pages/instances/forms/EditInstanceDetails.tsx b/src/pages/instances/forms/EditInstanceDetails.tsx
-index 8f28ec8..44b09f2 100644
---- a/src/pages/instances/forms/EditInstanceDetails.tsx
-+++ b/src/pages/instances/forms/EditInstanceDetails.tsx
-@@ -4,7 +4,6 @@ import ProfileSelect from "pages/profiles/ProfileSelector";
- import { FormikProps } from "formik/dist/types";
- import { EditInstanceFormValues } from "pages/instances/EditInstance";
- import { useSettings } from "context/useSettings";
--import MigrateInstanceBtn from "pages/instances/actions/MigrateInstanceBtn";
- import { isClusteredServer } from "util/settings";
- import AutoExpandingTextArea from "components/AutoExpandingTextArea";
- import ScrollableForm from "components/ScrollableForm";
-@@ -72,18 +71,6 @@ const EditInstanceDetails: FC<Props> = ({ formik, project }) => {
-               disabled={true}
-             />
-           </Col>
--          {!readOnly && (
--            <Col size={4}>
--              <MigrateInstanceBtn
--                instance={formik.values.name}
--                location={formik.values.location}
--                project={project}
--                onFinish={(newLocation: string) =>
--                  void formik.setFieldValue("location", newLocation)
--                }
--              />
--            </Col>
--          )}
-         </Row>
-       )}
-       <ProfileSelect
+ };
 diff --git a/src/sass/styles.scss b/src/sass/styles.scss
-index 64d6627..a6cc61b 100644
+index 4018c20..b540458 100644
 --- a/src/sass/styles.scss
 +++ b/src/sass/styles.scss
-@@ -159,7 +159,7 @@ body {
+@@ -183,7 +183,7 @@ body {
  
  .actions-list {
    display: inline-block;
@@ -281,8 +163,21 @@ index 64d6627..a6cc61b 100644
  
    .p-inline-list__item {
      margin-right: 0;
+diff --git a/src/util/instanceMigration.tsx b/src/util/instanceMigration.tsx
+index c810ed5..bc755b7 100644
+--- a/src/util/instanceMigration.tsx
++++ b/src/util/instanceMigration.tsx
+@@ -96,7 +96,7 @@ export const useInstanceMigration = ({
+     instanceLoading.setLoading(instance, "Migrating");
+     const targetMember = type === "cluster member" ? target : undefined;
+     const targetPool = type === "root storage pool" ? target : undefined;
+-    migrateInstance(instance.name, instance.project, targetMember, targetPool)
++    migrateInstance(instance, targetMember, targetPool)
+       .then((operation) => {
+         eventQueue.set(
+           operation.metadata.id,
 diff --git a/src/util/instanceTable.tsx b/src/util/instanceTable.tsx
-index 9e2050d..f7b3db1 100644
+index cc982bc..a86eadc 100644
 --- a/src/util/instanceTable.tsx
 +++ b/src/util/instanceTable.tsx
 @@ -17,7 +17,7 @@ export const COLUMN_WIDTHS: Record<string, number> = {

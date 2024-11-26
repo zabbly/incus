@@ -1,4 +1,4 @@
-From 882e02109701a0f8ebd70b1acb5a4dabd6de0692 Mon Sep 17 00:00:00 2001
+From b2677a8b2d45fa16fdd6f499e9c6b45641ccb8e9 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Wed, 22 Nov 2023 23:16:13 +0000
 Subject: [PATCH 05/23] Remove Canonical image servers
@@ -13,10 +13,10 @@ License: GPL-3.0-only (without Canonical CLA)
  1 file changed, 10 insertions(+), 41 deletions(-)
 
 diff --git a/src/pages/images/ImageSelector.tsx b/src/pages/images/ImageSelector.tsx
-index d4b009f..b252db4 100644
+index 0fec6aa..3932f88 100644
 --- a/src/pages/images/ImageSelector.tsx
 +++ b/src/pages/images/ImageSelector.tsx
-@@ -33,16 +33,9 @@ interface Props {
+@@ -35,16 +35,9 @@ interface Props {
    onClose: () => void;
  }
  
@@ -36,7 +36,7 @@ index d4b009f..b252db4 100644
  
  const ANY = "any";
  const CONTAINER = "container";
-@@ -75,33 +68,17 @@ const ImageSelector: FC<Props> = ({ onSelect, onClose }) => {
+@@ -78,33 +71,17 @@ const ImageSelector: FC<Props> = ({ onSelect, onClose }) => {
  
    const { data: settings, isLoading: isSettingsLoading } = useSettings();
  
@@ -74,10 +74,10 @@ index d4b009f..b252db4 100644
    const archSupported = getArchitectureAliases(
      settings?.environment?.architectures ?? [],
    );
-@@ -110,9 +87,7 @@ const ImageSelector: FC<Props> = ({ onSelect, onClose }) => {
+@@ -113,9 +90,7 @@ const ImageSelector: FC<Props> = ({ onSelect, onClose }) => {
      : localImages
-         .filter((image) => !image.cached)
          .map(localLxdToRemoteImage)
+         .sort((a, b) => Number(b.cached) - Number(a.cached))
 -        .concat([...canonicalImages].reverse().sort(byLtsFirst))
 -        .concat([...minimalImages].reverse().sort(byLtsFirst))
 -        .concat([...imagesLxdImages])
@@ -85,22 +85,22 @@ index d4b009f..b252db4 100644
          .filter((image) => archSupported.includes(image.arch));
  
    const archAll = [...new Set(images.map((item) => item.arch))]
-@@ -213,14 +188,8 @@ const ImageSelector: FC<Props> = ({ onSelect, onClose }) => {
-         if (item.created_at) {
-           return "Local";
+@@ -223,14 +198,8 @@ const ImageSelector: FC<Props> = ({ onSelect, onClose }) => {
+         if (!item.cached && item.created_at) {
+           source = "Local";
          }
 -        if (item.server === canonicalServer) {
--          return "Ubuntu";
+-          source = "Ubuntu";
 -        }
 -        if (item.server === minimalServer) {
--          return "Ubuntu Minimal";
+-          source = "Ubuntu Minimal";
 -        }
 -        if (item.server === imagesLxdServer) {
--          return "LXD Images";
+-          source = "LXD Images";
 +        if (item.server === linuxContainersServer) {
-+          return "Linux Containers";
++          source = "Linux Containers";
          }
-         return "Custom";
+         return source;
        };
 -- 
 2.34.1

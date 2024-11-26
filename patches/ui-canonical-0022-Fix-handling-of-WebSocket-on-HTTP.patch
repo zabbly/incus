@@ -1,4 +1,4 @@
-From c4cdf9942f533d78b6cf310954e30f35e602c69c Mon Sep 17 00:00:00 2001
+From 7e02508cdc682e59a9e5816e90e98739cabb212e Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Fri, 25 Oct 2024 19:23:24 +0000
 Subject: [PATCH 22/23] Fix handling of WebSocket on HTTP
@@ -17,7 +17,7 @@ License: GPL-3.0-only (without Canonical CLA)
  5 files changed, 27 insertions(+), 10 deletions(-)
 
 diff --git a/src/pages/instances/Events.tsx b/src/pages/instances/Events.tsx
-index bfdcb0b..58d7f46 100644
+index 7ea91f7..5632ec1 100644
 --- a/src/pages/instances/Events.tsx
 +++ b/src/pages/instances/Events.tsx
 @@ -3,6 +3,7 @@ import { LxdEvent } from "types/event";
@@ -28,7 +28,7 @@ index bfdcb0b..58d7f46 100644
  import { queryKeys } from "util/queryKeys";
  import { useOperations } from "context/operationsProvider";
  
-@@ -31,7 +32,9 @@ const Events: FC = () => {
+@@ -65,7 +66,9 @@ const Events: FC = () => {
    };
  
    const connectEventWs = () => {
@@ -67,7 +67,7 @@ index 434e32e..fdfb97b 100644
      const control = new WebSocket(controlUrl);
  
 diff --git a/src/pages/instances/InstanceTerminal.tsx b/src/pages/instances/InstanceTerminal.tsx
-index acc4d7c..3c278ed 100644
+index 645c947..03db800 100644
 --- a/src/pages/instances/InstanceTerminal.tsx
 +++ b/src/pages/instances/InstanceTerminal.tsx
 @@ -2,7 +2,7 @@ import { FC, useEffect, useRef, useState } from "react";
@@ -121,10 +121,10 @@ index dcc3e0e..120164e 100644
      const data = new WebSocket(dataUrl);
      const control = new WebSocket(controlUrl);
 diff --git a/src/util/helpers.tsx b/src/util/helpers.tsx
-index 720549f..cf18c8a 100644
+index de6e029..cb2f91f 100644
 --- a/src/util/helpers.tsx
 +++ b/src/util/helpers.tsx
-@@ -118,6 +118,14 @@ export const humanFileSize = (bytes: number): string => {
+@@ -121,6 +121,14 @@ export const humanFileSize = (bytes: number): string => {
    return `${bytes.toFixed(1)} ${units[u]}`;
  };
  

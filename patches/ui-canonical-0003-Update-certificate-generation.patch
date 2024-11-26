@@ -1,4 +1,4 @@
-From a08552869cad38426cc105921d5493570b6fbaed Mon Sep 17 00:00:00 2001
+From 0877b665779ab1333753dd63d4c29576807e34b5 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Wed, 22 Nov 2023 23:03:33 +0000
 Subject: [PATCH 03/23] Update certificate generation
@@ -9,14 +9,14 @@ Content-Transfer-Encoding: 8bit
 Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
 License: GPL-3.0-only (without Canonical CLA)
 ---
- src/pages/login/BrowserImport.tsx       | 18 +++++++++---------
+ src/pages/login/BrowserImport.tsx       | 14 +++++++-------
  src/pages/login/CertificateAdd.tsx      |  4 ++--
- src/pages/login/CertificateGenerate.tsx | 12 ++++++------
+ src/pages/login/CertificateGenerate.tsx | 17 ++++++-----------
  src/util/certificate.tsx                |  4 ++--
- 4 files changed, 19 insertions(+), 19 deletions(-)
+ 4 files changed, 17 insertions(+), 22 deletions(-)
 
 diff --git a/src/pages/login/BrowserImport.tsx b/src/pages/login/BrowserImport.tsx
-index cc9c87a..d8ff1a4 100644
+index 85192f2..0476877 100644
 --- a/src/pages/login/BrowserImport.tsx
 +++ b/src/pages/login/BrowserImport.tsx
 @@ -25,7 +25,7 @@ const BrowserImport: FC<Props> = ({ sendPfx }) => {
@@ -28,39 +28,25 @@ index cc9c87a..d8ff1a4 100644
          just downloaded. Enter your password, or leave the field empty if you
          have not set one. Click <code>Next</code>.
        </li>
-@@ -34,14 +34,14 @@ const BrowserImport: FC<Props> = ({ sendPfx }) => {
+@@ -34,7 +34,7 @@ const BrowserImport: FC<Props> = ({ sendPfx }) => {
          <code>Next</code>, then click <code>Finish</code>.
        </li>
        <li className="p-list__item">
 -        Restart the browser and open LXD-UI. Select the LXD-UI certificate.
-+        Restart the browser and open Incus-UI. Select the Incus-UI certificate.
++        Restart the browser and open the Incus UI. Select the Incus UI certificate.
        </li>
      </>
    );
- 
-   const downloadPfx = (
-     <li className="p-list__item u-clearfix">
--      Download <code>lxd-ui.pfx</code>
-+      Download <code>incus-ui.pfx</code>
-       {sendPfx && (
-         <div className="u-float-right--large">
-           <Button onClick={sendPfx}>Download pfx</Button>
-@@ -82,12 +82,12 @@ const BrowserImport: FC<Props> = ({ sendPfx }) => {
-                 <code>Import</code>.
-               </li>
-               <li className="p-list__item">
--                Select the <code>lxd-ui.pfx</code> file you just downloaded.
-+                Select the <code>incus-ui.pfx</code> file you just downloaded.
-                 Enter your password, or leave the field empty if you have not
-                 set one.
+@@ -86,7 +86,7 @@ const BrowserImport: FC<Props> = ({ sendPfx }) => {
+                 your password, or leave the field empty if you have not set one.
                </li>
                <li className="p-list__item">
 -                Restart the browser and open LXD-UI. Select the LXD-UI
-+                Restart the browser and open Incus-UI. Select the Incus-UI
++                Restart the browser and open the Incus UI. Select the Incus UI
                  certificate.
                </li>
              </ul>
-@@ -108,11 +108,11 @@ const BrowserImport: FC<Props> = ({ sendPfx }) => {
+@@ -107,11 +107,11 @@ const BrowserImport: FC<Props> = ({ sendPfx }) => {
                </li>
                <li className="p-list__item">
                  Click the <code>Import</code> button and select the{" "}
@@ -74,7 +60,7 @@ index cc9c87a..d8ff1a4 100644
                  certificate.
                </li>
              </ul>
-@@ -179,7 +179,7 @@ const BrowserImport: FC<Props> = ({ sendPfx }) => {
+@@ -178,7 +178,7 @@ const BrowserImport: FC<Props> = ({ sendPfx }) => {
                  keychain.
                </li>
                <li className="p-list__item">
@@ -83,7 +69,7 @@ index cc9c87a..d8ff1a4 100644
                  app.
                </li>
                <li className="p-list__item">
-@@ -187,7 +187,7 @@ const BrowserImport: FC<Props> = ({ sendPfx }) => {
+@@ -186,7 +186,7 @@ const BrowserImport: FC<Props> = ({ sendPfx }) => {
                  and password for an administrator user on this computer.
                </li>
                <li className="p-list__item">
@@ -93,10 +79,10 @@ index cc9c87a..d8ff1a4 100644
                </li>
              </ul>
 diff --git a/src/pages/login/CertificateAdd.tsx b/src/pages/login/CertificateAdd.tsx
-index 0e86797..9d227e5 100644
+index c8637fd..92176d5 100644
 --- a/src/pages/login/CertificateAdd.tsx
 +++ b/src/pages/login/CertificateAdd.tsx
-@@ -52,7 +52,7 @@ const CertificateAdd: FC = () => {
+@@ -69,7 +69,7 @@ const CertificateAdd: FC = () => {
                      <p>Generate a token on the command line</p>
                      <div className="p-code-snippet">
                        <pre className="p-code-snippet__block--icon">
@@ -105,7 +91,7 @@ index 0e86797..9d227e5 100644
                        </pre>
                      </div>
                    </div>
-@@ -78,7 +78,7 @@ const CertificateAdd: FC = () => {
+@@ -95,7 +95,7 @@ const CertificateAdd: FC = () => {
                  </Col>
                  <Col size={6}>
                    <div className="p-stepped-list__content">
@@ -115,43 +101,51 @@ index 0e86797..9d227e5 100644
                  </Col>
                </Row>
 diff --git a/src/pages/login/CertificateGenerate.tsx b/src/pages/login/CertificateGenerate.tsx
-index 2ea99de..39dce9f 100644
+index a17d515..aac86bf 100644
 --- a/src/pages/login/CertificateGenerate.tsx
 +++ b/src/pages/login/CertificateGenerate.tsx
-@@ -82,7 +82,7 @@ const CertificateGenerate: FC = () => {
-       mainClassName="certificate-generate"
+@@ -78,7 +78,7 @@ const CertificateGenerate: FC = () => {
+     downloadLink.click();
+   };
+ 
+-  const crtFileName = `lxd-ui-${location.hostname}.crt`;
++  const crtFileName = `incus-ui.crt`;
+ 
+   return (
+     <CustomLayout
+@@ -86,12 +86,7 @@ const CertificateGenerate: FC = () => {
        header={
          <div className="p-panel__header is-sticky">
--          <h1 className="p-panel__title">Setup LXD UI</h1>
-+          <h1 className="p-panel__title">Setup Incus UI</h1>
+           <h1 className="p-panel__title">
+-            <HelpLink
+-              href="https://github.com/canonical/lxd-ui/wiki/Authentication-Setup-FAQ"
+-              title="Authentication Setup FAQ"
+-            >
+-              Setup LXD UI
+-            </HelpLink>
++              Setup Incus UI
+           </h1>
          </div>
        }
-     >
-@@ -137,12 +137,12 @@ const CertificateGenerate: FC = () => {
-                 <Col size={6}>
-                   <div className="p-stepped-list__content">
-                     <p>
--                      Download <code>lxd-ui.crt</code> and add it to the LXD
-+                      Download <code>incus-ui.crt</code> and add it to the Incus
-                       trust store
-                     </p>
+@@ -150,7 +145,7 @@ const CertificateGenerate: FC = () => {
+                       <Col size={6}>
+                         <p>
+                           Download the <code>.crt</code> file and add it to the
+-                          LXD trust store
++                          Incus trust store
+                         </p>
+                       </Col>
+                       {certs && (
+@@ -167,7 +162,7 @@ const CertificateGenerate: FC = () => {
                      <div className="p-code-snippet">
                        <pre className="p-code-snippet__block--icon">
--                        <code>lxc config trust add Downloads/lxd-ui.crt</code>
-+                        <code>incus config trust add-certificate Downloads/incus-ui.crt</code>
+                         <code>
+-                          lxc config trust add Downloads/
++                          incus config trust add-certificate Downloads/
+                           {crtFileName}
+                         </code>
                        </pre>
-                     </div>
-                   </div>
-@@ -152,7 +152,7 @@ const CertificateGenerate: FC = () => {
-                     <Button
-                       onClick={() =>
-                         downloadText(
--                          `lxd-ui-${location.hostname}.crt`,
-+                          `incus-ui.crt`,
-                           certs.crt,
-                         )
-                       }
-@@ -174,7 +174,7 @@ const CertificateGenerate: FC = () => {
+@@ -187,7 +182,7 @@ const CertificateGenerate: FC = () => {
                        certs
                          ? () =>
                              downloadBase64(
@@ -160,7 +154,7 @@ index 2ea99de..39dce9f 100644
                                certs.pfx,
                              )
                          : undefined
-@@ -190,7 +190,7 @@ const CertificateGenerate: FC = () => {
+@@ -203,7 +198,7 @@ const CertificateGenerate: FC = () => {
                  </Col>
                  <Col size={6}>
                    <div className="p-stepped-list__content">

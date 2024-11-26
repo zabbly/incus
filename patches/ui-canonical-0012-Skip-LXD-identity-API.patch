@@ -1,4 +1,4 @@
-From 4b6001a481732a80c34eaf3d1e4dc5264200667a Mon Sep 17 00:00:00 2001
+From 2ecf2bcd8f7522d95172a7dfb114e726b1cb9a8d Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Sat, 3 Aug 2024 04:06:54 +0000
 Subject: [PATCH 12/23] Skip LXD identity API
@@ -14,11 +14,11 @@ License: GPL-3.0-only (without Canonical CLA)
  2 files changed, 2 insertions(+), 9 deletions(-)
 
 diff --git a/src/components/Navigation.tsx b/src/components/Navigation.tsx
-index 046bc4c..5e44c71 100644
+index 7e0b089..7446fd6 100644
 --- a/src/components/Navigation.tsx
 +++ b/src/components/Navigation.tsx
-@@ -453,7 +453,7 @@ const Navigation: FC = () => {
-                     <li className="p-side-navigation__item">
+@@ -444,7 +444,7 @@ const Navigation: FC = () => {
+                     <SideNavigationItem>
                        <div
                          className="p-side-navigation__link"
 -                        title={`${loggedInUserName} (${loggedInUserID})`}

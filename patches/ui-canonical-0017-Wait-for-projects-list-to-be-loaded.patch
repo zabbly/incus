@@ -1,4 +1,4 @@
-From b35ce0f0beb7361bee3a641dd959602a0911081d Mon Sep 17 00:00:00 2001
+From cdfafb6c597de821082ad5b2b6983c0c4129c8cf Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Sun, 4 Aug 2024 07:04:01 +0000
 Subject: [PATCH 17/23] Wait for projects list to be loaded
