@@ -1,4 +1,4 @@
-From 77d4234574d8686e9e24178ac060d1a05e16427d Mon Sep 17 00:00:00 2001
+From eed72be1138d87923a97253270c580cac7d67ece Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Fri, 2 Aug 2024 19:09:01 +0000
 Subject: [PATCH 11/23] Add user.uid.sso_only

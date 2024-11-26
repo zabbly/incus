@@ -1,4 +1,4 @@
-From ac936155d74c045f8407d07cba39d3430045878c Mon Sep 17 00:00:00 2001
+From a90098559d8adbb936d3c626885edbef032c8f37 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Wed, 22 Nov 2023 23:02:27 +0000
 Subject: [PATCH 02/23] Update navigation
@@ -15,11 +15,11 @@ License: GPL-3.0-only (without Canonical CLA)
  3 files changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/src/components/Navigation.tsx b/src/components/Navigation.tsx
-index bdfad68..046bc4c 100644
+index d06219f..7e0b089 100644
 --- a/src/components/Navigation.tsx
 +++ b/src/components/Navigation.tsx
-@@ -490,7 +490,7 @@ const Navigation: FC = () => {
-                   <li className="p-side-navigation__item">
+@@ -478,7 +478,7 @@ const Navigation: FC = () => {
+                   <SideNavigationItem>
                      <a
                        className="p-side-navigation__link"
 -                      href="https://discourse.ubuntu.com/c/lxd/126"
@@ -27,8 +27,8 @@ index bdfad68..046bc4c 100644
                        target="_blank"
                        rel="noopener noreferrer"
                        title="Discussion"
-@@ -505,7 +505,7 @@ const Navigation: FC = () => {
-                   <li className="p-side-navigation__item">
+@@ -493,7 +493,7 @@ const Navigation: FC = () => {
+                   <SideNavigationItem>
                      <a
                        className="p-side-navigation__link"
 -                      href="https://github.com/canonical/lxd-ui/issues/new"

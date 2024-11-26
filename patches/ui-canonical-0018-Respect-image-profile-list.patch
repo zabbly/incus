@@ -1,4 +1,4 @@
-From d0a27e54bce7a5f5604c8ddfec3abf5d2e72ba13 Mon Sep 17 00:00:00 2001
+From ae8fb568935d045940ed3392d82f1ba4478244c7 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Sun, 4 Aug 2024 17:55:07 +0000
 Subject: [PATCH 18/23] Respect image profile list
@@ -15,10 +15,10 @@ License: GPL-3.0-only (without Canonical CLA)
  3 files changed, 7 insertions(+)
 
 diff --git a/src/pages/instances/CreateInstance.tsx b/src/pages/instances/CreateInstance.tsx
-index bbf159c..c51d792 100644
+index ab54cd0..eeb12eb 100644
 --- a/src/pages/instances/CreateInstance.tsx
 +++ b/src/pages/instances/CreateInstance.tsx
-@@ -314,6 +314,10 @@ const CreateInstance: FC = () => {
+@@ -380,6 +380,10 @@ const CreateInstance: FC = () => {
      } else if (isContainerOnlyImage(image)) {
        void formik.setFieldValue("instanceType", "container");
      }
@@ -30,36 +30,36 @@ index bbf159c..c51d792 100644
  
    useEffect(() => {
 diff --git a/src/types/image.d.ts b/src/types/image.d.ts
-index f01948f..2998419 100644
+index ff45cd1..a922b2c 100644
 --- a/src/types/image.d.ts
 +++ b/src/types/image.d.ts
-@@ -27,6 +27,7 @@ export interface LxdImage {
+@@ -28,6 +28,7 @@ export interface LxdImage {
    uploaded_at: string;
    aliases: LxdImageAlias[];
    cached: boolean;
 +  profiles: string[];
+   name?: string;
  }
  
- export interface ImportImage {
-@@ -61,6 +62,7 @@ export interface RemoteImage {
+@@ -63,6 +64,7 @@ export interface RemoteImage {
    volume?: LxdStorageVolume;
    type?: LxdImageType;
    fingerprint?: string;
 +  profiles?: string[];
+   cached?: boolean;
  }
  
- export interface RemoteImageList {
 diff --git a/src/util/images.tsx b/src/util/images.tsx
-index dbeca88..ecc0217 100644
+index da7644c..86397c1 100644
 --- a/src/util/images.tsx
 +++ b/src/util/images.tsx
-@@ -49,6 +49,7 @@ export const localLxdToRemoteImage = (image: LxdImage): RemoteImage => {
-     os: image.properties?.os ?? "",
-     created_at: new Date(image.uploaded_at).getTime(),
-     release: image.properties?.release ?? "",
-+    profiles: image.profiles ?? ["default"],
-     server: LOCAL_IMAGE,
+@@ -53,6 +53,7 @@ export const localLxdToRemoteImage = (image: LxdImage): RemoteImage => {
+     release_title: image.properties?.version ?? "",
      type: image.type,
+     cached: image.cached,
++    profiles: image.profiles ?? ["default"],
+     server: image.cached ? image.update_source?.server : LOCAL_IMAGE,
+     variant: image.properties?.variant,
    };
 -- 
 2.34.1

@@ -1,4 +1,4 @@
-From 24af9a79ab3b030e80eff0e6ed8bc4bdc10c60b0 Mon Sep 17 00:00:00 2001
+From fd43688365d5e45efaad7b619867f2d6ce83dd1b Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Sun, 4 Aug 2024 03:54:21 +0000
 Subject: [PATCH 14/23] Hide Cluster option when not clustered
@@ -13,7 +13,7 @@ License: GPL-3.0-only (without Canonical CLA)
  1 file changed, 8 insertions(+)
 
 diff --git a/src/components/Navigation.tsx b/src/components/Navigation.tsx
-index 5e44c71..db7c8fc 100644
+index 7446fd6..9c30cae 100644
 --- a/src/components/Navigation.tsx
 +++ b/src/components/Navigation.tsx
 @@ -15,6 +15,8 @@ import useEventListener from "@use-it/event-listener";
@@ -37,19 +37,19 @@ index 5e44c71..db7c8fc 100644
 @@ -308,6 +312,8 @@ const Navigation: FC = () => {
                            Configuration
                          </NavLink>
-                       </li>
+                       </SideNavigationItem>
 +                      {isClustered && (
 +                      <>
                        <hr className="is-dark navigation-hr" />
-                       <li className="p-side-navigation__item">
+                       <SideNavigationItem>
                          <NavLink
 @@ -322,6 +328,8 @@ const Navigation: FC = () => {
                            Cluster
                          </NavLink>
-                       </li>
+                       </SideNavigationItem>
 +                      </>
 +                      )}
-                       <li className="p-side-navigation__item">
+                       <SideNavigationItem>
                          <NavLink
                            to={`/ui/operations`}
 -- 

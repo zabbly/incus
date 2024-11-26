@@ -1,4 +1,4 @@
-From 530c0186048444e4c5ba7fc0e69ac18bc73f9e1d Mon Sep 17 00:00:00 2001
+From c05d30d7b14fd1bc740205d3cc8a1f3d7f9ac9ea Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Wed, 22 Nov 2023 22:59:56 +0000
 Subject: [PATCH 01/23] Branding
@@ -13,12 +13,12 @@ License: GPL-3.0-only (without Canonical CLA)
  public/assets/img/favicon-32x32.png | Bin 1361 -> 2506 bytes
  public/assets/img/incus-logo.svg    | 129 ++++++++++++++++++++++++++++
  public/assets/img/lxd-logo.svg      |  34 --------
- src/components/Logo.tsx             |   6 +-
+ src/components/Logo.tsx             |   9 +-
  src/pages/login/Login.tsx           |   1 -
  src/sass/_pattern_navigation.scss   |   8 +-
  src/sass/styles.scss                |   4 -
  src/util/title.tsx                  |   2 +-
- 9 files changed, 138 insertions(+), 48 deletions(-)
+ 9 files changed, 138 insertions(+), 51 deletions(-)
  create mode 100644 public/assets/img/incus-logo.svg
  delete mode 100644 public/assets/img/lxd-logo.svg
 
@@ -295,33 +295,41 @@ index 272ef59..0000000
 -</svg>
 \ No newline at end of file
 diff --git a/src/components/Logo.tsx b/src/components/Logo.tsx
-index cf7faa8..b1b06d2 100644
+index f0ca5af..718e10b 100644
 --- a/src/components/Logo.tsx
 +++ b/src/components/Logo.tsx
-@@ -15,11 +15,11 @@ const Logo: FC = () => {
+@@ -7,11 +7,8 @@ const Logo: FC = () => {
+   const { project, isLoading } = useProject();
+   const { data: settings } = useSettings();
+ 
+-  const isMicroCloud = Boolean(settings?.config?.["user.microcloud"]);
+-  const src = isMicroCloud
+-    ? "/ui/assets/img/microCloud-logo.svg"
+-    : "/ui/assets/img/lxd-logo.svg";
+-  const heading = isMicroCloud ? "MicroCloud" : "Canonical LXD";
++  const src = "/ui/assets/img/incus-logo.svg";
++  const heading = "Incus UI";
+ 
+   const getLogoLink = () => {
+     if (isLoading || !project) {
+@@ -22,7 +19,7 @@ const Logo: FC = () => {
+ 
    return (
      <NavLink className="p-panel__logo" to={getLogoLink()}>
-       <img
--        src="/ui/assets/img/lxd-logo.svg"
--        alt="LXD-UI logo"
-+        src="/ui/assets/img/incus-logo.svg"
-+        alt="Incus-UI logo"
-         className="p-panel__logo-image"
-       />
--      <div className="logo-text p-heading--4">Canonical LXD</div>
-+      <div className="logo-text p-heading--4">Incus UI</div>
+-      <img src={src} alt="LXD-UI logo" className="p-panel__logo-image" />
++      <img src={src} alt="Incus UI logo" className="p-panel__logo-image" />
+       <div className="logo-text p-heading--4">{heading}</div>
      </NavLink>
    );
- };
 diff --git a/src/pages/login/Login.tsx b/src/pages/login/Login.tsx
-index c283cd5..9307844 100644
+index b64ad73..9307844 100644
 --- a/src/pages/login/Login.tsx
 +++ b/src/pages/login/Login.tsx
 @@ -23,7 +23,6 @@ const Login: FC = () => {
    return (
      <CustomLayout>
        <div className="empty-state login">
--        <Icon name="containers" className="empty-state-icon lxd-icon" />
+-        <Icon name="pods" className="empty-state-icon lxd-icon" />
          <h1 className="p-heading--4 u-sv-2">Login</h1>
          {hasOidc && (
            <>
@@ -363,10 +371,10 @@ index 56a8015..815de2e 100644
    }
  }
 diff --git a/src/sass/styles.scss b/src/sass/styles.scss
-index 43c6475..64d6627 100644
+index f658d51..4018c20 100644
 --- a/src/sass/styles.scss
 +++ b/src/sass/styles.scss
-@@ -157,10 +157,6 @@ body {
+@@ -181,10 +181,6 @@ body {
    @include vf-icon-external-link($color-link);
  }
  

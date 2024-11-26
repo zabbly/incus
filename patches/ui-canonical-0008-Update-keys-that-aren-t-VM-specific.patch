@@ -1,4 +1,4 @@
-From eb97c9fe147d387cc56908b6ccbfa6c8a3a5fa7c Mon Sep 17 00:00:00 2001
+From d59f124a4a99456f44278ff14b5964f2d05ffefb Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Fri, 2 Aug 2024 18:29:19 +0000
 Subject: [PATCH 08/23] Update keys that aren't VM specific
@@ -14,7 +14,7 @@ License: GPL-3.0-only (without Canonical CLA)
  2 files changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/src/components/forms/MigrationForm.tsx b/src/components/forms/MigrationForm.tsx
-index 001ad0a..72e9751 100644
+index ae30724..fb3f5ce 100644
 --- a/src/components/forms/MigrationForm.tsx
 +++ b/src/components/forms/MigrationForm.tsx
 @@ -37,7 +37,7 @@ const MigrationForm: FC<Props> = ({ formik }) => {
@@ -27,10 +27,10 @@ index 001ad0a..72e9751 100644
            defaultValue: "",
            disabled: isVmOnlyDisabled,
 diff --git a/src/components/forms/SecurityPoliciesForm.tsx b/src/components/forms/SecurityPoliciesForm.tsx
-index c48d3a0..1e47187 100644
+index 29ef503..d843862 100644
 --- a/src/components/forms/SecurityPoliciesForm.tsx
 +++ b/src/components/forms/SecurityPoliciesForm.tsx
-@@ -168,7 +168,7 @@ const SecurityPoliciesForm: FC<Props> = ({ formik }) => {
+@@ -186,7 +186,7 @@ const SecurityPoliciesForm: FC<Props> = ({ formik }) => {
  
          getConfigurationRow({
            formik,
