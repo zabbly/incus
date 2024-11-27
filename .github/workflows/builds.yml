@@ -116,6 +116,7 @@ jobs:
             libnuma-dev \
             libpam0g-dev \
             libpixman-1-dev \
+            libpng-dev \
             libprotobuf-c-dev \
             libprotobuf-dev \
             librbd-dev \
@@ -589,6 +590,7 @@ jobs:
                   --enable-linux-io-uring \
                   --enable-numa \
                   --enable-pie \
+                  --enable-png \
                   --enable-rbd \
                   --enable-seccomp \
                   --enable-spice \
