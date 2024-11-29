@@ -17,10 +17,10 @@ Signed-off-by: Stéphane Graber <stgraber@ubuntu.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/NetworkPkg/Dhcp6Dxe/Dhcp6Utility.c b/NetworkPkg/Dhcp6Dxe/Dhcp6Utility.c
-index d249a1cca7..35d785df91 100644
+index f72bc93a68..7876527892 100644
 --- a/NetworkPkg/Dhcp6Dxe/Dhcp6Utility.c
 +++ b/NetworkPkg/Dhcp6Dxe/Dhcp6Utility.c
-@@ -58,7 +58,7 @@ Dhcp6GenerateClientId (
+@@ -66,7 +66,7 @@ Dhcp6GenerateClientId (
    //
    // If System UUID is found from SMBIOS Table, use DUID-UUID type.
    //
@@ -29,6 +29,3 @@ index d249a1cca7..35d785df91 100644
      //
      //
      //  The format of DUID-UUID:
--- 
-2.25.1
-
