@@ -14,18 +14,15 @@ Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/ArmVirtPkg/ArmVirt.dsc.inc b/ArmVirtPkg/ArmVirt.dsc.inc
-index 3f7bac6bf3..7af9c3a270 100644
+index 5384a41818..fe1ae25a93 100644
 --- a/ArmVirtPkg/ArmVirt.dsc.inc
 +++ b/ArmVirtPkg/ArmVirt.dsc.inc
-@@ -365,7 +365,7 @@
-   # reserved ones, with the exception of LoaderData regions, of which OS loaders
-   # (i.e., GRUB) may assume that its contents are executable.
+@@ -383,7 +383,7 @@
+   # build command line you can allow code execution in EfiLoaderData. This is
+   # required when using some outdated GRUB versions.
    #
 -  gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy|0xC000000000007FD5
 +  gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy|0xC000000000007FD1
  
    gEfiMdeModulePkgTokenSpaceGuid.PcdCpuStackGuard|TRUE
  
--- 
-2.39.2
-

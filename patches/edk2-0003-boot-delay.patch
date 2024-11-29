@@ -12,18 +12,15 @@ Signed-off-by: Stéphane Graber <stgraber@ubuntu.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/OvmfPkg/OvmfPkgX64.dsc b/OvmfPkg/OvmfPkgX64.dsc
-index b80710fbdc..74b6647209 100644
+index 556984bdaa..efd19d0d48 100644
 --- a/OvmfPkg/OvmfPkgX64.dsc
 +++ b/OvmfPkg/OvmfPkgX64.dsc
-@@ -597,7 +597,7 @@
+@@ -650,7 +650,7 @@
+   gUefiOvmfPkgTokenSpaceGuid.PcdPciMmio64Base|0x0
    gUefiOvmfPkgTokenSpaceGuid.PcdPciMmio64Size|0x800000000
- !endif
  
 -  gEfiMdePkgTokenSpaceGuid.PcdPlatformBootTimeOut|0
 +  gEfiMdePkgTokenSpaceGuid.PcdPlatformBootTimeOut|3
  
    # Set video resolution for text setup.
    gEfiMdeModulePkgTokenSpaceGuid.PcdSetupVideoHorizontalResolution|640
--- 
-2.27.0
-
