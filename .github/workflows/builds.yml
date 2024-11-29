@@ -504,7 +504,7 @@ jobs:
                   . ./edksetup.sh
                   make -C BaseTools ARCH=${EDK2_ARCH}
                   build -a ${EDK2_ARCH} -t GCC5 -b RELEASE -p ${EDK2_PKG} \
-                    -DSMM_REQUIRE=FALSE \
+                    -DSMM_REQUIRE=TRUE \
                     -DSECURE_BOOT_ENABLE=TRUE \
                     -DNETWORK_IP4_ENABLE=TRUE \
                     -DNETWORK_IP6_ENABLE=TRUE \
