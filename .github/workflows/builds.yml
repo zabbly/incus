@@ -49,7 +49,7 @@ jobs:
       # Linux Containers projects
       DISTROBUILDER_TAG: "distrobuilder-3.1"
       INCUS_TAG: "v6.7.0"
-      INCUS_UI_CANONICAL_TAG: "0.14"
+      INCUS_UI_CANONICAL_TAG: "incus-0.14.0"
       LXCFS_TAG: "v6.0.2"
       LXC_TAG: "v6.0.2"
 
@@ -212,7 +212,7 @@ jobs:
           git clone https://github.com/lxc/lxc /build/lxc --depth 1 -b "${LXC_TAG}"
           git clone https://github.com/lxc/lxcfs /build/lxcfs --depth 1 -b "${LXCFS_TAG}"
           git clone https://github.com/lxc/incus /build/incus -b "${INCUS_TAG}"
-          git clone https://github.com/canonical/lxd-ui /build/incus-ui-canonical --depth 1 -b "${INCUS_UI_CANONICAL_TAG}"
+          git clone https://github.com/zabbly/incus-ui-canonical /build/incus-ui-canonical --depth 1 -b "${INCUS_UI_CANONICAL_TAG}"
 
           git clone https://github.com/axboe/liburing /build/liburing --depth 1 -b "${LIBURING_TAG}"
           git clone https://github.com/checkpoint-restore/criu /build/criu --depth 1 -b "${CRIU_TAG}"
@@ -357,31 +357,8 @@ jobs:
 
           cd /build/incus-ui-canonical
 
-          # Specific tweaking
-          git am "${REPO}/patches/ui-canonical-0001-Branding.patch"
-          git am "${REPO}/patches/ui-canonical-0002-Update-navigation.patch"
-          git am "${REPO}/patches/ui-canonical-0003-Update-certificate-generation.patch"
-          git am "${REPO}/patches/ui-canonical-0004-Remove-external-links.patch"
-          git am "${REPO}/patches/ui-canonical-0005-Remove-Canonical-image-servers.patch"
-          git am "${REPO}/patches/ui-canonical-0006-Remove-version-check.patch"
-          git am "${REPO}/patches/ui-canonical-0007-Improve-OpenFGA-support.patch"
-          git am "${REPO}/patches/ui-canonical-0008-Update-keys-that-aren-t-VM-specific.patch"
-          git am "${REPO}/patches/ui-canonical-0009-Fix-cluster-evacuation.patch"
-          git am "${REPO}/patches/ui-canonical-0010-Rename-user.ui_title-to-user.ui.title.patch"
-          git am "${REPO}/patches/ui-canonical-0011-Add-user.uid.sso_only.patch"
-          git am "${REPO}/patches/ui-canonical-0012-Skip-LXD-identity-API.patch"
-          git am "${REPO}/patches/ui-canonical-0013-Fix-network-forward-count-logic.patch"
-          git am "${REPO}/patches/ui-canonical-0014-Hide-Cluster-option-when-not-clustered.patch"
-          git am "${REPO}/patches/ui-canonical-0015-Rename-Cluster-member-to-Location.patch"
-          git am "${REPO}/patches/ui-canonical-0016-Make-migration-an-action.patch"
-          git am "${REPO}/patches/ui-canonical-0017-Wait-for-projects-list-to-be-loaded.patch"
-          git am "${REPO}/patches/ui-canonical-0018-Respect-image-profile-list.patch"
-          git am "${REPO}/patches/ui-canonical-0019-Add-support-for-LVM-Cluster.patch"
-          git am "${REPO}/patches/ui-canonical-0020-Fix-stateful-snapshots-creation.patch"
-          git am "${REPO}/patches/ui-canonical-0021-Update-PWA-definition.patch"
-          git am "${REPO}/patches/ui-canonical-0022-Fix-handling-of-WebSocket-on-HTTP.patch"
-          git am "${REPO}/patches/ui-canonical-0023-Fix-documentation-path.patch"
-          sed -i -f "${REPO}/patches/ui-canonical-renames.sed" src/*/*.ts* src/*/*/*.ts* src/*/*/*/*.ts* src/*/*/*/*/*.ts*
+          # Complete re-branding.
+          find -type f -name "*.ts" -o -name "*.tsx" -o -name "*.scss" | xargs sed -i -f "${REPO}/patches/ui-canonical-renames.sed"
 
           npm install yarn --global
           yarn install
