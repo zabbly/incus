@@ -18,7 +18,6 @@ override_dh_install:
 	rm -R debian/incus-base/opt/incus/agent
 	rm debian/incus-base/opt/incus/bin/qemu-img
 	rm debian/incus-base/opt/incus/bin/qemu-system-*
-	rm debian/incus-base/opt/incus/bin/virtfs-proxy-helper
 	rm debian/incus-base/opt/incus/bin/virtiofsd
 
 	# Handle incus-client
