@@ -314,6 +314,40 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick fb24b4faa75c755ca2b377f71c355a148be16b00  # incusd/network/ovn: Allow creation of OVN network with no uplink
+          git cherry-pick cfa0722d90c2a615a51f5af1c10421d713b604c6  # incusd/network/ovn: Handle missing logical router in state
+          git cherry-pick 43a5eef3d183b10ea3284f88bdcc2c9018c10a4c  # lxd-to-incus: Clear volatile.uuid from instances
+          git cherry-pick 5243affe465ddd63d2577ca833810c13cdf7f7be  # shared/util: Add IsNoneOrEmpty
+          git cherry-pick 86df5a4e694fabca575b814c845808e424f79551  # incusd/network/bridge: Tweak dnsmasq startup condition
+          git cherry-pick 52f3939ca4f9855b12478055b640b5f6f9e2b1aa  # shared/cgo: Add finalize_userns
+          git cherry-pick 536d6b06879d87f0659433a55a1a576d11c82118  # shared/cgo: Export in_same_namespace
+          git cherry-pick 82031a3cddbf1f72727260cf6fa53de7136cf1e1  # incusd/main_forkproxy: Join all namespaces at once
+          git cherry-pick 13f3ddae3458c8ee3b10789e2343f69516063098  # incusd/main_forkfile: Join all namespaces at once
+          git cherry-pick f57edffa4784322fb00a94abaa86e86de85a8f74  # internal/linux: Add ClearBlock
+          git cherry-pick 2d3317c4363885fd24118dd6f47bd47996d22c5f  # incusd/storage: Switch to linux.ClearBlock
+          git cherry-pick f6ed641cdea455b94a9687599a4bedc8860b93b4  # internal/linux/discard: Remove leftover debugging
+          git cherry-pick 75e251bcc4513ec981d748c0de0a87c36f382333  # internal/linux/discard: Use marker length for buffer
+          git cherry-pick 0765dd6f2463a5b3ae45b3b46a2267efaf2cbb45  # internal/linux/discard: Add support for offset
+          git cherry-pick eafbbaedd3705d1426429aeb413a55cf555178ac  # incusd/storage/generic: Pass offset to ClearBlock
+          git cherry-pick f0eba7b146724092dfbec2123b53fc0a6cccb425  # incusd/storage/lvm: Discard the new blocks on resize
+          git cherry-pick aa2757bb01b433d685eeba71ac97c095265bc237  # incusd/storage/lvm: Run ClearBlock on all new thick block volumes
+          git cherry-pick 59bf78d716ce58fa9db572ce487111b96b4d55f2  # incusd/network/ovn: Skip remote peers when iterating peer networks
+          git cherry-pick e584259e1c1b93043abf6a832c658a9b455007f6  # incusd/storage/lvm: Move resize clearing to SetVolumeQuota
+          git cherry-pick b5dab379fa3435cff78312a308d042cfd1aac15d  # incusd/storage: Make use of qemu-img's target-is-zero option
+          git cherry-pick 15468bfe57f9ab7825277e046f7b39c95a1f1127  # incusd/device/disk: Better handle partitions
+          git cherry-pick 17166d119c68b6cd442c5f865ea0bea09a71521a  # Fixed link to point to correct manpage.
+          git cherry-pick b7760f36e3c35c0d1881fecb61a0bbcd3a4eaa5f  # lxd-to-incus: Be more lenient on database changes
+          git cherry-pick 632ec9f72d8530a45837ede876ec47cd48bc1279  # incusd/storage/drivers: Handle 4k sector sizes
+          git cherry-pick 1ffa04663a4343cffe5e514403eceaba0102e2ec  # incusd/dnsmasq: Don't put the project name in the DNS record
+          git cherry-pick 64d95c48263a67e8323439de8338c3def6815fda  # doc: typo
+          git cherry-pick 2675613520d52f74208bcc405ef6556a8ea63121  # doc: Updated storage_zfs.md
+          git cherry-pick a8427be2cb7cd135ffe635e57a8e3ef3b4878134  # doc: Force white background for swagger API
+          git cherry-pick 2bc92c0028d1b55107d8fcec778516d9dd01f1d2  # incusd/instance/drivers/qmp: Handle missing log directory
+          git cherry-pick b0b028770f22a1cbeb88e5bb67954399895a27f9  # cmd/incus-user: keep track of socket path used to connect to the server
+          git cherry-pick 2835e4a0985c1d8e24ee894e7c840afe435fe581  # cmd/incus-user: unify logging, support --verbose and --debug
+          git cherry-pick 41c56d7ea9d72f1c5c235ab327cc7eb1013fd39a  # incusd/network/ovn: Fix bad route check
+          git cherry-pick e6f7df1fe36f87de0060c6201dbd83113a7938c3  # github: Fix shellcheck
+
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" github.com/lxc/incus/v6/cmd/incus-benchmark
