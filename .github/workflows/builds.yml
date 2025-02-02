@@ -327,6 +327,7 @@ jobs:
           git cherry-pick 96cba75b1376536e0600c0cc190c6775efa1d080  # incusd/network/ovn: Fix bad route check
           git cherry-pick b726905c66050ac4229d53ce079a0bd05dbe900d  # incus/file/pull: Ensure we have a leading / in all paths
           git cherry-pick 52acea96716481673759f80b49c505942ce3b553  # github: Fix shellcheck
+          git cherry-pick f2ef7aa808e204c8714de40b29895ea596e2bb0e  # incus/file/pull: Read files in chunks
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
