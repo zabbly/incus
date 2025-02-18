@@ -327,7 +327,28 @@ jobs:
           git cherry-pick 96cba75b1376536e0600c0cc190c6775efa1d080  # incusd/network/ovn: Fix bad route check
           git cherry-pick b726905c66050ac4229d53ce079a0bd05dbe900d  # incus/file/pull: Ensure we have a leading / in all paths
           git cherry-pick 52acea96716481673759f80b49c505942ce3b553  # github: Fix shellcheck
+          git cherry-pick 8d00c66862d04dad3be1d56da77d02886dbf7ccc  # doc/installing: mention incus group on NixOS
           git cherry-pick f2ef7aa808e204c8714de40b29895ea596e2bb0e  # incus/file/pull: Read files in chunks
+          git cherry-pick 35388a3d102a4a9dc2bf3368c937a1f208eb9d6f  # incus/file/pull: Actually make read buffer 1MiB
+          git cherry-pick b3e65e961d08d41f5f49b81f28038458c1b0675f  # incusd/network/bridge: Fix deletion of tunnels and dummy devices
+          git cherry-pick 7a6f507462c3f6660d2c02acd038549420403cc8  # incusd/device/disk: Allow virtiofsd on non-x86
+          git cherry-pick 627cd9b0e647bdda8fb1d175b66fc905eec4a22f  # incus/file: Remove unused function
+          git cherry-pick 8b0482204b65319b0aa3b0235f5eb5cc6563bf37  # incus/network/info (ovn): Fix object not found.
+          git cherry-pick 1f63f951d3004e927f581b475d7f461fc33564a6  # incusd/instance/drivers: Improve NUMA balancing
+          git cherry-pick bd03b8009662a75065e24d480c9131c53ffca675  # incus/file: Move from path to filepath
+          git cherry-pick 7a9f080ceaa9fdcb2214305d6e8d362bc6f522ba  # github: Add linux-modules-extra (for vrf)
+          git cherry-pick 37a72c0c8b72f4d815c6e5045dd6114b2dfdc3aa  # shared/archive: Added LZ4 support
+          git cherry-pick 1910ae733ff038aea279b858d141238058c47066  # incus/storage/drivers: Fix issue with lvmcluster storage pool creation
+          git cherry-pick 2408a33ad30f40839341f3da9cb00d5d38fd5075  # github: Workaround permission problems
+          git cherry-pick e02ae60ec62899798cb3a71f2563d07bc49d98e8  # internal/instance: Move user config key doc string
+          git cherry-pick e6d255aa602c93174470404c343fe852990933b4  # internal/instance: Add environment config keys docstring
+          git cherry-pick bbb073357ba0ea3d6b5eefd366f6a8df1d366cdb  # incusd/internal/server/instance: Add qemuEscapeCmdline
+          git cherry-pick f267447a55dfa450ddd6896cba9c92e3f8866ad6  # incusd/internal/server/instance: Use qemuEscapeCmdline
+          git cherry-pick 7c6cd6d634a4e4e92b29da8858f2484660a3788d  # incus: Fix instance copy error when using '--refresh' flag
+          git cherry-pick 9ce55c818865b13758a8987b0d61c332fe846f23  # doc/network_load_balancers: Fix backend add instructions
+          git cherry-pick 1957ac66f837fdc4f54c502279803dcd3fa020b5  # doc: Add frontend to wordlist
+          git cherry-pick 1906ace085f707202d9a8a14e52d6ea20193157f  # incusd/main_nsexec: Fix change_namespaces fallback to handle multiple namespaces
+          git cherry-pick ffd069157f2e334fb34644e17ae8f1237c9323dd  # incusd/instance/utils: Only check uid/gid for containers
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
