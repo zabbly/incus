@@ -131,6 +131,7 @@ jobs:
             libspice-server-dev \
             libsqlite3-dev \
             libssl-dev \
+            libsystemd-dev \
             libtirpc-dev \
             libtool \
             libudev-dev \
