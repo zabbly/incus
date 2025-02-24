@@ -21,6 +21,7 @@ jobs:
           - ubuntu-24.04
           - debian-11
           - debian-12
+          - debian-13
         arch:
           - amd64
           - arm64
@@ -677,6 +678,7 @@ jobs:
         run: |
           [ "${PKGOS}" = "debian-11" ] && CODENAME=bullseye
           [ "${PKGOS}" = "debian-12" ] && CODENAME=bookworm
+          [ "${PKGOS}" = "debian-13" ] && CODENAME=trixie
           [ "${PKGOS}" = "ubuntu-20.04" ] && CODENAME=focal
           [ "${PKGOS}" = "ubuntu-22.04" ] && CODENAME=jammy
           [ "${PKGOS}" = "ubuntu-24.04" ] && CODENAME=noble

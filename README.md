@@ -17,6 +17,7 @@ Those packages are built for:
 * Ubuntu 24.04 LTS (`noble`)
 * Debian 11 (`bullseye`) (`amd64` only)
 * Debian 12 (`bookworm`)
+* Debian 13 (`trixie`)
 
 Unless otherwise mentioned, packages are built for both `amd64` (Intel/AMD 64bit) and `arm64` (Arm 64bit).
 
