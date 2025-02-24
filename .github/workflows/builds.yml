@@ -58,7 +58,7 @@ jobs:
       # External dependencies
       COWSQL_TAG: "v1.15.8"
       CRIU_TAG: "v4.0"
-      EDK2_TAG: "edk2-stable202411"
+      EDK2_TAG: "edk2-stable202502"
       GOLANG_TAG: "go1.24.0"
       LIBTPMS_TAG: "v0.10.0"
       LIBURING_TAG: "liburing-2.9"
@@ -66,7 +66,7 @@ jobs:
       MINIO_TAG: "RELEASE.2025-02-18T16-25-55Z"
       NASM_TAG: "nasm-2.16.03"
       NVIDIA_CONTAINER_TAG: "v1.17.4"
-      QEMU_TAG: "v9.2.1"
+      QEMU_TAG: "v9.2.2"
       RAFT_TAG: "v0.22.1"
       SEABIOS_TAG: "rel-1.16.3"
       SKOPEO_TAG: "v1.18.0"
