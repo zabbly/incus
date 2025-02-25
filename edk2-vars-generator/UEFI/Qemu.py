@@ -25,9 +25,12 @@ import tempfile
 class QemuEfiMachine(enum.Enum):
     OVMF_PC = enum.auto()
     OVMF_Q35 = enum.auto()
-    OVMF32 = enum.auto()
+    OVMF32_PC = enum.auto()
+    OVMF32_Q35 = enum.auto()
     AAVMF = enum.auto()
     AAVMF32 = enum.auto()
+    RISCV64 = enum.auto()
+    LOONGARCH64 = enum.auto()
 
 
 class QemuEfiVariant(enum.Enum):
@@ -37,8 +40,7 @@ class QemuEfiVariant(enum.Enum):
 
 
 class QemuEfiFlashSize(enum.Enum):
-    DEFAULT = enum.auto
-    SIZE_2MB = enum.auto()
+    DEFAULT = enum.auto()
     SIZE_4MB = enum.auto()
 
 
@@ -50,11 +52,17 @@ class QemuCommand:
         '-display', 'none',
         '-serial', 'stdio',
     ]
+    Aavmf_Common_Params = Qemu_Common_Params + [
+        '-machine', 'virt', '-device', 'virtio-serial-device',
+    ]
+    LoongArch_Common_Params = Qemu_Common_Params + [
+        '-machine', 'virt',
+    ]
     Ovmf_Common_Params = Qemu_Common_Params + [
         '-chardev', 'pty,id=charserial1',
         '-device', 'isa-serial,chardev=charserial1,id=serial1',
     ]
-    Aavmf_Common_Params = Qemu_Common_Params + [
+    RiscV_Common_Params = Qemu_Common_Params + [
         '-machine', 'virt', '-device', 'virtio-serial-device',
     ]
     Machine_Base_Command = {
@@ -64,15 +72,24 @@ class QemuCommand:
         QemuEfiMachine.AAVMF32: [
             'qemu-system-aarch64', '-cpu', 'cortex-a15',
         ] + Aavmf_Common_Params,
+        QemuEfiMachine.LOONGARCH64: [
+            'qemu-system-loongarch64',
+        ] + LoongArch_Common_Params,
         QemuEfiMachine.OVMF_PC: [
             'qemu-system-x86_64', '-machine', 'pc,accel=tcg',
         ] + Ovmf_Common_Params,
         QemuEfiMachine.OVMF_Q35: [
             'qemu-system-x86_64', '-machine', 'q35,accel=tcg',
         ] + Ovmf_Common_Params,
-        QemuEfiMachine.OVMF32: [
+        QemuEfiMachine.OVMF32_PC: [
+            'qemu-system-i386', '-machine', 'pc,accel=tcg',
+        ] + Ovmf_Common_Params,
+        QemuEfiMachine.OVMF32_Q35: [
             'qemu-system-i386', '-machine', 'q35,accel=tcg',
         ] + Ovmf_Common_Params,
+        QemuEfiMachine.RISCV64: [
+            'qemu-system-riscv64',
+        ] + RiscV_Common_Params,
     }
 
     def _get_default_flash_paths(self, machine, variant, flash_size):
@@ -80,19 +97,24 @@ class QemuCommand:
         assert(variant is None or variant in QemuEfiVariant)
         assert(flash_size in QemuEfiFlashSize)
 
-        code_ext = vars_ext = ''
+        code_ext = '.no-secboot' if machine == QemuEfiMachine.AAVMF else ''
+        vars_ext = ''
         if variant == QemuEfiVariant.MS:
             code_ext = vars_ext = '.ms'
         elif variant == QemuEfiVariant.SECBOOT:
             code_ext = '.secboot'
         elif variant == QemuEfiVariant.SNAKEOIL:
-            vars_ext = '.snakeoil'
+            code_ext = vars_ext = '.snakeoil'
+
+        if variant == QemuEfiVariant.SNAKEOIL:
+            # We provide one size - you don't get to pick.
+            assert(flash_size == QemuEfiFlashSize.DEFAULT)
 
         if machine == QemuEfiMachine.AAVMF:
             assert(flash_size == QemuEfiFlashSize.DEFAULT)
             return (
                 f'/usr/share/AAVMF/AAVMF_CODE{code_ext}.fd',
-                f'/usr/share/AAVMF/AAVMF_VARS{code_ext}.fd',
+                f'/usr/share/AAVMF/AAVMF_VARS{vars_ext}.fd',
             )
         if machine == QemuEfiMachine.AAVMF32:
             assert(variant is None)
@@ -101,27 +123,38 @@ class QemuCommand:
                 '/usr/share/AAVMF/AAVMF32_CODE.fd',
                 '/usr/share/AAVMF/AAVMF32_VARS.fd'
             )
-        if machine == QemuEfiMachine.OVMF32:
-            assert(variant is None or variant in [QemuEfiVariant.SECBOOT])
-            assert(
-                flash_size in [
-                    QemuEfiFlashSize.DEFAULT, QemuEfiFlashSize.SIZE_4MB
-                ]
-            )
+        if machine == QemuEfiMachine.LOONGARCH64:
+            assert(variant is None)
+            assert(flash_size == QemuEfiFlashSize.DEFAULT)
             return (
-                '/usr/share/OVMF/OVMF32_CODE_4M.secboot.fd',
-                '/usr/share/OVMF/OVMF32_VARS_4M.fd',
+                '/usr/share/qemu-efi-loongarch64/QEMU_EFI.fd',
+                '/usr/share/qemu-efi-loongarch64/QEMU_VARS.fd',
+            )
+        if machine == QemuEfiMachine.RISCV64:
+            assert(variant is None)
+            assert(flash_size == QemuEfiFlashSize.DEFAULT)
+            return (
+                '/usr/share/qemu-efi-riscv64/RISCV_VIRT_CODE.fd',
+                '/usr/share/qemu-efi-riscv64/RISCV_VIRT_VARS.fd',
             )
         # Remaining possibilities are OVMF variants
-        if machine == QemuEfiMachine.OVMF_PC:
+        assert(
+            flash_size in [
+                QemuEfiFlashSize.DEFAULT, QemuEfiFlashSize.SIZE_4MB
+            ]
+        )
+        size_ext = '_4M'
+        if machine in [QemuEfiMachine.OVMF_PC, QemuEfiMachine.OVMF32_PC]:
             assert(variant is None)
-        if variant == QemuEfiVariant.SNAKEOIL:
-            # We provide one size - you don't get to pick.
-            assert(flash_size == QemuEfiFlashSize.DEFAULT)
-        size_ext = '' if flash_size == QemuEfiFlashSize.SIZE_2MB else '_4M'
+        if machine == QemuEfiMachine.OVMF32_Q35:
+            assert(variant is None or variant == QemuEfiVariant.SECBOOT)
+        if machine in [QemuEfiMachine.OVMF32_PC, QemuEfiMachine.OVMF32_Q35]:
+            OVMF_ARCH = "OVMF32"
+        else:
+            OVMF_ARCH = "OVMF"
         return (
-            f'/usr/share/OVMF/OVMF_CODE{size_ext}{code_ext}.fd',
-            f'/usr/share/OVMF/OVMF_VARS{size_ext}{vars_ext}.fd'
+            f'/usr/share/OVMF/{OVMF_ARCH}_CODE{size_ext}{code_ext}.fd',
+            f'/usr/share/OVMF/{OVMF_ARCH}_VARS{size_ext}{vars_ext}.fd'
         )
 
     def __init__(
@@ -140,10 +173,6 @@ class QemuCommand:
 
         self.pflash = self.PflashParams(code_path, vars_template_path)
         self.command = self.Machine_Base_Command[machine] + self.pflash.params
-        if variant in [QemuEfiVariant.MS, QemuEfiVariant.SECBOOT] and \
-           flash_size == QemuEfiFlashSize.SIZE_2MB:
-            # 2MB images have 64-bit PEI that does not support S3 w/ SMM
-            self.command.extend(['-global', 'ICH9-LPC.disable_s3=1'])
 
     def add_disk(self, path):
         self.command = self.command + [
@@ -163,18 +192,25 @@ class QemuCommand:
         be automatically cleaned up when the object is destroyed.
         '''
         def __init__(self, code_path, vars_template_path):
+            self.params = [
+                '-drive',
+                'file=%s,if=pflash,format=raw,unit=0,readonly=on' %
+                (code_path),
+            ]
+            if vars_template_path is None:
+                self.varfile_path = None
+                return
             with tempfile.NamedTemporaryFile(delete=False) as varfile:
                 self.varfile_path = varfile.name
                 with open(vars_template_path, 'rb') as template:
                     shutil.copyfileobj(template, varfile)
-                self.params = [
-                    '-drive',
-                    'file=%s,if=pflash,format=raw,unit=0,readonly=on' %
-                    (code_path),
-                    '-drive',
-                    'file=%s,if=pflash,format=raw,unit=1,readonly=off' %
-                    (varfile.name)
-                ]
+                    self.params = self.params + [
+                        '-drive',
+                        'file=%s,if=pflash,format=raw,unit=1,readonly=off' %
+                        (varfile.name)
+                    ]
 
         def __del__(self):
+            if self.varfile_path is None:
+                return
             os.unlink(self.varfile_path)

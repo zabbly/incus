@@ -86,7 +86,7 @@ if __name__ == '__main__':
             'QemuCommand': Qemu.QemuCommand(
                 QemuEfiMachine.OVMF_Q35,
                 variant=QemuEfiVariant.SECBOOT,
-                flash_size=QemuEfiFlashSize.SIZE_2MB,
+                flash_size=QemuEfiFlashSize.SIZE_4MB,
                 code_path=args.code,
                 vars_template_path=args.vars_template,
             ),
@@ -96,7 +96,7 @@ if __name__ == '__main__':
             'QemuCommand': Qemu.QemuCommand(
                 QemuEfiMachine.OVMF_Q35,
                 variant=QemuEfiVariant.SECBOOT,
-                flash_size=QemuEfiFlashSize.SIZE_2MB,
+                flash_size=QemuEfiFlashSize.SIZE_4MB,
                 code_path=args.code,
                 vars_template_path=args.vars_template,
             ),
@@ -122,19 +122,19 @@ if __name__ == '__main__':
     child = pexpect.spawn(' '.join(q.command))
     if args.debug:
         child.logfile = sys.stdout.buffer
-    child.expect(['Press .* or any other key to continue'], timeout=60)
+    child.expect(['Press .* or any other key to continue'], timeout=None)
     child.sendline('\x1b')
-    child.expect(['Shell> '])
+    child.expect(['Shell> '], timeout=None)
     child.sendline('FS0:\r')
-    child.expect(['FS0:\\\\> '])
+    child.expect(['FS0:\\\\> '], timeout=None)
     enrollcmd = ['EnrollDefaultKeys.efi']
     if args.no_default:
         enrollcmd.append("--no-default")
     child.sendline(f'{" ".join(enrollcmd)}\r')
-    child.expect(['FS0:\\\\> '])
+    child.expect(['FS0:\\\\> '], timeout=None)
     # Clear the BootOrder. See #1015759
     child.sendline('setvar BootOrder =\r')
-    child.expect(['FS0:\\\\> '])
+    child.expect(['FS0:\\\\> '], timeout=None)
     child.sendline('reset -s\r')
     child.wait()
     shutil.copy(q.pflash.varfile_path, args.out_file)
