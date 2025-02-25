@@ -158,6 +158,8 @@ jobs:
             xmlto \
             xorriso
 
+          apt-get install --no-install-recommends --yes systemd-dev || true
+
           pip3 install meson || pip3 install meson --break-system-packages
           pip3 install tomli || pip3 install tomli --break-system-packages
 
