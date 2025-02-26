@@ -363,7 +363,7 @@ jobs:
           cd /build/incus-ui-canonical
 
           # Complete re-branding.
-          find -type f -name "*.ts" -o -name "*.tsx" -o -name "*.scss" | xargs sed -i -f "${REPO}/patches/ui-canonical-renames.sed"
+          find -type f -name "*.ts" -o -name "*.tsx" -o -name "*.scss" -o -name "*.html" | xargs sed -i -f "${REPO}/patches/ui-canonical-renames.sed"
 
           npm install yarn --global
           yarn install
