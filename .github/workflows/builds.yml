@@ -33,7 +33,7 @@ jobs:
     runs-on:
       - self-hosted
       - cpu-4
-      - mem-4G
+      - mem-8G
       - disk-50G
       - arch-${{ matrix.arch }}
       - image-${{ matrix.os }}
