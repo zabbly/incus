@@ -49,7 +49,7 @@ jobs:
 
       # Linux Containers projects
       DISTROBUILDER_TAG: "distrobuilder-3.1"
-      INCUS_TAG: "v6.10.0"
+      INCUS_TAG: "v6.10.1"
       INCUS_UI_CANONICAL_TAG: "incus-0.15.0"
       LXCFS_TAG: "v6.0.3"
       LXC_TAG: "v6.0.3"
@@ -324,9 +324,6 @@ jobs:
           REPO="${PWD}"
 
           cd /build/incus
-
-          git cherry-pick 20dff3230ea0a1d0a0e26a45c1a4e6c95fb3ada2  # incusd/device/disk: Include cluster name and config path in RBD string
-          git cherry-pick 62b7ba1b1a28a9e87793af78db5589aef67dd6b9  # incusd/instance/qemu: Provide the RBD keyring to QEMU
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
