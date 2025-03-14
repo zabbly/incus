@@ -115,6 +115,9 @@ Architecture: any
 Pre-Depends: ${misc:Pre-Depends}
 Breaks: incus (<< ${source:Version})
 Replaces: incus (<< ${source:Version})
+Recommends:
+  incus,
+  rsync
 Description: Incus - Extra tools
  Incus provides the ability to run containers and virtual machines locally
  along with very flexible networking and storage akin to what's offered
