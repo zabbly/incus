@@ -58,6 +58,7 @@ jobs:
       CRIU_TAG: "v4.1.1"
       EDK2_TAG: "edk2-stable202411"
       GOLANG_TAG: "go1.25.0"
+      LEGO_TAG: "v4.22.2"
       LIBTPMS_TAG: "v0.10.1"
       LIBURING_TAG: "liburing-2.11"
       MINIO_MC_TAG: "RELEASE.2025-07-21T05-28-08Z"
@@ -196,6 +197,7 @@ jobs:
           git clone https://github.com/checkpoint-restore/criu /build/criu --depth 1 -b "${CRIU_TAG}"
           git clone https://github.com/cowsql/cowsql /build/cowsql --depth 1 -b "${COWSQL_TAG}"
           git clone https://github.com/cowsql/raft /build/raft --depth 1 -b "${RAFT_TAG}"
+          git clone https://github.com/go-acme/lego /build/lego --depth 1 -b "${LEGO_TAG}"
           git clone https://github.com/minio/mc /build/mc --depth 1 -b "${MINIO_MC_TAG}"
           git clone https://github.com/minio/minio /build/minio --depth 1 -b "${MINIO_TAG}"
           git clone https://github.com/NVIDIA/libnvidia-container /build/libnvidia-container --depth 1 -b "${NVIDIA_CONTAINER_TAG}"
@@ -528,6 +530,11 @@ jobs:
           cd /build/virtiofsd
           cargo build --release
           cp target/release/virtiofsd /opt/incus/bin/
+
+      - name: Build lego
+        run: |
+          cd /build/lego
+          go build -o "/opt/incus/bin/lego" github.com/go-acme/lego/v4/cmd/lego
 
       - name: Build QEMU
         run: |
