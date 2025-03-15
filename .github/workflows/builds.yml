@@ -351,6 +351,16 @@ jobs:
           git cherry-pick 2835e4a0985c1d8e24ee894e7c840afe435fe581  # cmd/incus-user: unify logging, support --verbose and --debug
           git cherry-pick 41c56d7ea9d72f1c5c235ab327cc7eb1013fd39a  # incusd/network/ovn: Fix bad route check
           git cherry-pick e6f7df1fe36f87de0060c6201dbd83113a7938c3  # github: Fix shellcheck
+          git cherry-pick 4b88ca4ac1013ae540e6e2d16eac75a2d968ec64  # incusd/device/disk: Do not allow mounting of custom block volume snapshots
+          git cherry-pick f7258c12a3b46ac89798a4f9547ae0812c503875  # incusd/storage: Don't use sparse writer on thick LVM
+          git cherry-pick 3346a075a63965827f724a77f0688713a0e361aa  # incusd/network/ovn: Fallback to OVN router address as DNS server
+          git cherry-pick ee12c8125852f9fc898fc717ee5084326d90db0a  # incus/drivers: Fix ZFS CreateVolume deletes pre-existing data on failure
+          git cherry-pick 5fe94fab824c5ba9622109a6272e6ad4ab093145  # incus/rebuild: Correct help message
+          git cherry-pick fc9a2b59bcaa340000a0aeb839eb6fd36c954de9  # incusd/instance/lxc: Fail immediately if no idmap found
+          git cherry-pick 6a0d0137735c260b5872e27c7d94720e8d989228  # incusd/bgp: Rework start/stop logic
+          git cherry-pick 5ce9370179049ca6dbd13222d1d0eb0d12e43fb3  # incusd/network/ovn: Skip existing static routes
+          git cherry-pick ecca1401244f8cc5018886e7be3e6bbfa16c7289  # incus-agent: Improve SFTP performance
+          git cherry-pick 64a223670d68441371bebb0836ef89ef7c298513  # incus/copy: Clear full device when overriding with type=none
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
