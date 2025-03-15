@@ -323,6 +323,8 @@ jobs:
         run: |
           REPO="${PWD}"
 
+          cd /build/incus
+
           git cherry-pick 4b88ca4ac1013ae540e6e2d16eac75a2d968ec64  # incusd/device/disk: Do not allow mounting of custom block volume snapshots
           git cherry-pick f7258c12a3b46ac89798a4f9547ae0812c503875  # incusd/storage: Don't use sparse writer on thick LVM
           git cherry-pick 186dc6ed67ef1e14d11849897677be1ee1db8e12  # incusd/ip: Error message styling
@@ -340,8 +342,6 @@ jobs:
           git cherry-pick 727bdc4667778e0ca448cac485909f505ba15551  # incusd/instance/qemu: Move Windows check to a function
           git cherry-pick 387d0536639549c8c4e944488b20b2f28e36eb33  # incusd/instance/qemu: Set RTC base to localtime on Windows
           git cherry-pick 64a223670d68441371bebb0836ef89ef7c298513  # incus/copy: Clear full device when overriding with type=none
-
-          cd /build/incus
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
