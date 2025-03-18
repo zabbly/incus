@@ -342,6 +342,14 @@ jobs:
           git cherry-pick 727bdc4667778e0ca448cac485909f505ba15551  # incusd/instance/qemu: Move Windows check to a function
           git cherry-pick 387d0536639549c8c4e944488b20b2f28e36eb33  # incusd/instance/qemu: Set RTC base to localtime on Windows
           git cherry-pick 64a223670d68441371bebb0836ef89ef7c298513  # incus/copy: Clear full device when overriding with type=none
+          git cherry-pick 965d42b3be74443999698e45d8e14d0d31c2046c  # incusd/dns: Use shared mutex
+          git cherry-pick 81d243b03629785b61cecff379cbccfff0910fe6  # incusd/network/ovn: Correctly remove individual DHCP options from OVN when they are unset
+          git cherry-pick e65c7871145b29cf78dbdcbffea753f3a3e34c25  # incusd/instance/qmp: Add MachineDefinition function
+          git cherry-pick 98f46c422c98488a0ecdaf2f1d21ab6898d962cc  # internal/instance: Add volatile.vm.definition
+          git cherry-pick 2a9a0fd3244c6d33aa992f995dfa10f9aac9c8c1  # incusd/instance/qemu: Use saved machine definition when restoring running VM
+          git cherry-pick 76bf08bdf492cfd3991b46c8627b1ebb00689658  # incusd/instance/qemu: Handle firmware vars name matching internal one
+          git cherry-pick 130b475947bb5ceaf174a6f9d44f176607a9968b  # incusd/network/ovn: Don't run bgpSetup twice
+          git cherry-pick a798f4fa661c9b477eb73a7878ab811e596b53e4  # incusd/network/physical: Do full start following change of parent
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
