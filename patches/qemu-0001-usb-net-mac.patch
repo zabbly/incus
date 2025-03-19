@@ -1,0 +1,24 @@
+commit 3fc15b184687d4b937c40e54570adaf0d437d1b0
+Author: Stéphane Graber <stgraber@stgraber.org>
+Date:   Wed Mar 19 15:03:35 2025 -0400
+
+    hw/usb/network: Remove hardcoded 0x40 prefix
+    
+    This was causing all USB NIC MAc addresses to be mangled, getting them
+    to start using addresses from various OUIs.
+    
+    Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+
+diff --git a/hw/usb/dev-network.c b/hw/usb/dev-network.c
+index d00d68b21d..cb057372fd 100644
+--- a/hw/usb/dev-network.c
++++ b/hw/usb/dev-network.c
+@@ -1383,7 +1383,7 @@ static void usb_net_realize(USBDevice *dev, Error **errp)
+     qemu_format_nic_info_str(qemu_get_queue(s->nic), s->conf.macaddr.a);
+     snprintf(s->usbstring_mac, sizeof(s->usbstring_mac),
+              "%02x%02x%02x%02x%02x%02x",
+-             0x40,
++             s->conf.macaddr.a[0],
+              s->conf.macaddr.a[1],
+              s->conf.macaddr.a[2],
+              s->conf.macaddr.a[3],
