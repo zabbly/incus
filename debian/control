@@ -117,6 +117,8 @@ Breaks: incus (<< ${source:Version})
 Replaces: incus (<< ${source:Version})
 Recommends:
   debootstrap,
+  gdisk,
+  genisoimage,
   incus,
   libwin-hivex-perl,
   rsync,
