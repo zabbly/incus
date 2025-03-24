@@ -607,6 +607,7 @@ jobs:
                   --disable-cloop \
                   --disable-dmg \
                   --disable-docs  \
+                  --disable-fuse  \
                   --disable-guest-agent \
                   --disable-parallels \
                   --disable-qed \
