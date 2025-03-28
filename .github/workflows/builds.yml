@@ -49,7 +49,7 @@ jobs:
 
       # Linux Containers projects
       DISTROBUILDER_TAG: "distrobuilder-3.1"
-      INCUS_TAG: "v6.10.1"
+      INCUS_TAG: "v6.11.0"
       INCUS_UI_CANONICAL_TAG: "incus-0.15.1"
       LXCFS_TAG: "v6.0.3"
       LXC_TAG: "v6.0.3"
@@ -324,40 +324,6 @@ jobs:
           REPO="${PWD}"
 
           cd /build/incus
-
-          git cherry-pick 4b88ca4ac1013ae540e6e2d16eac75a2d968ec64  # incusd/device/disk: Do not allow mounting of custom block volume snapshots
-          git cherry-pick f7258c12a3b46ac89798a4f9547ae0812c503875  # incusd/storage: Don't use sparse writer on thick LVM
-          git cherry-pick 186dc6ed67ef1e14d11849897677be1ee1db8e12  # incusd/ip: Error message styling
-          git cherry-pick cb1db1fd0eedadb778e309850c3e8bc84d574282  # incusd/ip: Only parse MAC on ethernet links
-          git cherry-pick 3346a075a63965827f724a77f0688713a0e361aa  # incusd/network/ovn: Fallback to OVN router address as DNS server
-          git cherry-pick cd5e6190c722069de8b05eb41b4912381e6ac192  # incusd/instance: Revert on OCI creation failure
-          git cherry-pick ee12c8125852f9fc898fc717ee5084326d90db0a  # incus/drivers: Fix ZFS CreateVolume deletes pre-existing data on failure
-          git cherry-pick 5fe94fab824c5ba9622109a6272e6ad4ab093145  # incus/rebuild: Correct help message
-          git cherry-pick 6d0b6fa6538561b975a1dfcb3163060022a83083  # incus/file: Always use 1MB chunks for SFTP
-          git cherry-pick fc9a2b59bcaa340000a0aeb839eb6fd36c954de9  # incusd/instance/lxc: Fail immediately if no idmap found
-          git cherry-pick 6a0d0137735c260b5872e27c7d94720e8d989228  # incusd/bgp: Rework start/stop logic
-          git cherry-pick 5ce9370179049ca6dbd13222d1d0eb0d12e43fb3  # incusd/network/ovn: Skip existing static routes
-          git cherry-pick d42a2e62365b6464c90fb6ced2b38cf6a1f6fad2  # incusd/instance/qemu: Set caching-mode with intel-iommu
-          git cherry-pick ecca1401244f8cc5018886e7be3e6bbfa16c7289  # incus-agent: Improve SFTP performance
-          git cherry-pick 727bdc4667778e0ca448cac485909f505ba15551  # incusd/instance/qemu: Move Windows check to a function
-          git cherry-pick 387d0536639549c8c4e944488b20b2f28e36eb33  # incusd/instance/qemu: Set RTC base to localtime on Windows
-          git cherry-pick 64a223670d68441371bebb0836ef89ef7c298513  # incus/copy: Clear full device when overriding with type=none
-          git cherry-pick 965d42b3be74443999698e45d8e14d0d31c2046c  # incusd/dns: Use shared mutex
-          git cherry-pick 81d243b03629785b61cecff379cbccfff0910fe6  # incusd/network/ovn: Correctly remove individual DHCP options from OVN when they are unset
-          git cherry-pick e65c7871145b29cf78dbdcbffea753f3a3e34c25  # incusd/instance/qmp: Add MachineDefinition function
-          git cherry-pick 98f46c422c98488a0ecdaf2f1d21ab6898d962cc  # internal/instance: Add volatile.vm.definition
-          git cherry-pick 2a9a0fd3244c6d33aa992f995dfa10f9aac9c8c1  # incusd/instance/qemu: Use saved machine definition when restoring running VM
-          git cherry-pick 76bf08bdf492cfd3991b46c8627b1ebb00689658  # incusd/instance/qemu: Handle firmware vars name matching internal one
-          git cherry-pick 130b475947bb5ceaf174a6f9d44f176607a9968b  # incusd/network/ovn: Don't run bgpSetup twice
-          git cherry-pick a798f4fa661c9b477eb73a7878ab811e596b53e4  # incusd/network/physical: Do full start following change of parent
-          git cherry-pick 35943f8baba68c5639c3420804ce88909daa2e63  # incusd/instance/common: Check PID validity
-          git cherry-pick 7fa00dc90e986ec51179292074287725f9b88541  # incus/file: Properly handle relative source paths
-          git cherry-pick 53841ea1a45129308b6346efb18f024c2a32c161  # incusd/events: Don't open needless transactions
-          git cherry-pick 60d3c9a0bc0f571fda0ea29301076c5d0b1189c7  # incusd/instances: Re-order evacuated check to limit DB calls
-          git cherry-pick 20cdfc75598356a2b5614fa0131e8f9fcc3632ad  # incusd: Limit calls to LocalNodeIsEvacuated
-          git cherry-pick 1ddba88b0768f48f653d54a21a0dc0106f5e23d8  # incusd/instances_post: Move non-DB logic outside of transaction
-          git cherry-pick 73f5867e6283f59af4e0a4c9a3668c6db499e89c  # incusd/network/common: Handle missing BGP peer
-          git cherry-pick a3733250418f90d1157a5e234a9fe1b19f323924  # incusd/cluster/evacuate: Don't live-migrate stopped instances
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
