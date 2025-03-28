@@ -427,6 +427,7 @@ jobs:
           go build -o "/opt/incus/bin/distrobuilder" github.com/lxc/distrobuilder/distrobuilder
 
       - name: Build CRIU
+        if: ${{ matrix.os != 'ubuntu-20.04' }}
         run: |
           cd /build/criu
           make WERROR=0
