@@ -327,6 +327,12 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick e7f29433b891791a45f6737c0603687ca1ca9282  # doc: Fix missing OCI section
+          git cherry-pick 3d3c356940ad3b7edb341624074eb3a8344d0dac  # internal/instance: Tweak wording
+          git cherry-pick cadb2018b67eb96d488b7189628244609572c2d4  # doc: Update config
+          git cherry-pick 362844821b400c80bdab2299397e3d582370a98c  # doc: Fix config option reference on LINSTOR driver
+          git cherry-pick 8ceb6f89d74028a05bca3f1e2d2a9b0ffde65a91  # incusd/instance/lxc: Fix max gid when in a privileged container
+
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" github.com/lxc/incus/v6/cmd/incus-benchmark
