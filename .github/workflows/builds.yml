@@ -332,6 +332,21 @@ jobs:
           git cherry-pick cadb2018b67eb96d488b7189628244609572c2d4  # doc: Update config
           git cherry-pick 362844821b400c80bdab2299397e3d582370a98c  # doc: Fix config option reference on LINSTOR driver
           git cherry-pick 8ceb6f89d74028a05bca3f1e2d2a9b0ffde65a91  # incusd/instance/lxc: Fix max gid when in a privileged container
+          git cherry-pick 73be9223bf4d9a2ef9cdb6d49fb5fec081990360  # incusd/instance: Remove needless embedded fields
+          git cherry-pick 471d0cf6e44a7f29e81c0eae50a404ae280cc81f  # incusd/storage/s3: Simplify variable declaration
+          git cherry-pick 5718d7840edd0b5471d72e45ddfe0d0265c5e2e4  # README: Fix typo
+          git cherry-pick 45c5b6e8ce79a83a33518399325d268258ced241  # lxd-to-incus: Fix typo in trigger
+          git cherry-pick b5748e36a9af4dcda2600e463cd9079063f75662  # incusd/instance/edk2: Limit test to UEFI architectures
+          git cherry-pick 7443e1f91326f59df652233e748bb4a6293b47fc  # doc/devices/disk: Fix restriction on `path` option
+          git cherry-pick f2562c63054a50fe73c157fdb26fe89c43f4b2ea  # doc: Update configs
+          git cherry-pick 5881ecc89f96ddaf024d8dfc7092e1f0ab49ba42  # doc: Tweak ACME documentation
+          git cherry-pick 8dc3e34146834a683a5da6ba9279b8a76ca36d26  # incusd/instances/qemu: Handle deprecation of runas
+          git cherry-pick ef4063ef20d63a2b3151e6a29ef5b0a6a0755f9b  # incusd/main_forknet: Handle missing DNS in DHCP response
+          git cherry-pick 8a2c9c634609a363dae8166219b21f12d76873b4  # incusd/instance/lxc: Pass limited environment to forkstart
+          git cherry-pick 60b77072230a38816f64ac639e6e32625a84ffed  # incusd/instance/lxc: Don't reset resolv.conf
+          git cherry-pick fe0908558ebbd898f326618e4e0bc599453c664f  # incusd/main_forknet: Use Fprintf
+          git cherry-pick 60ecaa417142013d55dce93d6484820ed83ec7fe  # incusd/instance/qemu: Avoid unnecessary snapshot loading
+          git cherry-pick 8d852fd8ae5093cdb91baacde22cb01fce604b9f  # incusd/migrate: Bump timeouts to 30s
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
