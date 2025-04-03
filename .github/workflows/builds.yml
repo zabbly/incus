@@ -347,6 +347,12 @@ jobs:
           git cherry-pick fe0908558ebbd898f326618e4e0bc599453c664f  # incusd/main_forknet: Use Fprintf
           git cherry-pick 60ecaa417142013d55dce93d6484820ed83ec7fe  # incusd/instance/qemu: Avoid unnecessary snapshot loading
           git cherry-pick 8d852fd8ae5093cdb91baacde22cb01fce604b9f  # incusd/migrate: Bump timeouts to 30s
+          git cherry-pick 3beacb512b8d09351ce0f5235b6219de0fe939c8  # incusd/storage: Add missing forwarding on snapshot list
+          git cherry-pick bf10a395164714df89d0b9f779af0ffc4717b70a  # client: Pass ETag in UpdateWarning
+          git cherry-pick 6e2530cdb0482e3ee1e50fd5fc2dbb9de10ab2a0  # client: Pass ETag in UpdateCluster
+          git cherry-pick 85170629dfa52f5ef1cdb12796aea176832a19ca  # incus: Remove unused functions
+          git cherry-pick f4bc6bb4f34e0c0bb6e5e13a510893b4c5b5e42d  # incusd/instance/common: Fix concurrent restarts
+          git cherry-pick d833635e1773ffac4c13a3ed75e78a0731d90899  # generate-database: Fix documentation for `ignore`
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
