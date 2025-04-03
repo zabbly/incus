@@ -48,7 +48,7 @@ jobs:
       PATH: "/opt/incus/bin:/root/.cargo/bin:/usr/local/go/bin:/usr/local/node/bin:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
 
       # Linux Containers projects
-      DISTROBUILDER_TAG: "distrobuilder-3.1"
+      DISTROBUILDER_TAG: "distrobuilder-3.2"
       INCUS_TAG: "v6.11.0"
       INCUS_UI_CANONICAL_TAG: "incus-0.15.1"
       LXCFS_TAG: "v6.0.4"
