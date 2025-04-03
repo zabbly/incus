@@ -278,10 +278,7 @@ jobs:
 
       - name: Build LXC
         run: |
-          REPO="${PWD}"
-
           cd /build/lxc
-          patch -p1 < "${REPO}/patches/lxc-0001-set-dumpable.patch"
 
           meson setup build \
                   --prefix=/opt/incus \
