@@ -51,8 +51,8 @@ jobs:
       DISTROBUILDER_TAG: "distrobuilder-3.1"
       INCUS_TAG: "v6.11.0"
       INCUS_UI_CANONICAL_TAG: "incus-0.15.1"
-      LXCFS_TAG: "v6.0.3"
-      LXC_TAG: "v6.0.3"
+      LXCFS_TAG: "v6.0.4"
+      LXC_TAG: "v6.0.4"
 
       # External dependencies
       COWSQL_TAG: "v1.15.8"
@@ -62,8 +62,8 @@ jobs:
       LEGO_TAG: "v4.22.2"
       LIBTPMS_TAG: "v0.10.0"
       LIBURING_TAG: "liburing-2.9"
-      MINIO_MC_TAG: "RELEASE.2025-03-12T17-29-24Z"
-      MINIO_TAG: "RELEASE.2025-03-12T18-04-18Z"
+      MINIO_MC_TAG: "RELEASE.2025-04-03T17-07-56Z"
+      MINIO_TAG: "RELEASE.2025-04-03T14-56-28Z"
       NASM_TAG: "nasm-2.16.03"
       NVIDIA_CONTAINER_TAG: "v1.17.5"
       QEMU_TAG: "v9.0.4"
