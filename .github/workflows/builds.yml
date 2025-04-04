@@ -670,6 +670,7 @@ jobs:
           rm /opt/incus/bin/swtpm_*
           rm /opt/incus/share/qemu/trace-events-all
 
+          strip /opt/incus/agent/*
           strip /opt/incus/bin/*
           strip /opt/incus/lib/*so*
 
