@@ -780,6 +780,32 @@ jobs:
             ln -s ${i} pkg/usr/share/locale/${LANG}/LC_MESSAGES/incus.mo
           done
 
+          if [ "${PKGOS}" = "debian-13" ] || [ "${PKGOS}" = "ubuntu-24.04" ]; then
+            sed -i debian/control \
+              -e "s/LIBPNG16/libpng16-16t64/g" \
+              -e "s/LIBUSBREDIRPARSER1/libusbredirparser1t64/g" \
+              -e "s/LIBAIO1/libaio1t64/g" \
+              -e "s/LIBBTRFS0/libbtrfs0t64/g" \
+              -e "s/LIBGPGME11/libgpgme11t64/g" \
+              -e "s/LIBUV1/libuv1t64/g"
+          else
+            sed -i debian/control \
+              -e "s/LIBPNG16/libpng16-16/g" \
+              -e "s/LIBUSBREDIRPARSER1/libusbredirparser1/g" \
+              -e "s/LIBAIO1/libaio1/g" \
+              -e "s/LIBBTRFS0/libbtrfs0/g" \
+              -e "s/LIBGPGME11/libgpgme11/g" \
+              -e "s/LIBUV1/libuv1/g"
+          fi
+
+          if [ "${PKGOS}" = "debian-13" ]; then
+            sed -i debian/control \
+              -e "s/LIBFUSE3/libfuse3-4/g"
+          else
+            sed -i debian/control \
+              -e "s/LIBFUSE3/libfuse3-3/g"
+          fi
+
           cd pkg
           dch --package incus --create -D ${CODENAME} -M -m "Automated Incus stable build" -v 1:$(echo ${INCUS_TAG} | sed -e "s/v//" -e "s/.0$//")-$(echo ${PKGOS} | sed "s/-//g")-$(date -u +%Y%m%d%H%M) --force-distribution
           dpkg-buildpackage -b
