@@ -216,7 +216,7 @@ jobs:
           [ "${OS_NAME}" = "ubuntu-20.04" ] && QEMU_TAG="v9.0.2"
 
           git clone https://github.com/lxc/distrobuilder /build/distrobuilder --depth 1 -b "${DISTROBUILDER_TAG}"
-          git clone https://github.com/lxc/lxc /build/lxc --depth 1 -b "${LXC_TAG}"
+          git clone https://github.com/lxc/lxc /build/lxc -b "${LXC_TAG}"
           git clone https://github.com/lxc/lxcfs /build/lxcfs --depth 1 -b "${LXCFS_TAG}"
           git clone https://github.com/lxc/incus /build/incus -b "${INCUS_TAG}"
           git clone https://github.com/zabbly/incus-ui-canonical /build/incus-ui-canonical --depth 1 -b "${INCUS_UI_CANONICAL_TAG}"
