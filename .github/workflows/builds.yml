@@ -277,6 +277,9 @@ jobs:
       - name: Build LXC
         run: |
           cd /build/lxc
+
+          git cherry-pick 2663712e8fa8f37e0bb873185e2d4526dc644764  # start: Re-introduce first SET_DUMPABLE call
+
           meson setup build \
                   --prefix=/opt/incus \
                   --libdir=/opt/incus/lib \
