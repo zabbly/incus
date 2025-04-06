@@ -94,6 +94,7 @@ Description: Incus - Container and virtualization daemon (container-only)
 Package: incus-client
 Architecture: any
 Recommends:
+  spice-client-gtk | virt-viewer,
   sshfs
 Suggests:
   bash-completion
