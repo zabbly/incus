@@ -371,6 +371,11 @@ jobs:
           git cherry-pick 52f3675847e2c3359cdf66611b6b54f7d6cc3adb  # doc: Update configs
           git cherry-pick 98c20bf05fb2e02838b20145bfd2f9159976dee2  # incusd/operations: Fix WaitGet on op failure
           git cherry-pick e5425cecd8aa52e7fe8b470ad9cb94ec0ca23bbe  # incusd/instance/lxc: Use pre-existing PATH when not overridden
+          git cherry-pick e32ff57f074adb9442e6a89918e3ee63be3ce1cb  # incusd/acme: Include CA in generate certificate
+          git cherry-pick a778960e070e1617a1c0d8f8fb976fe5f925ddb5  # incus-migrate: Fix golangci-lint warnings
+          git cherry-pick 630d9f978f1c275e0a6bed971b1caa276ae493bf  # incus-migrate: Rework command validation
+          git cherry-pick e504f569dde73033805808bdfd7d6cbd4ed73f63  # incus-migrate: Require an instance type
+          git cherry-pick 91a10d08793519dfd43e06f3817ece633ef8f114  # incus-migrate: Clarify arguments
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
