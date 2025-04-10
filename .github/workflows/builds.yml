@@ -377,6 +377,7 @@ jobs:
           git cherry-pick e504f569dde73033805808bdfd7d6cbd4ed73f63  # incus-migrate: Require an instance type
           git cherry-pick 91a10d08793519dfd43e06f3817ece633ef8f114  # incus-migrate: Clarify arguments
           git cherry-pick c8956c30a800bf949f1c083010db75a4eaaeac15  # incusd/instance/qemu: Clean leftover sockets on startup
+          git cherry-pick dd590075c146ceb257657c9da8b0d3e453c05160  # incusd: Implement Incus OS API forwarding
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
