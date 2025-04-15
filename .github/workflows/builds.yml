@@ -378,6 +378,15 @@ jobs:
           git cherry-pick 91a10d08793519dfd43e06f3817ece633ef8f114  # incus-migrate: Clarify arguments
           git cherry-pick c8956c30a800bf949f1c083010db75a4eaaeac15  # incusd/instance/qemu: Clean leftover sockets on startup
           git cherry-pick dd590075c146ceb257657c9da8b0d3e453c05160  # incusd: Implement Incus OS API forwarding
+          git cherry-pick 720b4ad9b9f33afabaa34d1b240aca944a13286a  # incusd/storage: Avoid querying pending pool status
+          git cherry-pick 681fa92beb463972f25df5689e1d550d6b6c48de  # incusd/storage/linstor: Fix pool size reporting
+          git cherry-pick f8d56e76336be9b1b8614121ba670afb59637b15  # incusd/storage/zfs: Make CacheVolumeSnapshots failures non-fatal
+          git cherry-pick 493d45180861fe3cf86dc6bd0825b8adce49d0c5  # incusd/instance/lxc: Restrict unprivileged ping to recent kernels
+          git cherry-pick 2f7faf5471a145d929c72b8912e48684603998a2  # incusd/apparmor/lxc: Allow write access to /proc/sys/user
+          git cherry-pick e7645bbfe564c4274bd2a4bdba745b6bb8460126  # incusd/instance/lxc: Defer calls to the scheduler
+          git cherry-pick d13711610c18020d28052ede11caf91639cdc7e2  # shared/archive: Prevent xattr errors from crashing unsquashfs
+          git cherry-pick 2b9ea657419efb3612b5217cebeca2ec30380a3f  # incusd/storage/zfs: Extend use of the cache
+          git cherry-pick 7f789f125e884bcd6114dbe2df6c752ca4a79ea3  # incusd/instance: Pre-fetch snapshot data in RenderFull
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
