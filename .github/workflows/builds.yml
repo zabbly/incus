@@ -387,6 +387,8 @@ jobs:
           git cherry-pick d13711610c18020d28052ede11caf91639cdc7e2  # shared/archive: Prevent xattr errors from crashing unsquashfs
           git cherry-pick 2b9ea657419efb3612b5217cebeca2ec30380a3f  # incusd/storage/zfs: Extend use of the cache
           git cherry-pick 7f789f125e884bcd6114dbe2df6c752ca4a79ea3  # incusd/instance: Pre-fetch snapshot data in RenderFull
+          git cherry-pick 26b3971936bb9208997c76dbfcb4ea74b7aa0be8  # incusd/instances_post: Properly handle refresh migrations
+          git cherry-pick 45b9c1df808ba865a4675b38e465447ee7045c37  # incusd/storage/zfs: Rework ZFS setting enforcement
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
