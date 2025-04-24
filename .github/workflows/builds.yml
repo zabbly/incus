@@ -396,7 +396,6 @@ jobs:
           cd /build/libnvidia-container
           patch -p1 < "${REPO}/patches/nvidia-0001-Fix-for-22.04-build.patch"
           patch -p1 < "${REPO}/patches/nvidia-0002-pre-load-libdl.patch"
-          patch -p1 < "${REPO}/patches/nvidia-0003-fix-go-124.patch"
           make prefix=/
 
           mkdir /build/target/libnvidia-container
