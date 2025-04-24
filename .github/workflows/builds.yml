@@ -49,7 +49,7 @@ jobs:
 
       # Linux Containers projects
       DISTROBUILDER_TAG: "distrobuilder-3.2"
-      INCUS_TAG: "v6.11.0"
+      INCUS_TAG: "v6.12.0"
       INCUS_UI_CANONICAL_TAG: "incus-0.15.2"
       LXCFS_TAG: "v6.0.4"
       LXC_TAG: "v6.0.4"
@@ -329,66 +329,6 @@ jobs:
           REPO="${PWD}"
 
           cd /build/incus
-
-          git cherry-pick e7f29433b891791a45f6737c0603687ca1ca9282  # doc: Fix missing OCI section
-          git cherry-pick 3d3c356940ad3b7edb341624074eb3a8344d0dac  # internal/instance: Tweak wording
-          git cherry-pick cadb2018b67eb96d488b7189628244609572c2d4  # doc: Update config
-          git cherry-pick 362844821b400c80bdab2299397e3d582370a98c  # doc: Fix config option reference on LINSTOR driver
-          git cherry-pick 8ceb6f89d74028a05bca3f1e2d2a9b0ffde65a91  # incusd/instance/lxc: Fix max gid when in a privileged container
-          git cherry-pick 73be9223bf4d9a2ef9cdb6d49fb5fec081990360  # incusd/instance: Remove needless embedded fields
-          git cherry-pick 471d0cf6e44a7f29e81c0eae50a404ae280cc81f  # incusd/storage/s3: Simplify variable declaration
-          git cherry-pick 5718d7840edd0b5471d72e45ddfe0d0265c5e2e4  # README: Fix typo
-          git cherry-pick 45c5b6e8ce79a83a33518399325d268258ced241  # lxd-to-incus: Fix typo in trigger
-          git cherry-pick b5748e36a9af4dcda2600e463cd9079063f75662  # incusd/instance/edk2: Limit test to UEFI architectures
-          git cherry-pick 7443e1f91326f59df652233e748bb4a6293b47fc  # doc/devices/disk: Fix restriction on `path` option
-          git cherry-pick f2562c63054a50fe73c157fdb26fe89c43f4b2ea  # doc: Update configs
-          git cherry-pick 5881ecc89f96ddaf024d8dfc7092e1f0ab49ba42  # doc: Tweak ACME documentation
-          git cherry-pick 8dc3e34146834a683a5da6ba9279b8a76ca36d26  # incusd/instances/qemu: Handle deprecation of runas
-          git cherry-pick ef4063ef20d63a2b3151e6a29ef5b0a6a0755f9b  # incusd/main_forknet: Handle missing DNS in DHCP response
-          git cherry-pick 8a2c9c634609a363dae8166219b21f12d76873b4  # incusd/instance/lxc: Pass limited environment to forkstart
-          git cherry-pick 60b77072230a38816f64ac639e6e32625a84ffed  # incusd/instance/lxc: Don't reset resolv.conf
-          git cherry-pick fe0908558ebbd898f326618e4e0bc599453c664f  # incusd/main_forknet: Use Fprintf
-          git cherry-pick 60ecaa417142013d55dce93d6484820ed83ec7fe  # incusd/instance/qemu: Avoid unnecessary snapshot loading
-          git cherry-pick 8d852fd8ae5093cdb91baacde22cb01fce604b9f  # incusd/migrate: Bump timeouts to 30s
-          git cherry-pick 3beacb512b8d09351ce0f5235b6219de0fe939c8  # incusd/storage: Add missing forwarding on snapshot list
-          git cherry-pick bf10a395164714df89d0b9f779af0ffc4717b70a  # client: Pass ETag in UpdateWarning
-          git cherry-pick 6e2530cdb0482e3ee1e50fd5fc2dbb9de10ab2a0  # client: Pass ETag in UpdateCluster
-          git cherry-pick 85170629dfa52f5ef1cdb12796aea176832a19ca  # incus: Remove unused functions
-          git cherry-pick f4bc6bb4f34e0c0bb6e5e13a510893b4c5b5e42d  # incusd/instance/common: Fix concurrent restarts
-          git cherry-pick d833635e1773ffac4c13a3ed75e78a0731d90899  # generate-database: Fix documentation for `ignore`
-          git cherry-pick de0958b1e3b43b3551c062eeb19d33145717029c  # incusd/main_forknet: Don't add gateway route if classless static routes are provided (as required by RFC 3442)
-          git cherry-pick b718c9348ce73f2526ffb50fe7b2eca6019caf7b  # incus-agent: Retry mounts to avoid kernel races
-          git cherry-pick 04e1d913d5c67ae4ac2c574d49e7b6a38b991691  # incusd/instance: Add Name to ConfigReader interface
-          git cherry-pick 029b7f3803caf0c3bebacbc42e0e097fe3f412fb  # incusd/storage: Use ConfigReader when possible
-          git cherry-pick 5ac5def5180331f66130056c37cf6368196abe41  # incusd/response: Remove unused nolint
-          git cherry-pick 475698391e04b759cbcafc2e6d99fd8ef25509dd  # incusd/storage: Add infrastructure to cache pre-fetch snapshot data
-          git cherry-pick a92400a57d93bc1125ea9fdc317d83f2d5a48f50  # incusd/instance: Use storage instance snapshot caching
-          git cherry-pick 88a2854167793b76e7a0150eee708deb7962aa8b  # incusd/instance/lxc: Use existing storage pool in diskState
-          git cherry-pick 3cff9f34e647bafa55c2c7ce9c9496d45cce7468  # incusd/storage/zfs: Implement snapshot size caching
-          git cherry-pick 8033df89b3838e1c645c0582fcefbf2f1bf0d9f1  # incusd/instance: Move instance disk usage to driver logic
-          git cherry-pick f3eeab59a969d44b24ec0f2a5c086ab01ae960e1  # incusd/config: Update list of supported compressors
-          git cherry-pick 72e693d98dd6d4ab9339794d1f322dc064828d55  # incusd/project: Update list of supported compressors
-          git cherry-pick 52f3675847e2c3359cdf66611b6b54f7d6cc3adb  # doc: Update configs
-          git cherry-pick 98c20bf05fb2e02838b20145bfd2f9159976dee2  # incusd/operations: Fix WaitGet on op failure
-          git cherry-pick e5425cecd8aa52e7fe8b470ad9cb94ec0ca23bbe  # incusd/instance/lxc: Use pre-existing PATH when not overridden
-          git cherry-pick e32ff57f074adb9442e6a89918e3ee63be3ce1cb  # incusd/acme: Include CA in generate certificate
-          git cherry-pick a778960e070e1617a1c0d8f8fb976fe5f925ddb5  # incus-migrate: Fix golangci-lint warnings
-          git cherry-pick 630d9f978f1c275e0a6bed971b1caa276ae493bf  # incus-migrate: Rework command validation
-          git cherry-pick e504f569dde73033805808bdfd7d6cbd4ed73f63  # incus-migrate: Require an instance type
-          git cherry-pick 91a10d08793519dfd43e06f3817ece633ef8f114  # incus-migrate: Clarify arguments
-          git cherry-pick c8956c30a800bf949f1c083010db75a4eaaeac15  # incusd/instance/qemu: Clean leftover sockets on startup
-          git cherry-pick dd590075c146ceb257657c9da8b0d3e453c05160  # incusd: Implement Incus OS API forwarding
-          git cherry-pick 720b4ad9b9f33afabaa34d1b240aca944a13286a  # incusd/storage: Avoid querying pending pool status
-          git cherry-pick 681fa92beb463972f25df5689e1d550d6b6c48de  # incusd/storage/linstor: Fix pool size reporting
-          git cherry-pick f8d56e76336be9b1b8614121ba670afb59637b15  # incusd/storage/zfs: Make CacheVolumeSnapshots failures non-fatal
-          git cherry-pick 493d45180861fe3cf86dc6bd0825b8adce49d0c5  # incusd/instance/lxc: Restrict unprivileged ping to recent kernels
-          git cherry-pick 2f7faf5471a145d929c72b8912e48684603998a2  # incusd/apparmor/lxc: Allow write access to /proc/sys/user
-          git cherry-pick e7645bbfe564c4274bd2a4bdba745b6bb8460126  # incusd/instance/lxc: Defer calls to the scheduler
-          git cherry-pick d13711610c18020d28052ede11caf91639cdc7e2  # shared/archive: Prevent xattr errors from crashing unsquashfs
-          git cherry-pick 2b9ea657419efb3612b5217cebeca2ec30380a3f  # incusd/storage/zfs: Extend use of the cache
-          git cherry-pick 7f789f125e884bcd6114dbe2df6c752ca4a79ea3  # incusd/instance: Pre-fetch snapshot data in RenderFull
-          git cherry-pick 26b3971936bb9208997c76dbfcb4ea74b7aa0be8  # incusd/instances_post: Properly handle refresh migrations
-          git cherry-pick 45b9c1df808ba865a4675b38e465447ee7045c37  # incusd/storage/zfs: Rework ZFS setting enforcement
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
