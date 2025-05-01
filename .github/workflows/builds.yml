@@ -330,6 +330,15 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick 154fd110910d74a09c75cfa2bc548662827fde55  # incusd/firewall: Clear correct table for address sets
+          git cherry-pick 14e8e33305c434743e642fdb6f9db18f7a49a4b4  # incusd/firewall: Remove unused part of nftables structs
+          git cherry-pick 79651bb3bdf4c50d238e38c78e1cf82309084a16  # incusd/dns: fix typo in error log
+          git cherry-pick e9e8ed6ddab8ad9e16ecfce4a79ba21525f50ba2  # incusd/firewall/nftables: Fix handling of address set deletion
+          git cherry-pick 2f5417b29489d3e2d09a5551653c53a660ff3c1e  # incusd/network/ovn: Wait up to 10s for OVN northd to allocate an IP
+          git cherry-pick 15272e6a4ceb83a32605f26a520a846a6d348c6a  # incusd: Prevent panic when VolumeSize is missing
+          git cherry-pick fe7d640bc317d72465e42e3cfb58f8022d798714  # incusd/storage: Fix migration error due to rounding
+          git cherry-pick b54d6cdef1d16eb5a68fb9f98c84aed200183b11  # incusd/storage/zfs: Optimize snapshot deletion
+
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" github.com/lxc/incus/v6/cmd/incus-benchmark
