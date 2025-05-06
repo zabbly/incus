@@ -1,0 +1,18 @@
+commit 159f7e49beb9f2ecadccb36873429c5f8fea14e1
+Author: Klaus Jensen <k.jensen@samsung.com>
+Date:   Tue May 6 13:05:16 2025 -0400
+
+    hw/nvme: Allow hotplugging nvme-subsys
+
+diff --git a/hw/nvme/subsys.c b/hw/nvme/subsys.c
+index 38271d78c8..777e1c620f 100644
+--- a/hw/nvme/subsys.c
++++ b/hw/nvme/subsys.c
+@@ -226,7 +226,6 @@ static void nvme_subsys_class_init(ObjectClass *oc, const void *data)
+ 
+     dc->realize = nvme_subsys_realize;
+     dc->desc = "Virtual NVMe subsystem";
+-    dc->hotpluggable = false;
+ 
+     device_class_set_props(dc, nvme_subsystem_props);
+ }
