@@ -1,0 +1,20 @@
+commit 30b11e54abdf520e8029163c4fcb91945f1d616b
+Author: Stéphane Graber <stgraber@stgraber.org>
+Date:   Fri May 9 21:18:42 2025 -0400
+
+    conf: Add support for "move" mount flag
+    
+    Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+
+diff --git a/src/lxc/conf.c b/src/lxc/conf.c
+index 14fa041b7..a01b0852d 100644
+--- a/src/lxc/conf.c
++++ b/src/lxc/conf.c
+@@ -148,6 +148,7 @@ static struct mount_opt mount_opt[] = {
+ 	{ "suid",          1, false, MOUNT_ATTR_NOSUID,      MS_NOSUID        },
+ 
+ 	{ "bind",          0, false,  0,                     MS_BIND          },
++	{ "move",          0, false,  0,                     MS_MOVE          },
+ 	{ "defaults",      0, false,  0,                     0                },
+ 	{ "rbind",         0, true,   0,                     MS_BIND | MS_REC },
+ 
