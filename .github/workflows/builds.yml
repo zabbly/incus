@@ -330,14 +330,111 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick 0cc2e3362b2792d8a1fc0fe3c250ef0b03a10ba5  # doc: Fix default value of ipv4.dhcp.gateway to IPv4 address
+          git cherry-pick e7a7cf2c2f793f3644e9e000a00a93e9a98c5e16  # doc: Fix default value of ipv6.routes network_bridge
+          git cherry-pick 0a99902a372b69d5012f8990104e55bcd293a960  # doc: Fix Debian 12 nickname
           git cherry-pick 154fd110910d74a09c75cfa2bc548662827fde55  # incusd/firewall: Clear correct table for address sets
           git cherry-pick 14e8e33305c434743e642fdb6f9db18f7a49a4b4  # incusd/firewall: Remove unused part of nftables structs
           git cherry-pick 79651bb3bdf4c50d238e38c78e1cf82309084a16  # incusd/dns: fix typo in error log
+          git cherry-pick 5e5f683ba080e1b191b1189def24d29cd8b225b4  # incusd: Rename reverters from revert to reverter
+          git cherry-pick ba9acae39b95f11f4986769d38c96798b228ead2  # incus-user: Rename reverters from revert to reverter
+          git cherry-pick 9100f23fca23f10f1c859687ab526888868f1452  # incus-agent: Rename reverters from revert to reverter
+          git cherry-pick 07640580c72923d13eb59413f9746a4a3e2906d8  # internal/linux: Rename reverters from revert to reverter
+          git cherry-pick 37a74bc63bd46887030a0810f6fd18e551ec9a64  # incusd: Rename reverters from revert to reverter
+          git cherry-pick 79ee9be3a137e6449e75fdfc45ec6f1ee37e252c  # incusd: Use errors.Is instead of direct error comparison Replace direct error comparison with errors.Is checks to avoid potential bugs with wrapped errors.
+          git cherry-pick 683085aeee10cef61679be12a74a59576429efe5  # incusd: Use errors.As instead of type switching Replace type switching on an error with errors.As to avoid potential bugs.
+          git cherry-pick 80d4806a9cc898e1556a5303e6ff6dbc55d214f6  # incus-user: Use errors.Is instead of direct error comparison
+          git cherry-pick 4b6254088d14bfc82c5d6b2307f4e2dbf5d4d708  # incus: Use errors.Is instead of direct error comparison
+          git cherry-pick 1f6c20c7ecb6492c533c564e6b9e8adb7ecc0f1d  # internal/server: Use errors.Is instead of direct error comparison
+          git cherry-pick ae49dd1e885ccb4cc8f8e6f6da34bf65ddc016f4  # internal/linux: Use errors.Is instead of direct error comparison
+          git cherry-pick 314a7ef87157c47e5a854b5fba91e23bf1f1c001  # internal/eagain: Use errors.Is instead of direct error comparison
+          git cherry-pick 86c8b61142c2187aaa31401a2e13adabfaa2b190  # internal/server: replace manual unwrap call with errors.As
+          git cherry-pick 92d5bfe0652cfbce1dd1ba78c0b1717c50fed8fd  # internal/rsync: replace manual unwrap call with errors.As
+          git cherry-pick 8ff55fd7a29e4a6ea70f9ee5166abb331d7461f2  # internal/server: Use errors.As instead of type switching Replace type switching on an error with errors.As to avoid potential bugs.
+          git cherry-pick 808f01960f38bee0bf1aabf5b1d2f38f067e9d5c  # internal/linux: Use errors.As instead of type switching Replace type switching on an error with errors.As to avoid potential bugs.
+          git cherry-pick cafdc8d24a1d496732cc563f62c15ab6b8e584d3  # internal/server: make all methods on the zfs struct take a pointer
+          git cherry-pick 4da5e501f951920b254912f5c9f457f5365b34d8  # internal/server: change method isAllowed on the dnsHandler struct into a static function
+          git cherry-pick f3e9cdec7da122476836cf8e72cc5f0c5d3fe80a  # shared/api: unify methods declared on the Instance struct to all take a pointer
+          git cherry-pick 3bfbd326ba5ada722b96461af9d756e6f92deabe  # generate-database: unify methods declared on the Field struct to all take a pointer
+          git cherry-pick 0aa7b2056db24064f9c6a99358c8857a6c58b015  # internal/server: refactor getting heartbeat mode name into a function
+          git cherry-pick e96697a7568a4a993464bbf09326ee6ffe28a84b  # internal/server: rename close to closeFunc
+          git cherry-pick 52bf3aa932e6fde37adbd6b1a900e0448c1d5d4b  # internal/version: Rename variables to better represent what they are used for
+          git cherry-pick 73c08ac6ff93485058340b520624b43e57fdacc2  # client: Rename variables because error is a builtin interface name
+          git cherry-pick 9279f5f11a2a0c015295d874be80c7f20914e64d  # incusd: Rename variables because recover and min are builtin functions
+          git cherry-pick e7e184168a20ecf6ab00ea6adfe72f74f3109550  # incusd: Rename variables because they collide with builtin function names
+          git cherry-pick 9dfeefca13a147fe2bab7a036abccad8f3f52979  # generate-database/db: Un-export joinConfig
+          git cherry-pick 94d317af385409bf628d9b860e61730aaca02743  # incusd: Introduce patchRun type
+          git cherry-pick 661f772446f9b44045ebb6c09052a665f769deb0  # incusd: Remove unused parameter names in cobra commands
+          git cherry-pick 14eca14a346953b23e26889a32195bf72e70cd56  # incusd: Remove unused parameters or rename unused parameters to _
+          git cherry-pick 11c4ff89e0883c06959f4d377bf7915d388969dc  # incusd: Un-export command functions
+          git cherry-pick 1ff7f6cb7b2e9f80b534fc911f006bc08d32e189  # incusd: Don't export internal websocket struct functions
+          git cherry-pick 983550b494abc03ec49d47e716518b0eb7574571  # incusd: Don't export internal migration struct functions
+          git cherry-pick cd1b9f2ad061e0fe12c22a64ff040f29e35168b4  # incusd: Fix import shadowing
+          git cherry-pick a0cbf878b0ea083682c7dae1d66bc1b826f83218  # incusd/instance/drivers: Rewrite config entries as maps
+          git cherry-pick b268f4d7f2597be601fb102bd1ce6bc997e622ef  # incusd/scriptlet/qemu: Remove legacy wrapper
+          git cherry-pick 5d6defba1c216ecf8c991ce7830c1b15bcd42710  # incusd/instance/drivers: Fix tests
+          git cherry-pick c321125cc1dafa159a598f0423b3c448f5273c04  # incusd/instance/drivers: Use fmt.Fprintf
           git cherry-pick e9e8ed6ddab8ad9e16ecfce4a79ba21525f50ba2  # incusd/firewall/nftables: Fix handling of address set deletion
+          git cherry-pick c4c2ce0588cc1d82b6ec4ef272f4eb12ed64168e  # incusd/instance/qemu: Handle agents with limited information
+          git cherry-pick d56f573f043df0f1aa0e159687accc82e3cff83e  # incusd: remove conditional check that is always true
+          git cherry-pick 7f6bfcd3c0d45c4c0d064648b0374fa1115ec1b3  # incusd: remove outdated comment about no longer existing force option
+          git cherry-pick 9cf935f21844d14997d54ceb22bdb30795e9f66a  # incusd: remove code that was unreachable in api_internal.go
+          git cherry-pick 01b5d23ac39693cb35971ef5ab8491e25468a45d  # incusd: remove code that was unreachable in api_internal.go
+          git cherry-pick 4ce93a1873b37fa8a8d49c5d6d7b94caf8c79b82  # shared/archive: remove unnecessary err check
+          git cherry-pick 50f39024d02be7b5935ca859cf97fb4220da3a8f  # incusd: refactor condition checks that are always true or false respectively
+          git cherry-pick f66330b65014e33fed7a0f89f52d11c94dfa4d6c  # cmd/incus: refactor unnecessary err condition checks
+          git cherry-pick 772314c1a2c01e0eb186ba32526fa8ce8f307576  # internal/linux: refactor unnecessary err condition check
+          git cherry-pick 0f47aaf7bdaba8e9258e9a70bb098d7fbbb0052d  # client: remove unnecessary err check and unused variable ioErr
+          git cherry-pick 67c57ce193ff0dfd6326c46ca44cda27f9eb74ac  # incusd: refactor process kill error being ignored
+          git cherry-pick 6215fcce480a4b6270cd92ac82aacd1798152161  # incusd/instance: fix device finding logic
+          git cherry-pick 4c46eca995f96d3214440bb0c44cca3b1bf64cd4  # incusd/instance/drivers: Make test ignore host-nodes order
+          git cherry-pick ec9377e61b77324e1413ba16d1ac697705ac27a6  # incus: refactor admin_init.go config initialization
           git cherry-pick 2f5417b29489d3e2d09a5551653c53a660ff3c1e  # incusd/network/ovn: Wait up to 10s for OVN northd to allocate an IP
+          git cherry-pick e5d2ba5e19aa4040443c74f7c5147422bc06ff95  # incusd/dnsmasq: refactor DHCPValidIP condition checks
           git cherry-pick 15272e6a4ceb83a32605f26a520a846a6d348c6a  # incusd: Prevent panic when VolumeSize is missing
+          git cherry-pick 9d04644dfe18a4652eacce27ef75fae4beded99d  # incusd/migrate: Set write time limit for sendControl method
+          git cherry-pick a467603c4f8780f9ee807218d20595cdbeb56b2b  # incusd/network/bridge: Add missing line breaks
+          git cherry-pick 4f30ef3b71abd5159e4d0b92ef2d0e329fdc8eaa  # Remove gopkg.in/tomb.v2 dependency
+          git cherry-pick 773e8916da7baf563df43f81c59ed9f37f59bf32  # incusd/instance/qemu: Don't allow hotplug when at maxmem
+          git cherry-pick a58aa19a67ad84cc182596387a3adeceec3f401c  # incusd: rename variable `mux` to `router` so it does not collide with the package of the same name
+          git cherry-pick 63386dd0650b7342ac7d11b8273c5d3b330b9557  # cmd/incus-agent: rename variable `mux` to `router` so it does not collide with the package of the same name
+          git cherry-pick 4c8ff50cbbc3b500db79b0027c2a57b4fa0a4e7c  # incusd: rename all instances of sha256.New() to hash256 so they dont collide with the package name
+          git cherry-pick 9d8dee1a3529ea467316f354fdfaf6d0f6c3c2ad  # client: rename all instances of sha256.New() to hash256 so they dont collide with the package name
+          git cherry-pick 7427eeb87777ca6719af9db14af7a37bba6e0238  # cmd/incus-migrate: add missing switch case with explicit comment
+          git cherry-pick f1e237787c36e1ab7ab45b124de924cf1c8fb2f0  # incusd: internalize the default case into the switch so it covers all iota constants
+          git cherry-pick f557d9f8f3cb6fe60cbfa2a6ef756b3ede4700d6  # internal/filter: internalize the default case into the switch so it covers all iota constants
+          git cherry-pick eea5c768afc89f4d091e1f52d483f72baa91d594  # incusd: add missing err handling for transactions
           git cherry-pick fe7d640bc317d72465e42e3cfb58f8022d798714  # incusd/storage: Fix migration error due to rounding
           git cherry-pick b54d6cdef1d16eb5a68fb9f98c84aed200183b11  # incusd/storage/zfs: Optimize snapshot deletion
+          git cherry-pick 9e47475564f07b121e4da1b74c07670f121b7ccf  # incusd: add more ErrorList tests for error formatting
+          git cherry-pick 0630ab52ed546fed1f79a479c286bb1e7b7efb2b  # incusd: refactor Error implementation of ErrorList
+          git cherry-pick af836804a96db0ccda2e4d8bbf9d2821d591e588  # incusd: make all functions on ErrorList take a pointer receiver
+          git cherry-pick 36932ea0895d40d8f009926d15852f8228cde3f7  # incusd: rename Error struct and make it private
+          git cherry-pick 8178df5c69237548e3188436a1d93b062b04d591  # internal/iprange: add tests for the iprange.Range struct
+          git cherry-pick caf04492ea1cfce3db7bde3c804a766cb20980ff  # internal/dnsutil: remove unused package dnsutil
+          git cherry-pick 5a6dc154278fb4d582b8a184dbb6c33fe0c90c6d  # incusd: rename instanceActionToOptype to instanceActionToOpType
+          git cherry-pick 348dc783998b87d11fc0ead119ae697e7a877a09  # incusd/instance/drivers: Rewrite QEMU config override logic
+          git cherry-pick 0e6cfd4c7da01e67fd7ddaa2074ae97b38d28b3f  # incusd/instance/drivers: Adapt the tests to the new override logic
+          git cherry-pick 883d9ac5eb9b050b2c4c09dadab172eca95826b2  # incusd/instance/drivers: Drop old RegEx parser and return proper errors
+          git cherry-pick 997a9bd3708667d4ba53399c49dc0942a6559cdb  # incusd/instance/drivers: Update tests
+          git cherry-pick 8be53f0782c463b2f15a60be1e98a69e24cb4231  # incusd: remove redundant size 0 initialization for maps
+          git cherry-pick 6af654169528a2c0d20b9277b9e57e8ca353a21a  # cmd/generate-config: remove redundant size 0 initialization for maps
+          git cherry-pick da3188a885e450159e584f8ddb1d5b02b7596e27  # cmd/lxc-to-incus: remove redundant size 0 initialization for maps
+          git cherry-pick edeff45dd960a2f1b40f5318644753b1f23291f5  # incusd/certificates: Properly handle PEM encoding on POST
+          git cherry-pick d4fec1b3e9c833a44cceeef7bcbc01f788d5bb36  # incusd/instance/qemu: Don't allow QEMU RSS to exceed memory limit
+          git cherry-pick e144839781135c904696c588dde57f5eb54e841a  # incusd/dns: Restart DNS server on failure
+          git cherry-pick 9bc50ad8571bef052b7ce21889093014656c6b8f  # incusd/instance/qemu: Limit memory hotplug slots to 8
+          git cherry-pick d7b4df82be36395cad10061082f1b46afc8d55a1  # incusd/device/sriov: Handle cards without configurable spoof checking
+          git cherry-pick f6cbdf991d18bb5823bc7178febae7936149d989  # incusd/firewall/nftables: disable UDP checksum validation for packets on bridged network
+          git cherry-pick cd73a90f7459e5c3a57505835b4f4c34e6b5722c  # client: Add certificate handling to ApplyServerPreseed
+          git cherry-pick 7eaacafc19465698fdedb3890ddf8293cc9aecb4  # shared/api: Add Certificates to InitLocalPreseed
+          git cherry-pick 5a9fccade08de99ab41415a1f28e249ad7e8458e  # incusd: Move cluster resource caching logic
+          git cherry-pick 1c3cbba48ec985f30e1b9f840566f749e36779ab  # incusd/main_forknet: Implement stateful DHCPv6
+          git cherry-pick c6183327ce96ea269cabc85541bcacaccaf97b3e  # incusd/main_forknet: Add delay to wait for IPv6 link-local
+          git cherry-pick ddb6e16610f816dcd254480257730e90fc25bfa9  # incusd/main_forknet: Add stateless DHCPv6 support
+          git cherry-pick b237a7a0f0ec493564c77a83df3e161794eec492  # internal/util: Add Incus OS detection
+          git cherry-pick 6860d9196002219c187fab1793f438654428fc8a  # incusd: Use IsIncusOS
+          git cherry-pick 29a3b2f697e2b4bad7f1cbd47330347768afb057  # incusd/metrics: Include OS metrics on Incus OS
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
