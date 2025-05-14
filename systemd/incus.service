@@ -1,6 +1,6 @@
 [Unit]
 Description=Incus - Daemon
-After=network-online.target openvswitch-switch.service incus-lxcfs.service incus.socket
+After=network-online.target openvswitch-switch.service incus-lxcfs.service incus.socket nftables.service
 Requires=network-online.target incus-lxcfs.service incus.socket
 
 [Service]
