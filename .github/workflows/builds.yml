@@ -435,6 +435,8 @@ jobs:
           git cherry-pick b237a7a0f0ec493564c77a83df3e161794eec492  # internal/util: Add Incus OS detection
           git cherry-pick 6860d9196002219c187fab1793f438654428fc8a  # incusd: Use IsIncusOS
           git cherry-pick 29a3b2f697e2b4bad7f1cbd47330347768afb057  # incusd/metrics: Include OS metrics on Incus OS
+          git cherry-pick 939cdb9f7769c44edc78d9925b9a6e6a03a01472  # incusd/storage/ceph: Fix parent tracking for VMs
+          git cherry-pick 59f2c354747b07e84b4df6fc084aef4a7178f6ec  # incusd/main_forknet: Don't touch resolv.conf when no leases
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
