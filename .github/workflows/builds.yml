@@ -65,13 +65,13 @@ jobs:
       MINIO_MC_TAG: "RELEASE.2025-04-16T18-13-26Z"
       MINIO_TAG: "RELEASE.2025-04-22T22-12-26Z"
       NASM_TAG: "nasm-2.16.03"
-      NVIDIA_CONTAINER_TAG: "v1.17.6"
+      NVIDIA_CONTAINER_TAG: "v1.17.7"
       QEMU_TAG: "v9.0.4"
       RAFT_TAG: "v0.22.1"
       SEABIOS_TAG: "rel-1.16.3"
       SKOPEO_TAG: "v1.18.0"
       SWTPM_TAG: "v0.10.1"
-      UMOCI_TAG: "v0.4.7"
+      UMOCI_TAG: "v0.5.0"
       VIRTIOFSD_TAG: "v1.13.1"
     steps:
       - name: Checkout code
