@@ -438,6 +438,9 @@ jobs:
           git cherry-pick 939cdb9f7769c44edc78d9925b9a6e6a03a01472  # incusd/storage/ceph: Fix parent tracking for VMs
           git cherry-pick 59f2c354747b07e84b4df6fc084aef4a7178f6ec  # incusd/main_forknet: Don't touch resolv.conf when no leases
           git cherry-pick 8520c07c8e5e241ae1faa16162ba14dd24313e7c  # incusd/storage/ceph: Fix typo in parseParent
+          git cherry-pick 54245abe155d07026929287619e4e92f67053a59  # incusd/instances: Tweak storage migration errors
+          git cherry-pick d9bdf39fe200c733bc29a0c95129ede9908028e6  # incusd/instances_post: Prevent pointless device overrides
+          git cherry-pick 769d23b9650da74b3018163e2fc85c20e659d13a  # incusd/instance: Fix incorrect cluster.Connect call
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
