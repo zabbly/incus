@@ -330,6 +330,9 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick c8880fb37f38a382be8ebf22f6c49205a2ecce25  # incus: Make sure we parse the config early enough
+          git cherry-pick 9fd5d3656ec9eb459d7ea7d75f3ab74cead24deb  # incus/main_aliases: Avoid parsing loops
+
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" github.com/lxc/incus/v6/cmd/incus-benchmark
