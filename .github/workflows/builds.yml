@@ -679,9 +679,9 @@ jobs:
           rm /opt/incus/bin/swtpm_*
           rm /opt/incus/share/qemu/trace-events-all
 
-          strip /opt/incus/agent/* || true
-          strip /opt/incus/bin/* || true
-          strip /opt/incus/lib/*so* || true
+          strip /opt/incus/agent/*linux*
+          strip /opt/incus/bin/*
+          strip /opt/incus/lib/*so*
 
       - name: Make a Debian package
         env:
