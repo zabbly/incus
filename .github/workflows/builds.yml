@@ -333,6 +333,13 @@ jobs:
           git cherry-pick c8880fb37f38a382be8ebf22f6c49205a2ecce25  # incus: Make sure we parse the config early enough
           git cherry-pick 9fd5d3656ec9eb459d7ea7d75f3ab74cead24deb  # incus/main_aliases: Avoid parsing loops
           git cherry-pick a7e13035ff3ddfadcf827054370f3499f649698a  # incusd/instance/qemu: Skip invtsc on non-x86 and when running nested
+          git cherry-pick 4e1400c450305b765d5187d312b8e0ff008603a7  # incusd/device/nic_physical: Check for parent being a bridge
+          git cherry-pick 16a276afc6a6319c333c589277c209c8a1a30906  # incusd/device/nic_physical: Handle managed physical network being a bridge
+          git cherry-pick a3eb0d0e404f346ec1c681c3c2b1320ac902adf5  # incusd/instance/lxc: Tweak OCI entrypoint escaping
+          git cherry-pick af2a7aa87a2c83fccf91696364acb73570f12a81  # incusd/network/ovn: Add dhcpv6_stateless flag
+          git cherry-pick c1f5dd0f4177d8553b273af8b8d9cb7206895b02  # incusd/network/ovn: Tweak DNS server logic
+          git cherry-pick 929145634132cf418bf02acbf6a916c463feec08  # incusd/network/ovn: Set stateless DHCPv6 flag
+          git cherry-pick 8a3974d1a62739a81994fc215cb5797d28dd7f22  # incusd/main_forknet: Don't crash on missing status code
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
