@@ -340,6 +340,17 @@ jobs:
           git cherry-pick c1f5dd0f4177d8553b273af8b8d9cb7206895b02  # incusd/network/ovn: Tweak DNS server logic
           git cherry-pick 929145634132cf418bf02acbf6a916c463feec08  # incusd/network/ovn: Set stateless DHCPv6 flag
           git cherry-pick 8a3974d1a62739a81994fc215cb5797d28dd7f22  # incusd/main_forknet: Don't crash on missing status code
+          git cherry-pick b46bc8c5fa24edced19d0d7c35608041224b1938  # incusd/server/network: correct complement range calculation for DHCP reservations
+          git cherry-pick 38b0f5a9545083babc575feb7e87642cdcea6c5b  # incusd/storage/zfs: Fix missing incus:content_type after cloning a custom volume
+          git cherry-pick e69e96d62d646a037e5eed43830e7583caacd604  # incusd/instances: Fix operation plumbing
+          git cherry-pick d17c0501bc083cb54b5c516a2edf57ba489358dc  # incus/profile: Fix a typo in profile set usage text
+          git cherry-pick 325a8f9cee2f3d92c38f4b88d6e985b828e395e9  # incusd/storage: Handle missing storage bucket listener
+          git cherry-pick 333c9552188410d80e4192c2c5b8e75dbecc0523  # incus-migrate: Fix calculating volume size for block device
+          git cherry-pick d2c46b76dab32e5f0ddd29867e89cd30b5d7dca4  # incus/info: Fix --show-log
+          git cherry-pick 8375a122cce3fd2eedb4ce3764e827a7ad506e9c  # incusd: Remove target check when server clustered
+          git cherry-pick 4b02940d5ec49c044aa30718fc0446d4364277d8  # client: Don't swallow error if incusParseResponse is successful
+          git cherry-pick 2805bb4053cba31b0a0f39cd303ca91d9ad76347  # incusd/cluster: Return the cluster certificate after bootstrap
+          git cherry-pick a15d6d452979c911318b814805af4668f6958fad  # incusd/network/ovn: Fix regression in stateful DHCPv6 handling
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
