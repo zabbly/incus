@@ -322,6 +322,7 @@ jobs:
           cd /build/incus
 
           git cherry-pick e5425cecd8aa52e7fe8b470ad9cb94ec0ca23bbe  # incusd/instance/lxc: Use pre-existing PATH when not overridden
+          git cherry-pick 56cec4f3683a0792ccd28c073276953f494e91bc  # incusd/storage_volumes: Fix cross-project cluster volume copy/move
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
