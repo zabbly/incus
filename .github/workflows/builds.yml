@@ -16,7 +16,6 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - ubuntu-20.04
           - ubuntu-22.04
           - ubuntu-24.04
           - debian-11
@@ -156,23 +155,6 @@ jobs:
           pip3 install meson || pip3 install meson --break-system-packages
           pip3 install tomli || pip3 install tomli --break-system-packages
 
-      - name: Install backported debhelper (on focal)
-        if: ${{ matrix.os == 'ubuntu-20.04' }}
-        run: |
-          if [ "${OS_ARCH}" = "amd64" ]; then
-              echo "deb http://archive.ubuntu.com/ubuntu focal-backports main restricted universe multiverse" >> /etc/apt/sources.list
-          else
-              echo "deb http://ports.ubuntu.com/ubuntu-ports focal-backports main restricted universe multiverse" >> /etc/apt/sources.list
-          fi
-          apt-get install -t focal-backports debhelper --yes
-
-      - name: Install backported git (on focal)
-        if: ${{ matrix.os == 'ubuntu-20.04' }}
-        run: |
-          apt-get install software-properties-common --yes
-          add-apt-repository ppa:git-core/ppa --yes
-          apt-get install git --yes
-
       - name: Install Go
         run: |
           curl -sL "https://go.dev/dl/${GOLANG_TAG}.linux-${OS_ARCH}.tar.gz" | tar -C /usr/local/ -zx
@@ -204,9 +186,6 @@ jobs:
 
       - name: Get the code
         run: |
-          # Ubuntu 20.04 is no longer supported by recent QEMU.
-          [ "${OS_NAME}" = "ubuntu-20.04" ] && QEMU_TAG="v9.0.2"
-
           git clone https://github.com/lxc/distrobuilder /build/distrobuilder --depth 1 -b "${DISTROBUILDER_TAG}"
           git clone https://github.com/lxc/lxc /build/lxc -b "${LXC_TAG}"
           git clone https://github.com/lxc/lxcfs /build/lxcfs --depth 1 -b "${LXCFS_TAG}"
@@ -376,7 +355,6 @@ jobs:
           go build -o "/opt/incus/bin/distrobuilder" github.com/lxc/distrobuilder/distrobuilder
 
       - name: Build CRIU
-        if: ${{ matrix.os != 'ubuntu-20.04' }}
         run: |
           cd /build/criu
           make WERROR=0
@@ -661,7 +639,6 @@ jobs:
           [ "${PKGOS}" = "debian-11" ] && CODENAME=bullseye
           [ "${PKGOS}" = "debian-12" ] && CODENAME=bookworm
           [ "${PKGOS}" = "debian-13" ] && CODENAME=trixie
-          [ "${PKGOS}" = "ubuntu-20.04" ] && CODENAME=focal
           [ "${PKGOS}" = "ubuntu-22.04" ] && CODENAME=jammy
           [ "${PKGOS}" = "ubuntu-24.04" ] && CODENAME=noble
 
