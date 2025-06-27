@@ -12,7 +12,6 @@ There are three repositories available:
 
 Those packages are built for:
 
-* Ubuntu 20.04 LTS (`focal`)
 * Ubuntu 22.04 LTS (`jammy`)
 * Ubuntu 24.04 LTS (`noble`)
 * Debian 11 (`bullseye`) (`amd64` only)
