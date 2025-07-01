@@ -315,6 +315,7 @@ jobs:
           cd /build/incus
 
           git cherry-pick 577c86e70190c3ecfad307348976893731a8ac0f  # incusd/instance/qemu: On standalone systems, cap hotplug memory to system
+          git cherry-pick ea2edebc7a6ba76e7f5858d29f1730d3d9537c89  # incusd/patches: Fix empty JSON columns
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
