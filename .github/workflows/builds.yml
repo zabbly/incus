@@ -314,6 +314,8 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick 577c86e70190c3ecfad307348976893731a8ac0f  # incusd/instance/qemu: On standalone systems, cap hotplug memory to system
+
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" github.com/lxc/incus/v6/cmd/incus-benchmark
