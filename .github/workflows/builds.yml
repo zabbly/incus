@@ -561,6 +561,8 @@ jobs:
           patch -p1 < "${REPO}/patches/qemu-0001-usb-net-mac.patch"
 
           sed -i "s/^unset target_list$/target_list=\"$(uname -m)-softmmu\"/" configure
+
+          sed -i "/subdir('tests')/d" meson.build
           ./configure \
                   --prefix=/opt/incus \
                   --libexecdir=bin \
