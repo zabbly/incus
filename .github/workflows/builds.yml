@@ -316,6 +316,17 @@ jobs:
 
           git cherry-pick 577c86e70190c3ecfad307348976893731a8ac0f  # incusd/instance/qemu: On standalone systems, cap hotplug memory to system
           git cherry-pick ea2edebc7a6ba76e7f5858d29f1730d3d9537c89  # incusd/patches: Fix empty JSON columns
+          git cherry-pick 89e0df8124689b67173633eba4b3672591f08861  # shared/idmap: Skip ACLs that are out of range
+          git cherry-pick 5f8dbacde9ee89eeb44a0d67a55732acd96722d4  # incusd/device/nic_ovn: Fix bad check
+          git cherry-pick ea28fcc78f178fb8be209ae1df63d0bbaed802a7  # incusd/device/nic_ovn: Allow specifying static IPv4/IPv6 when DHCP is disabled
+          git cherry-pick f592e0714cbc88eac352803fe677a4b692d03484  # incusd/storage/lvm: Don't rely on udev paths
+          git cherry-pick 0c5d8f90cc966aaeea2671401c16b30d2ffc4422  # cmd/incus_agent: Replace gorilla/mux with http.ServeMux
+          git cherry-pick 81803ecdb9115ff90a84235a95cc5fe7d3d1e9a9  # client: Fixed non-constant format string in call to fmt.Errorf
+          git cherry-pick 0b016773fc575fa04e536e5faba5cb88b2da63a8  # incusd/instance/qmp/log: Don't crash on log Write calls after Close
+          git cherry-pick 56b99168450becf8f57687151c6557f333aa7aa8  # incusd: Cluster join, ensure server address
+          git cherry-pick 6da4fe3dd02baf4078052aadda807df7a442b144  # incusd: Cluster join, check cluster.https_address
+          git cherry-pick 31b0b9f00783006414c59052e52096f37ac98a65  # incusd: Centralize check for node specific network config
+          git cherry-pick 5f6f2f9c9b6db1c2cee19f2be57d730c8a01df9c  # incusd: Make network config keys node specific
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
