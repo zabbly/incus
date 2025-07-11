@@ -340,6 +340,8 @@ jobs:
           mkdir -p /opt/incus/share/locale
           cp po/*.mo /opt/incus/share/locale/
 
+          patch -p1 < "${REPO}/patches/incus-0001-canonical-sphinx-extensions.patch"
+
           make doc
           cp -R doc/html /opt/incus/doc
 
