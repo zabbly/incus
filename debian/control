@@ -112,8 +112,8 @@ Description: Incus - Command line client
 Package: incus-extra
 Architecture: any
 Pre-Depends: ${misc:Pre-Depends}
-Breaks: incus (<< ${source:Version})
-Replaces: incus (<< ${source:Version})
+Breaks: incus (<< ${source:Version}), distrobuilder
+Replaces: incus (<< ${source:Version}), distrobuilder
 Recommends:
   debootstrap,
   gdisk,
