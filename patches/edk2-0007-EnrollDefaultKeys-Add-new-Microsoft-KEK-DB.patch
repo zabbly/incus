@@ -1,4 +1,4 @@
-From a7db8c8d69bf81349c466a0385bebb6fdc655db8 Mon Sep 17 00:00:00 2001
+From ed6656f40b0be16107031749bfced3de91692012 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Sun, 13 Jul 2025 21:02:44 -0400
 Subject: [PATCH] EnrollDefaultKeys: Add new Microsoft KEK/DB
@@ -10,7 +10,8 @@ Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
 ---
  OvmfPkg/EnrollDefaultKeys/AuthData.c          | 433 +++++++++++++++++-
  OvmfPkg/EnrollDefaultKeys/EnrollDefaultKeys.c |  33 +-
- 2 files changed, 444 insertions(+), 22 deletions(-)
+ OvmfPkg/EnrollDefaultKeys/EnrollDefaultKeys.h |  24 +-
+ 3 files changed, 462 insertions(+), 28 deletions(-)
 
 diff --git a/OvmfPkg/EnrollDefaultKeys/AuthData.c b/OvmfPkg/EnrollDefaultKeys/AuthData.c
 index 53ee7f7003..ec6c88ae6b 100644
@@ -541,6 +542,43 @@ index 88b6bafee8..396aae7250 100644
                 NULL
                 );
    }
+diff --git a/OvmfPkg/EnrollDefaultKeys/EnrollDefaultKeys.h b/OvmfPkg/EnrollDefaultKeys/EnrollDefaultKeys.h
+index 56da9c71d6..59250d765f 100644
+--- a/OvmfPkg/EnrollDefaultKeys/EnrollDefaultKeys.h
++++ b/OvmfPkg/EnrollDefaultKeys/EnrollDefaultKeys.h
+@@ -121,14 +121,26 @@ typedef struct {
+ //
+ // Refer to "AuthData.c" for details on the following objects.
+ //
+-extern CONST UINT8  mMicrosoftKek[];
+-extern CONST UINTN  mSizeOfMicrosoftKek;
++extern CONST UINT8  mMicrosoftKek2011[];
++extern CONST UINTN  mSizeOfMicrosoftKek2011;
+ 
+-extern CONST UINT8  mMicrosoftPca[];
+-extern CONST UINTN  mSizeOfMicrosoftPca;
++extern CONST UINT8  mMicrosoftKek2023[];
++extern CONST UINTN  mSizeOfMicrosoftKek2023;
+ 
+-extern CONST UINT8  mMicrosoftUefiCa[];
+-extern CONST UINTN  mSizeOfMicrosoftUefiCa;
++extern CONST UINT8  mMicrosoftPca2011[];
++extern CONST UINTN  mSizeOfMicrosoftPca2011;
++
++extern CONST UINT8  mMicrosoftUefiCa2011[];
++extern CONST UINTN  mSizeOfMicrosoftUefiCa2011;
++
++extern CONST UINT8  mMicrosoftUefiCa2021[];
++extern CONST UINTN  mSizeOfMicrosoftUefiCa2021;
++
++extern CONST UINT8  mWindowsUefiCa2023[];
++extern CONST UINTN  mSizeOfWindowstUefiCa2023;
++
++extern CONST UINT8  mMicrosoftDevicesCa2021[];
++extern CONST UINTN  mSizeOfMicrosoftDevicesCa2021;
+ 
+ extern CONST UINT8  mSha256OfDevNull[];
+ extern CONST UINTN  mSizeOfSha256OfDevNull;
 -- 
 2.47.2
 
