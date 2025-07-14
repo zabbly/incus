@@ -56,11 +56,11 @@ jobs:
       LXC_TAG: "v6.0.4"
 
       # External dependencies
-      COWSQL_TAG: "v1.15.8"
+      COWSQL_TAG: "v1.15.9"
       CRIU_TAG: "v4.1"
       EDK2_TAG: "edk2-stable202411"
-      GOLANG_TAG: "go1.24.4"
-      LEGO_TAG: "v4.23.1"
+      GOLANG_TAG: "go1.24.5"
+      LEGO_TAG: "v4.24.0"
       LIBTPMS_TAG: "v0.10.1"
       LIBURING_TAG: "liburing-2.11"
       MINIO_MC_TAG: "RELEASE.2025-05-21T01-59-54Z"
