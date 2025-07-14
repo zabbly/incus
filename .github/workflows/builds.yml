@@ -316,6 +316,7 @@ jobs:
 
           git cherry-pick 577c86e70190c3ecfad307348976893731a8ac0f  # incusd/instance/qemu: On standalone systems, cap hotplug memory to system
           git cherry-pick ea2edebc7a6ba76e7f5858d29f1730d3d9537c89  # incusd/patches: Fix empty JSON columns
+          git cherry-pick 60c8f084a7cb9e38b5003fc056538f6631609cb8  # incusd/instance/qemu: Fix memory calculation logic
           git cherry-pick 89e0df8124689b67173633eba4b3672591f08861  # shared/idmap: Skip ACLs that are out of range
           git cherry-pick 5f8dbacde9ee89eeb44a0d67a55732acd96722d4  # incusd/device/nic_ovn: Fix bad check
           git cherry-pick ea28fcc78f178fb8be209ae1df63d0bbaed802a7  # incusd/device/nic_ovn: Allow specifying static IPv4/IPv6 when DHCP is disabled
@@ -327,6 +328,10 @@ jobs:
           git cherry-pick 6da4fe3dd02baf4078052aadda807df7a442b144  # incusd: Cluster join, check cluster.https_address
           git cherry-pick 31b0b9f00783006414c59052e52096f37ac98a65  # incusd: Centralize check for node specific network config
           git cherry-pick 5f6f2f9c9b6db1c2cee19f2be57d730c8a01df9c  # incusd: Make network config keys node specific
+          git cherry-pick dcaf6e581b560fe468297994212d6344f96201ac  # doc: Pin a working version of the sphinx extensions
+          git cherry-pick 15cff1d24b5f04ab39f31bf82781af87894f4406  # incusd/instance/lxc: Fix usage reporting on relative disks
+          git cherry-pick 677d5e83f448bcca9673d9e2c4f86d622366b346  # internal/instance: Introduce SplitVolumeSource
+          git cherry-pick c4baf44a7d9df9947b6a285f992dd3a4cc358267  # incusd: Use SplitVolumeSource
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
