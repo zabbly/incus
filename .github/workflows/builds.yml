@@ -49,7 +49,7 @@ jobs:
       # Linux Containers projects
       DISTROBUILDER_TAG: "distrobuilder-3.2"
       INCUS_TAG: "v6.14.0"
-      INCUS_UI_CANONICAL_TAG: "incus-0.17.1.0"
+      INCUS_UI_CANONICAL_TAG: "incus-0.18.0"
       LXCFS_TAG: "v6.0.4"
       LXC_TAG: "v6.0.4"
 
@@ -58,11 +58,11 @@ jobs:
       CRIU_TAG: "v4.1"
       EDK2_TAG: "edk2-stable202411"
       GOLANG_TAG: "go1.24.5"
-      LEGO_TAG: "v4.24.0"
+      LEGO_TAG: "v4.25.1"
       LIBTPMS_TAG: "v0.10.1"
       LIBURING_TAG: "liburing-2.11"
-      MINIO_MC_TAG: "RELEASE.2025-05-21T01-59-54Z"
-      MINIO_TAG: "RELEASE.2025-06-13T11-33-47Z"
+      MINIO_MC_TAG: "RELEASE.2025-07-21T05-28-08Z"
+      MINIO_TAG: "RELEASE.2025-07-23T15-54-02Z"
       NASM_TAG: "nasm-2.16.03"
       NVIDIA_CONTAINER_TAG: "v1.17.8"
       QEMU_TAG: "v9.0.4"
