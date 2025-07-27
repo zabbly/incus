@@ -332,6 +332,35 @@ jobs:
           git cherry-pick 15cff1d24b5f04ab39f31bf82781af87894f4406  # incusd/instance/lxc: Fix usage reporting on relative disks
           git cherry-pick 677d5e83f448bcca9673d9e2c4f86d622366b346  # internal/instance: Introduce SplitVolumeSource
           git cherry-pick c4baf44a7d9df9947b6a285f992dd3a4cc358267  # incusd: Use SplitVolumeSource
+          git cherry-pick 8db0ddcc7ff663d568d86794c092ade8624dd46e  # incus/project/get-current: Rely on server reported project
+          git cherry-pick 1de9bb4f089d9fd260bafd54ae7cc84efbfa96a1  # incusd/cluster/config: Update certificate also on change of acme.http.port
+          git cherry-pick dacee765384635eac3742351de64cdae23d25194  # incusd/instance_logs: Perform stricter path validation
+          git cherry-pick 60a3670af35e45d6c7b62872b300d914eba05478  # [lxd-import] lxd/daemon: Validate browser fetch metadata if supplied to reject non-same-origin requests
+          git cherry-pick 033789e9f1f108e03313f375c39e349c2b300c44  # [lxd-import] test/suites/serverconfig: Check fetch metadata header is validated
+          git cherry-pick 25cc63ece8f74ef2c7f9a445d544338b91340af7  # incusd/dev_incus: Add extra validation for monitor
+          git cherry-pick 5cb0fb9e7463e9d7fd31e4c435e068de3d3dadc6  # incusd/images: Restrict public image listing to default project
+          git cherry-pick 8d817f1a4ceea0599301f3240ade070b0fd5d86c  # incusd/images: Use identical errors for all not-found cases on public endpoints
+          git cherry-pick 7e1186ab368257c0bdeb0465c9c693596f04e12f  # internal/util: Add recursion limit to RenderTemplate
+          git cherry-pick 630d850d40bf25428b36860cd87728f34191bca9  # internal/util: Tweak common pongo2 parser to block dangerous functions
+          git cherry-pick 1fff36a31d009165b09ceec8827549826d2a035e  # incus/list: Fix validation of 'L' shorthand column
+          git cherry-pick ac9e6248d64d8f29321ed31bc8bbd921990c2361  # tests: only run tests if ovn is available
+          git cherry-pick 62e848c48762af23f3a5140c273a53bfd4151253  # incus/server: fix scan order
+          git cherry-pick 69505f0ca0219db5300bda3ec45eb3d6fb2143f5  # incusd/instance/agent-loader: Use ISO label rather than disk id
+          git cherry-pick 975d452207129f578f8847bbd910749d3979a4ce  # incusd/storage: Fix ISO renaming
+          git cherry-pick d07c80910d7137cdcdde6fc72e6ae63e29666449  # incusd/project: Skip processing 'limits.processes' for VM instance types
+          git cherry-pick 0f347c230708d9088ff96c5db3ed7e0a5e4bc97e  # incusd/device/config: Fix issue with live updating of user keys
+          git cherry-pick 10839af5ea536aa68b924c10961169b782f769d5  # incusd/device/disk: Pass nil if read/write limits are not set
+          git cherry-pick 0fac2617d31deb3cea768b1e94234d3990edc3c9  # incusd/instance/drivers: Prevent calling 'deviceAttachBlockDevice' on the root disk
+          git cherry-pick e13e674dae437564eb25e59b9145bf18a81d8171  # incusd/instance: Allow setting lxc.net config keys through raw.lxc
+          git cherry-pick 858f3afbd5ef2712f5049f9e794b97e4245a80f2  # incusd/apparmor/qemu: Allow reading gid_map/uid_map
+          git cherry-pick 81e19ac8c12359ac8b84ea15e4155bafe3ee26e3  # incusd/apparmor/qemuimg: Fix typo in rules
+          git cherry-pick b68034d27fd83461f6b852ab1cab9a716cbad2a1  # doc/instances_create: Extend the Incus VM agent instructions
+          git cherry-pick 3cbda604ce91c9adf21006340d210510ae7e3f24  # incusd/operations: Add IsSameRequestor
+          git cherry-pick de7e28a3dc3801286022f2fed0c76b36a5c6e2f6  # incusd/instance_console: Ensure requestor match
+          git cherry-pick 9fd73b55422e55404acb3698874ec4377b810330  # incusd/instance_exec: Ensure requestor match
+          git cherry-pick 5dab18f5741ef8e57e11aa819c5180666333849f  # incusd/auth/openfga: Restrict operations and events access
+          git cherry-pick f8c667f3601228eca238ed9663706d14ea6d9e3f  # incusd/auth/openfga: Rebuild model
+          git cherry-pick cd19f326e8d6d26c85cfbf12e69ade7dca062d4f  # incusd/db/network_peers: Fix querying of integrations
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
