@@ -314,6 +314,8 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick d1f9c20d9b6db113e1ad1714961585bc411051ce  # incusd/instance/lxc: Fix handling of multiple USB device removal
+
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" github.com/lxc/incus/v6/cmd/incus-benchmark
