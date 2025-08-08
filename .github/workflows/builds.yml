@@ -315,6 +315,12 @@ jobs:
           cd /build/incus
 
           git cherry-pick d1f9c20d9b6db113e1ad1714961585bc411051ce  # incusd/instance/lxc: Fix handling of multiple USB device removal
+          git cherry-pick db3614a6098fc3bb45bbc90b033a93acb12e3f33  # incusd/device: Fix logic for checking if parent is a bridge in IsPhysicalWithBridge
+          git cherry-pick 1600768e3f1dab47b1e540568181ff9a31cfc98d  # incusd/os: Forward within cluster
+          git cherry-pick c282904ce2098efa47d15ecde49eea77dd2d86b2  # incusd/ip/neigh: Fix MAC filtering
+          git cherry-pick 350484eeb5891724bc257c1ad926914a276c8c5e  # incusd: Move IncusOS detection to OS struct
+          git cherry-pick 3612b0c51cc9e2043da63f1174b42f97920a4409  # incusd/networks: Filter network list on Incus OS
+          git cherry-pick 9057c5743b751187f4077312c16d934c5a902f8b  # incusd/storage: Fix EnsureMountPath to avoid resetting permissions
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
