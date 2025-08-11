@@ -70,7 +70,6 @@ jobs:
       SEABIOS_TAG: "rel-1.17.0"
       SKOPEO_TAG: "v1.20.0"
       SWTPM_TAG: "v0.10.1"
-      UMOCI_TAG: "v0.5.0"
       VIRTIOFSD_TAG: "v1.13.2"
     steps:
       - name: Checkout code
@@ -207,7 +206,6 @@ jobs:
           git clone https://github.com/minio/mc /build/mc --depth 1 -b "${MINIO_MC_TAG}"
           git clone https://github.com/minio/minio /build/minio --depth 1 -b "${MINIO_TAG}"
           git clone https://github.com/NVIDIA/libnvidia-container /build/libnvidia-container --depth 1 -b "${NVIDIA_CONTAINER_TAG}"
-          git clone https://github.com/opencontainers/umoci /build/umoci --depth 1 -b "${UMOCI_TAG}"
           git clone https://github.com/stefanberger/libtpms /build/libtpms --depth 1 -b "${LIBTPMS_TAG}"
           git clone https://github.com/stefanberger/swtpm /build/swtpm --depth 1 -b "${SWTPM_TAG}"
           git clone https://github.com/tianocore/edk2 /build/edk2 --recurse-submodules --shallow-submodules --depth 1 -b "${EDK2_TAG}"
@@ -564,11 +562,6 @@ jobs:
         run: |
           cd /build/lego
           go build -o "/opt/incus/bin/lego" github.com/go-acme/lego/v4/cmd/lego
-
-      - name: Build umoci
-        run: |
-          cd /build/umoci
-          go build -o "/opt/incus/bin/umoci" github.com/opencontainers/umoci/cmd/umoci
 
       - name: Build skopeo
         run: |
