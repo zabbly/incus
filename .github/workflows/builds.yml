@@ -322,6 +322,19 @@ jobs:
           git cherry-pick 3612b0c51cc9e2043da63f1174b42f97920a4409  # incusd/networks: Filter network list on Incus OS
           git cherry-pick 9057c5743b751187f4077312c16d934c5a902f8b  # incusd/storage: Fix EnsureMountPath to avoid resetting permissions
           git cherry-pick 23308cc3a6a350c26ca13f108e9d44a671bee3d0  # incusd/sys/os: Tweak IncusOS detection
+          git cherry-pick 186bae79b60f814ff1674112f8fa946f1911c3cb  # generate-database: Fix sqlite3 error detection
+          git cherry-pick 8e864d26d77f1cf1d69392d680651e6c32f77da4  # incusd/database: Re-generate code
+          git cherry-pick 7ef2e66513f8c92f503643bddab65aaea450cfbe  # incusd/instances: Improve instance creation errors
+          git cherry-pick b1ba6eb8ab1370e9349dfdf8e72932d26112b42b  # incusd/storage_volumes: Fix error message
+          git cherry-pick 77f2fccbc085e916a9d6c1304512f706e8b15f3c  # incusd/instance/qemu: Fix vTPM on arm64 systems
+          git cherry-pick d65e6e6f8d6d12344c6f7f3a6fbd544b89063411  # incusd/apparmor: Add support for abi4.0
+          git cherry-pick f381484aaeb4d1f21f51f3f5bf0be248b80712ee  # incusd/networks: Only include Incus OS interfaces if not already listed
+          git cherry-pick a9fe33887831ef82e8ddba94610c58198126431f  # incusd/networks: Tweak access control
+          git cherry-pick ee6d04d11c0e97e9bd6fd508cec7459996068d80  # incusd/network/sriov: Fix spacing
+          git cherry-pick 6a29c34338feb0c8a82c16c224cd16c54228e845  # incusd/network: Pass request type to validator
+          git cherry-pick adfa2aaef37e0b777de310d7b5597a19a0a77a90  # incusd/network/ovn: Don't validate uplink network on server-specific notification
+          git cherry-pick c214a91f5a33ed142f91b909a8d023b47ce65143  # incusd/network/bridge: Don't require dnsmasq on link-local IPv6
+          git cherry-pick 6e817aa11e7bf3fc5622067cbe195b597c8c1afd  # incusd/server/network: Fix update config regression
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
