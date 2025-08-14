@@ -335,6 +335,9 @@ jobs:
           git cherry-pick adfa2aaef37e0b777de310d7b5597a19a0a77a90  # incusd/network/ovn: Don't validate uplink network on server-specific notification
           git cherry-pick c214a91f5a33ed142f91b909a8d023b47ce65143  # incusd/network/bridge: Don't require dnsmasq on link-local IPv6
           git cherry-pick 6e817aa11e7bf3fc5622067cbe195b597c8c1afd  # incusd/server/network: Fix update config regression
+          git cherry-pick bd4b0488db9c70f91bcd3db6719e313b516e80a4  # dhcp: stop 60s renew spam; request 51/58/59, derive sane T1, add jitter
+          git cherry-pick c60b779b2513238f288e612bfe5504db917fb705  # incusd/apparmor: Don't use abi4.0
+          git cherry-pick 97db84512d9c026053b4032d543c5672b44eff26  # incusd/config: Fix import shadowing
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
