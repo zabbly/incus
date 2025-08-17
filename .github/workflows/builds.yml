@@ -58,7 +58,7 @@ jobs:
       CRIU_TAG: "v4.1.1"
       EDK2_TAG: "edk2-stable202411"
       GOLANG_TAG: "go1.25.0"
-      LEGO_TAG: "v4.22.2"
+      LEGO_TAG: "v4.25.2"
       LIBTPMS_TAG: "v0.10.1"
       LIBURING_TAG: "liburing-2.11"
       MINIO_MC_TAG: "RELEASE.2025-07-21T05-28-08Z"
