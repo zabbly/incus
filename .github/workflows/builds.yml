@@ -333,6 +333,7 @@ jobs:
           git cherry-pick bd4b0488db9c70f91bcd3db6719e313b516e80a4  # dhcp: stop 60s renew spam; request 51/58/59, derive sane T1, add jitter
           git cherry-pick c60b779b2513238f288e612bfe5504db917fb705  # incusd/apparmor: Don't use abi4.0
           git cherry-pick 97db84512d9c026053b4032d543c5672b44eff26  # incusd/config: Fix import shadowing
+          git cherry-pick 44e4d55d705f9e5b624c8ff62e998ae64ad4937d  # incusd/instance/lxc: Avoid issues with nested containers and ping group range
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
