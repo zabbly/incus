@@ -52,14 +52,14 @@ jobs:
       DISTROBUILDER_TAG: "distrobuilder-3.2"
       INCUS_TAG: "main"
       INCUS_UI_CANONICAL_TAG: "incus-0.18.0"
-      LXCFS_TAG: "v6.0.4"
-      LXC_TAG: "v6.0.4"
+      LXCFS_TAG: "v6.0.5"
+      LXC_TAG: "v6.0.5"
 
       # External dependencies
       COWSQL_TAG: "v1.15.9"
       CRIU_TAG: "v4.1.1"
       EDK2_TAG: "edk2-stable202411"
-      GOLANG_TAG: "go1.24.6"
+      GOLANG_TAG: "go1.25.0"
       LEGO_TAG: "v4.25.2"
       LIBTPMS_TAG: "v0.10.1"
       LIBURING_TAG: "liburing-2.11"
