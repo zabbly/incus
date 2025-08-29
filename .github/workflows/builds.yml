@@ -547,7 +547,7 @@ jobs:
       - name: Build TrueNAS Incus CTL
         run: |
           cd /build/truenas_incus_ctl
-          go build -o "/opt/incus/bin/truenas_incus_ctl" truenas/truenas_incus_ctl/cmd
+          go build -o "/opt/incus/bin/truenas_incus_ctl" truenas/truenas_incus_ctl
 
       - name: Build QEMU
         run: |
