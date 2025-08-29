@@ -20,4 +20,5 @@ RAFT_TAG https://github.com/cowsql/raft v
 SEABIOS_TAG https://gitlab.com/qemu-project/seabios rel-
 SKOPEO_TAG https://github.com/containers/skopeo v
 SWTPM_TAG https://github.com/stefanberger/swtpm v
+TRUENAS_INCUS_CTL https://github.com/truenas/truenas_incus_ctl v
 VIRTIOFSD_TAG https://gitlab.com/virtio-fs/virtiofsd v
