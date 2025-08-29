@@ -48,7 +48,7 @@ jobs:
 
       # Linux Containers projects
       DISTROBUILDER_TAG: "distrobuilder-3.2"
-      INCUS_TAG: "v6.15.0"
+      INCUS_TAG: "v6.16.0"
       INCUS_UI_CANONICAL_TAG: "incus-0.18.1"
       LXCFS_TAG: "v6.0.5"
       LXC_TAG: "v6.0.5"
@@ -306,32 +306,6 @@ jobs:
           REPO="${PWD}"
 
           cd /build/incus
-
-          git cherry-pick d1f9c20d9b6db113e1ad1714961585bc411051ce  # incusd/instance/lxc: Fix handling of multiple USB device removal
-          git cherry-pick db3614a6098fc3bb45bbc90b033a93acb12e3f33  # incusd/device: Fix logic for checking if parent is a bridge in IsPhysicalWithBridge
-          git cherry-pick 1600768e3f1dab47b1e540568181ff9a31cfc98d  # incusd/os: Forward within cluster
-          git cherry-pick c282904ce2098efa47d15ecde49eea77dd2d86b2  # incusd/ip/neigh: Fix MAC filtering
-          git cherry-pick 350484eeb5891724bc257c1ad926914a276c8c5e  # incusd: Move IncusOS detection to OS struct
-          git cherry-pick 3612b0c51cc9e2043da63f1174b42f97920a4409  # incusd/networks: Filter network list on Incus OS
-          git cherry-pick 9057c5743b751187f4077312c16d934c5a902f8b  # incusd/storage: Fix EnsureMountPath to avoid resetting permissions
-          git cherry-pick 23308cc3a6a350c26ca13f108e9d44a671bee3d0  # incusd/sys/os: Tweak IncusOS detection
-          git cherry-pick 186bae79b60f814ff1674112f8fa946f1911c3cb  # generate-database: Fix sqlite3 error detection
-          git cherry-pick 8e864d26d77f1cf1d69392d680651e6c32f77da4  # incusd/database: Re-generate code
-          git cherry-pick 7ef2e66513f8c92f503643bddab65aaea450cfbe  # incusd/instances: Improve instance creation errors
-          git cherry-pick b1ba6eb8ab1370e9349dfdf8e72932d26112b42b  # incusd/storage_volumes: Fix error message
-          git cherry-pick 77f2fccbc085e916a9d6c1304512f706e8b15f3c  # incusd/instance/qemu: Fix vTPM on arm64 systems
-          git cherry-pick d65e6e6f8d6d12344c6f7f3a6fbd544b89063411  # incusd/apparmor: Add support for abi4.0
-          git cherry-pick f381484aaeb4d1f21f51f3f5bf0be248b80712ee  # incusd/networks: Only include Incus OS interfaces if not already listed
-          git cherry-pick a9fe33887831ef82e8ddba94610c58198126431f  # incusd/networks: Tweak access control
-          git cherry-pick ee6d04d11c0e97e9bd6fd508cec7459996068d80  # incusd/network/sriov: Fix spacing
-          git cherry-pick 6a29c34338feb0c8a82c16c224cd16c54228e845  # incusd/network: Pass request type to validator
-          git cherry-pick adfa2aaef37e0b777de310d7b5597a19a0a77a90  # incusd/network/ovn: Don't validate uplink network on server-specific notification
-          git cherry-pick c214a91f5a33ed142f91b909a8d023b47ce65143  # incusd/network/bridge: Don't require dnsmasq on link-local IPv6
-          git cherry-pick 6e817aa11e7bf3fc5622067cbe195b597c8c1afd  # incusd/server/network: Fix update config regression
-          git cherry-pick bd4b0488db9c70f91bcd3db6719e313b516e80a4  # dhcp: stop 60s renew spam; request 51/58/59, derive sane T1, add jitter
-          git cherry-pick c60b779b2513238f288e612bfe5504db917fb705  # incusd/apparmor: Don't use abi4.0
-          git cherry-pick 97db84512d9c026053b4032d543c5672b44eff26  # incusd/config: Fix import shadowing
-          git cherry-pick 44e4d55d705f9e5b624c8ff62e998ae64ad4937d  # incusd/instance/lxc: Avoid issues with nested containers and ping group range
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
