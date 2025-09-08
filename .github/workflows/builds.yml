@@ -309,6 +309,14 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick 6237b5f1e438efd90404c9a83431d0bd06b75c2f  # incusd/cluster/evacuate: Clarify error
+          git cherry-pick 7252688c8458baca8c9c69fd05452a6c4f9cdc87  # incusd/cluster: Rename dqlite to cowsql in header
+          git cherry-pick 41211eb64681da7968e7b2a5bce8982450db6bc5  # incusd/cluster: Clarify comment for cluster rebalancing
+          git cherry-pick b12d57d593c21c6f9e238fe1ffd31de2478f25dc  # incusd/instance_patch: Fix description field not respecting PATCH semantics
+          git cherry-pick a0aad161fcd41dae1dc974b176b6c274ab453333  # client/oci: Allow OCI image names with a pinned hash
+          git cherry-pick a783aed5bb2bad6b2f425a32e3deff8ac5f3747c  # shared/tls: Remove tls.Config.Time override
+          git cherry-pick 75b27abd835771328e9c87f0d7fe649e0a91a44a  # incusd/storage/lvm: Don't use pvcreate with cluster
+
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" github.com/lxc/incus/v6/cmd/incus-benchmark
