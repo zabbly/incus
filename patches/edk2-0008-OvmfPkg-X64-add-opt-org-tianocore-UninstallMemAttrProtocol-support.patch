@@ -1,0 +1,123 @@
+From aa7f29a9e92b9e6f8b2e56bacaef6c96b8dc80ed Mon Sep 17 00:00:00 2001
+From: Gerd Hoffmann <kraxel@redhat.com>
+Date: Thu, 16 Jan 2025 17:20:38 +0100
+Subject: [PATCH] OvmfPkg/X64: add opt/org.tianocore/UninstallMemAttrProtocol
+ support
+
+Add support for opt/org.tianocore/UninstallMemAttrProtocol, to allow
+turning off EFI_MEMORY_ATTRIBUTE_PROTOCOL, simliar to ArmVirtPkg.
+
+Signed-off-by: Gerd Hoffmann <kraxel@redhat.com>
+---
+ .../PlatformBootManagerLib/BdsPlatform.c      | 63 +++++++++++++++++++
+ .../PlatformBootManagerLib.inf                |  2 +
+ 2 files changed, 65 insertions(+)
+
+diff --git a/OvmfPkg/Library/PlatformBootManagerLib/BdsPlatform.c b/OvmfPkg/Library/PlatformBootManagerLib/BdsPlatform.c
+index e66693879d34..f4ae8dc41df3 100644
+--- a/OvmfPkg/Library/PlatformBootManagerLib/BdsPlatform.c
++++ b/OvmfPkg/Library/PlatformBootManagerLib/BdsPlatform.c
+@@ -1836,6 +1836,49 @@ SaveS3BootScript (
+   ASSERT_EFI_ERROR (Status);
+ }
+ 
++/**
++  Uninstall the EFI memory attribute protocol if it exists.
++**/
++STATIC
++VOID
++UninstallEfiMemoryAttributesProtocol (
++  VOID
++  )
++{
++  EFI_STATUS  Status;
++  EFI_HANDLE  Handle;
++  UINTN       Size;
++  VOID        *MemoryAttributeProtocol;
++
++  Size   = sizeof (Handle);
++  Status = gBS->LocateHandle (
++                  ByProtocol,
++                  &gEfiMemoryAttributeProtocolGuid,
++                  NULL,
++                  &Size,
++                  &Handle
++                  );
++
++  if (EFI_ERROR (Status)) {
++    ASSERT (Status == EFI_NOT_FOUND);
++    return;
++  }
++
++  Status = gBS->HandleProtocol (
++                  Handle,
++                  &gEfiMemoryAttributeProtocolGuid,
++                  &MemoryAttributeProtocol
++                  );
++  ASSERT_EFI_ERROR (Status);
++
++  Status = gBS->UninstallProtocolInterface (
++                  Handle,
++                  &gEfiMemoryAttributeProtocolGuid,
++                  MemoryAttributeProtocol
++                  );
++  ASSERT_EFI_ERROR (Status);
++}
++
+ /**
+   Do the platform specific action after the console is ready
+ 
+@@ -1856,6 +1899,7 @@ PlatformBootManagerAfterConsole (
+   )
+ {
+   EFI_BOOT_MODE  BootMode;
++  BOOLEAN        Uninstall;
+ 
+   DEBUG ((DEBUG_INFO, "PlatformBootManagerAfterConsole\n"));
+ 
+@@ -1900,6 +1944,25 @@ PlatformBootManagerAfterConsole (
+   //
+   StoreQemuBootOrder ();
+ 
++  //
++  // Work around shim's terminally broken use of the EFI memory attributes
++  // protocol, by uninstalling it if requested on the QEMU command line.
++  //
++  // E.g.,
++  //       -fw_cfg opt/org.tianocore/UninstallMemAttrProtocol,string=y
++  //
++  Uninstall = FixedPcdGetBool (PcdUninstallMemAttrProtocol);
++  QemuFwCfgParseBool ("opt/org.tianocore/UninstallMemAttrProtocol", &Uninstall);
++  DEBUG ((
++    DEBUG_WARN,
++    "%a: %auninstalling EFI memory protocol\n",
++    __func__,
++    Uninstall ? "" : "not "
++    ));
++  if (Uninstall) {
++    UninstallEfiMemoryAttributesProtocol ();
++  }
++
+   //
+   // Process QEMU's -kernel command line option
+   //
+diff --git a/OvmfPkg/Library/PlatformBootManagerLib/PlatformBootManagerLib.inf b/OvmfPkg/Library/PlatformBootManagerLib/PlatformBootManagerLib.inf
+index 1a422ebb0edd..73190a35c4b2 100644
+--- a/OvmfPkg/Library/PlatformBootManagerLib/PlatformBootManagerLib.inf
++++ b/OvmfPkg/Library/PlatformBootManagerLib/PlatformBootManagerLib.inf
+@@ -63,6 +63,7 @@
+   gUefiOvmfPkgTokenSpaceGuid.PcdOvmfFlashVariablesEnable
+   gUefiOvmfPkgTokenSpaceGuid.PcdOvmfHostBridgePciDevId
+   gUefiOvmfPkgTokenSpaceGuid.PcdBootRestrictToFirmware
++  gUefiOvmfPkgTokenSpaceGuid.PcdUninstallMemAttrProtocol
+   gEfiMdeModulePkgTokenSpaceGuid.PcdAcpiS3Enable
+   gEfiMdePkgTokenSpaceGuid.PcdPlatformBootTimeOut
+   gEfiMdePkgTokenSpaceGuid.PcdUartDefaultBaudRate         ## CONSUMES
+@@ -81,6 +82,7 @@
+   gEfiDxeSmmReadyToLockProtocolGuid             # PROTOCOL SOMETIMES_PRODUCED
+   gEfiLoadedImageProtocolGuid                   # PROTOCOL SOMETIMES_PRODUCED
+   gEfiFirmwareVolume2ProtocolGuid               # PROTOCOL SOMETIMES_CONSUMED
++  gEfiMemoryAttributeProtocolGuid
+ 
+ [Guids]
+   gEfiEndOfDxeEventGroupGuid
