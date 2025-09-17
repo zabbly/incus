@@ -456,7 +456,8 @@ jobs:
           patch -p1 < "${REPO}/patches/edk2-0005-Revert-ArmVirtPkg-make-EFI_LOADER_DATA-non-executabl.patch"
           patch -p1 < "${REPO}/patches/edk2-0006-disable-EFI-memory-attributes-protocol.patch"
           patch -p1 < "${REPO}/patches/edk2-0007-EnrollDefaultKeys-Add-new-Microsoft-KEK-DB.patch"
-          patch -p1 < "${REPO}/patches/edk2-0008-disable-UEFI-shell-under-SecureBoot.patch"
+          patch -p1 < "${REPO}/patches/edk2-0008-OvmfPkg-X64-add-opt-org-tianocore-UninstallMemAttrProtocol-support.patch"
+          patch -p1 < "${REPO}/patches/edk2-0009-disable-UEFI-shell-under-SecureBoot.patch"
 
           EDK2_ARCH="X64"
           EDK2_PKG="OvmfPkg/OvmfPkgX64.dsc"
