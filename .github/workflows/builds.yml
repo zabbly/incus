@@ -479,6 +479,7 @@ jobs:
                     -DNETWORK_HTTP_BOOT_ENABLE=TRUE \
                     -DTPM2_ENABLE=TRUE \
                     -DTPM2_CONFIG_ENABLE=TRUE \
+                    --pcd PcdUninstallMemAttrProtocol=TRUE \
                     $@
           EOF
               ) | bash -e
