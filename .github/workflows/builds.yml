@@ -309,6 +309,12 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick 8883f53115ec5036a775f5fc3d67f39f5dc7d677  # incusd/network/ovn: Destroy DNS entry in CleanupLogicalSwitchPort
+          git cherry-pick 8e4741e7d71371befd6fe57986b840fccaffcb2a  # incusd: Use 'Patch' method for PATCH requests
+          git cherry-pick 031ed912a681c03f68837ae9a0d76759b909a7dc  # incus/admin/os: Update for current API prefix
+          git cherry-pick b1ca078ce793201b957ecf3701adbce78e7a6135  # incusd/cluster: Don't use proxy when joining
+          git cherry-pick ba81ec0e90cb764de6706eca03b8cb42c3159ff8  # incusd/device/disk: Remove dead code
+
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" github.com/lxc/incus/v6/cmd/incus-benchmark
