@@ -63,7 +63,7 @@ jobs:
       LIBURING_TAG: "liburing-2.12"
       MINIO_MC_TAG: "RELEASE.2025-08-13T08-35-41Z"
       MINIO_TAG: "RELEASE.2025-09-07T16-13-09Z"
-      NASM_TAG: "nasm-3.00"
+      NASM_TAG: "nasm-2.16.03"
       NVIDIA_CONTAINER_TAG: "v1.17.8"
       QEMU_TAG: "v9.0.4"
       RAFT_TAG: "v0.22.1"
