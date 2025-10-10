@@ -320,6 +320,8 @@ jobs:
           git cherry-pick f2f2ff6c190c09105a5b04eb2b25fc1cb64b2ea7  # incusd/storage: Don't skip zeroes on qcow2 unpack to LVM
           git cherry-pick dd0bed967e76d2f610f2530041feb3324ac5d7d9  # incusd/network/ovn: Check the correct config on uplink validation
           git cherry-pick a37f1eb2b05c1d3269a4b7d5058f79bdbb8ec8c5  # incusd/console: Close remote connection on console disconnect
+          git cherry-pick 5ed516ab3fd8cff97962b045becea2fc10644403  # shared/resources: Fix caching mechanism
+          git cherry-pick ccc4c4e8c3ecef945be2536fca4e64a0c95d65b1  # incusd/cluster: Disable proxy during cluster join
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
