@@ -556,7 +556,6 @@ jobs:
           REPO="${PWD}"
 
           cd /build/qemu
-          patch -p1 < "${REPO}/patches/qemu-0001-usb-net-mac.patch"
 
           sed -i "s/^unset target_list$/target_list=\"$(uname -m)-softmmu\"/" configure
 
