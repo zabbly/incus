@@ -48,7 +48,7 @@ jobs:
 
       # Linux Containers projects
       DISTROBUILDER_TAG: "distrobuilder-3.2"
-      INCUS_TAG: "v6.17.0"
+      INCUS_TAG: "v6.18.0"
       INCUS_UI_CANONICAL_TAG: "incus-0.18.3"
       LXCFS_TAG: "v6.0.5"
       LXC_TAG: "v6.0.5"
@@ -308,20 +308,6 @@ jobs:
           REPO="${PWD}"
 
           cd /build/incus
-
-          git cherry-pick 8883f53115ec5036a775f5fc3d67f39f5dc7d677  # incusd/network/ovn: Destroy DNS entry in CleanupLogicalSwitchPort
-          git cherry-pick 8e4741e7d71371befd6fe57986b840fccaffcb2a  # incusd: Use 'Patch' method for PATCH requests
-          git cherry-pick 031ed912a681c03f68837ae9a0d76759b909a7dc  # incus/admin/os: Update for current API prefix
-          git cherry-pick b1ca078ce793201b957ecf3701adbce78e7a6135  # incusd/cluster: Don't use proxy when joining
-          git cherry-pick ba81ec0e90cb764de6706eca03b8cb42c3159ff8  # incusd/device/disk: Remove dead code
-          git cherry-pick 65869dd0cf18426997080c74756a9d5d0af321bd  # incusd/metrics: Always include internal metrics
-          git cherry-pick dc6528ae9cf42dbe2d0d17d08708a40b6ff0fc11  # incusd/auth: log the error if getting the oidc provider fails
-          git cherry-pick e7edd5c6d3bcdcea2be0353b14f38d324b9c3434  # Fix `file push` cmd help typo
-          git cherry-pick f2f2ff6c190c09105a5b04eb2b25fc1cb64b2ea7  # incusd/storage: Don't skip zeroes on qcow2 unpack to LVM
-          git cherry-pick dd0bed967e76d2f610f2530041feb3324ac5d7d9  # incusd/network/ovn: Check the correct config on uplink validation
-          git cherry-pick a37f1eb2b05c1d3269a4b7d5058f79bdbb8ec8c5  # incusd/console: Close remote connection on console disconnect
-          git cherry-pick 5ed516ab3fd8cff97962b045becea2fc10644403  # shared/resources: Fix caching mechanism
-          git cherry-pick ccc4c4e8c3ecef945be2536fca4e64a0c95d65b1  # incusd/cluster: Disable proxy during cluster join
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
