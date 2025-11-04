@@ -309,6 +309,12 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick bdc0122e9ab489f18362eb09ac9aecaf45c925c7  # incusd/network/ovn: Tweak port removal logic
+          git cherry-pick d3655af47bc5c9de2103d9f413e855d404f2de3d  # incusd/instance/qemu: Disable virtio-snd on Windows
+          git cherry-pick 7bc4a855f45da999556ecdc7919d1faadfceeb11  # incusd/instance/qmp: Remove double line break
+          git cherry-pick 88c2cbb05049dd43e435aafdb39632301ff15dc6  # incusd/instance/qmp: Don't log serial port changes
+          git cherry-pick 72f338b94564ea9049df6569ae5e349ce308be19  # incusd/device/disk: Skip VirtioFS Posix ACLs on Windows
+
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" github.com/lxc/incus/v6/cmd/incus-benchmark
