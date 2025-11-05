@@ -314,6 +314,9 @@ jobs:
           git cherry-pick 7bc4a855f45da999556ecdc7919d1faadfceeb11  # incusd/instance/qmp: Remove double line break
           git cherry-pick 88c2cbb05049dd43e435aafdb39632301ff15dc6  # incusd/instance/qmp: Don't log serial port changes
           git cherry-pick 72f338b94564ea9049df6569ae5e349ce308be19  # incusd/device/disk: Skip VirtioFS Posix ACLs on Windows
+          git cherry-pick e8e97906fa4f65ef4b424fef0063aadb205a3d94  # incusd/lifecycle: Fix project prefix in volume name
+          git cherry-pick 5ca55ac3ac7f0f58217707d17b94a0e43010ab85  # incusd/cluster: Use server name instead of IP
+          git cherry-pick 0b88deda2fdc8044bb071bf236e5acd08a5d564d  # cmd/generate-database/db: Fix create/update with composite keys
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
