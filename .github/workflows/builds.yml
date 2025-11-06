@@ -317,6 +317,9 @@ jobs:
           git cherry-pick e8e97906fa4f65ef4b424fef0063aadb205a3d94  # incusd/lifecycle: Fix project prefix in volume name
           git cherry-pick 5ca55ac3ac7f0f58217707d17b94a0e43010ab85  # incusd/cluster: Use server name instead of IP
           git cherry-pick 0b88deda2fdc8044bb071bf236e5acd08a5d564d  # cmd/generate-database/db: Fix create/update with composite keys
+          git cherry-pick 982ad95923ae3a4439e80485c9ea2a0b49005a83  # incusd/storage_volumes: Better handle bad patterns
+          git cherry-pick 63cbaa5b3abedc8d40e04363f77f5e9dcf29c5fb  # client: Omit trailing ? for /events without query parameters
+          git cherry-pick 1fbe4bffb9748cc3b07aaf5db310d463c1e827d0  # incusd/apparmor/lxc: Don't bother with sys/proc protections when nesting enabled
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
