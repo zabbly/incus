@@ -327,6 +327,7 @@ jobs:
           git cherry-pick e86e1d0ad04782dd71226f481e0989685df64305  # incus-migrate: Strict error checking
           git cherry-pick b0c6c0bac42c6ac27d536984cc043a6ec02b9e7c  # incusd/storage: Tighten storage pool volume permissions
           git cherry-pick 3abdc12cf6a8dce391d28d340a32c137125357dd  # incusd/patches: Re-apply storage permissions on update
+          git cherry-pick 27232680a75f5c96bae1f39dc085b7e59b882815  # incusd/patches: Fix incorrect error check in permission patch
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
