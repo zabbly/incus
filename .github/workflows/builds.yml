@@ -319,6 +319,14 @@ jobs:
           git cherry-pick 0b88deda2fdc8044bb071bf236e5acd08a5d564d  # cmd/generate-database/db: Fix create/update with composite keys
           git cherry-pick 982ad95923ae3a4439e80485c9ea2a0b49005a83  # incusd/storage_volumes: Better handle bad patterns
           git cherry-pick 1fbe4bffb9748cc3b07aaf5db310d463c1e827d0  # incusd/apparmor/lxc: Don't bother with sys/proc protections when nesting enabled
+          git cherry-pick 38742467fc5442e7ea82cc076975e3b4262b1d6f  # incusd/acme: Handle HTTPS proxies
+          git cherry-pick ad9fc087908bf7955bb42b8a0323a71a57815486  # incusd: Fix lifecycle events being emited on pending entities
+          git cherry-pick f02931f0570bd5bc2776dc874545d883d1f007cc  # incusd/network: Fix vlan/parent modification on physical uplink
+          git cherry-pick 6c41923f05f52f43fd9c464af649779846f9cb0b  # incusd/storage: Fix sparse writer performance
+          git cherry-pick fd867bd05871be8518c02fa763561400a3c2d450  # incus-migrate: Write in 4MB chunks
+          git cherry-pick e86e1d0ad04782dd71226f481e0989685df64305  # incus-migrate: Strict error checking
+          git cherry-pick b0c6c0bac42c6ac27d536984cc043a6ec02b9e7c  # incusd/storage: Tighten storage pool volume permissions
+          git cherry-pick 3abdc12cf6a8dce391d28d340a32c137125357dd  # incusd/patches: Re-apply storage permissions on update
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
