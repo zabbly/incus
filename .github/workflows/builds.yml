@@ -328,6 +328,10 @@ jobs:
           git cherry-pick b0c6c0bac42c6ac27d536984cc043a6ec02b9e7c  # incusd/storage: Tighten storage pool volume permissions
           git cherry-pick 3abdc12cf6a8dce391d28d340a32c137125357dd  # incusd/patches: Re-apply storage permissions on update
           git cherry-pick 27232680a75f5c96bae1f39dc085b7e59b882815  # incusd/patches: Fix incorrect error check in permission patch
+          git cherry-pick 3b1f39835d871c72d3679eff5c89b57422d78d3b  # incusd/instance/qemu: Fix macOS agent
+          git cherry-pick de220f6483700cc02b8c4455f920b9fe9ecd68ef  # incusd/instance/qemu: Properly parse dashed disk names when detaching
+          git cherry-pick 63bf93505a0ce39f70959427efde98489e920907  # incusd/api: Refresh OIDC on changes to oidc.scopes
+          git cherry-pick d782c59f509a660f7eb941fd75df314f2dd8ea9f  # incusd: Allow some remote internal API interactions
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
