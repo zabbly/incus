@@ -57,7 +57,7 @@ jobs:
 
       # External dependencies
       COWSQL_TAG: "v1.15.9"
-      CRIU_TAG: "v4.1.1"
+      CRIU_TAG: "v4.2"
       EDK2_TAG: "edk2-stable202508.01"
       GOLANG_TAG: "go1.25.4"
       LEGO_TAG: "v4.28.1"
