@@ -332,6 +332,8 @@ jobs:
           git cherry-pick de220f6483700cc02b8c4455f920b9fe9ecd68ef  # incusd/instance/qemu: Properly parse dashed disk names when detaching
           git cherry-pick 63bf93505a0ce39f70959427efde98489e920907  # incusd/api: Refresh OIDC on changes to oidc.scopes
           git cherry-pick d782c59f509a660f7eb941fd75df314f2dd8ea9f  # incusd: Allow some remote internal API interactions
+          git cherry-pick cf62a5e0dbe07f8abbc8cf0643aa89a3458c1f1e  # incusd/daemon: Setup /var/lib/incus/devices as a tmpfs
+          git cherry-pick d0532b60a24cd7a3163c99d239fa5fb51f5475f7  # incusd/daemon: Remove nodev check now that we control that path
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
