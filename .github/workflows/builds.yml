@@ -334,6 +334,9 @@ jobs:
           git cherry-pick d782c59f509a660f7eb941fd75df314f2dd8ea9f  # incusd: Allow some remote internal API interactions
           git cherry-pick cf62a5e0dbe07f8abbc8cf0643aa89a3458c1f1e  # incusd/daemon: Setup /var/lib/incus/devices as a tmpfs
           git cherry-pick d0532b60a24cd7a3163c99d239fa5fb51f5475f7  # incusd/daemon: Remove nodev check now that we control that path
+          git cherry-pick 69387b236ef768e22fecdfe814e372d7f4fd5f38  # internal/linux: Add IoctlBlkZname
+          git cherry-pick 3a26837acde2f2b8d0612b55780feab5a28ee098  # incusd/storage/zfs: Rework zvol resolution logic
+          git cherry-pick c18cbc2aa8a5faac8cf95e365851534599ed0733  # incusd/storage/linstor: Parse URLs ourselves
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
