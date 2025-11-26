@@ -1,0 +1,47 @@
+From 4490e59a60304705ac8efce0a6c4db2e28ad62d6 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 26 Nov 2025 00:14:00 -0500
+Subject: [PATCH] Switch back to old boot menu behavior
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+---
+ ArmVirtPkg/ArmVirtQemu.dsc | 4 +---
+ OvmfPkg/OvmfPkgX64.dsc     | 4 ++--
+ 2 files changed, 3 insertions(+), 5 deletions(-)
+
+diff --git a/ArmVirtPkg/ArmVirtQemu.dsc b/ArmVirtPkg/ArmVirtQemu.dsc
+index 4d4521e341..e8f7a7fcb6 100644
+--- a/ArmVirtPkg/ArmVirtQemu.dsc
++++ b/ArmVirtPkg/ArmVirtQemu.dsc
+@@ -212,9 +212,7 @@
+   gUefiOvmfPkgTokenSpaceGuid.PcdDeviceTreeInitialBaseAddress|0x40000000
+ 
+   gEfiMdeModulePkgTokenSpaceGuid.PcdResetOnMemoryTypeInformationChange|FALSE
+-
+-  # Point to the MdeModulePkg/Application/BootManagerMenuApp/BootManagerMenuApp.inf
+-  gEfiMdeModulePkgTokenSpaceGuid.PcdBootManagerMenuFile|{ 0xdc, 0x5b, 0xc2, 0xee, 0xf2, 0x67, 0x95, 0x4d, 0xb1, 0xd5, 0xf8, 0x1b, 0x20, 0x39, 0xd1, 0x1d }
++  gEfiMdeModulePkgTokenSpaceGuid.PcdBootManagerMenuFile|{ 0x21, 0xaa, 0x2c, 0x46, 0x14, 0x76, 0x03, 0x45, 0x83, 0x6e, 0x8a, 0xb6, 0xf4, 0x66, 0x23, 0x31 }
+ 
+   #
+   # The maximum physical I/O addressability of the processor, set with
+diff --git a/OvmfPkg/OvmfPkgX64.dsc b/OvmfPkg/OvmfPkgX64.dsc
+index 9180e88645..1cb48efc60 100644
+--- a/OvmfPkg/OvmfPkgX64.dsc
++++ b/OvmfPkg/OvmfPkgX64.dsc
+@@ -676,8 +676,8 @@
+   gUefiCpuPkgTokenSpaceGuid.PcdCpuSmmStackSize|0x4000
+ !endif
+ 
+-  # Point to the MdeModulePkg/Application/BootManagerMenuApp/BootManagerMenuApp.inf
+-  gEfiMdeModulePkgTokenSpaceGuid.PcdBootManagerMenuFile|{ 0xdc, 0x5b, 0xc2, 0xee, 0xf2, 0x67, 0x95, 0x4d, 0xb1, 0xd5, 0xf8, 0x1b, 0x20, 0x39, 0xd1, 0x1d }
++  # Point to the MdeModulePkg/Application/UiApp/UiApp.inf
++  gEfiMdeModulePkgTokenSpaceGuid.PcdBootManagerMenuFile|{ 0x21, 0xaa, 0x2c, 0x46, 0x14, 0x76, 0x03, 0x45, 0x83, 0x6e, 0x8a, 0xb6, 0xf4, 0x66, 0x23, 0x31 }
+   #
+   # INIT is now triggered before BIOS by ucode/hardware. In the OVMF
+   # environment, QEMU lacks a simulation for the INIT process.
+-- 
+2.47.3
+
