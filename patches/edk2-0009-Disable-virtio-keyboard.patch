@@ -1,0 +1,58 @@
+From 058ecff0acdcc487e4d037db546ba412d7533d1e Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Thu, 27 Nov 2025 02:34:31 -0500
+Subject: [PATCH] Disable virtio-keyboard
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+For some reason this actually breaks in Incus VMs which use
+virtio-keyboard-pci as it prevents the capture of the hotkey during
+boot.
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+---
+ ArmVirtPkg/ArmVirtQemu.dsc | 1 -
+ OvmfPkg/OvmfPkgX64.dsc     | 1 -
+ OvmfPkg/OvmfPkgX64.fdf     | 1 -
+ 3 files changed, 3 deletions(-)
+
+diff --git a/ArmVirtPkg/ArmVirtQemu.dsc b/ArmVirtPkg/ArmVirtQemu.dsc
+index 4d4521e341..b8a4928132 100644
+--- a/ArmVirtPkg/ArmVirtQemu.dsc
++++ b/ArmVirtPkg/ArmVirtQemu.dsc
+@@ -491,7 +491,6 @@
+     <PcdsFixedAtBuild>
+       gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|0
+   }
+-  OvmfPkg/VirtioKeyboardDxe/VirtioKeyboard.inf
+ 
+   #
+   # FAT filesystem + GPT/MBR partitioning + UDF filesystem + virtio-fs
+diff --git a/OvmfPkg/OvmfPkgX64.dsc b/OvmfPkg/OvmfPkgX64.dsc
+index 9180e88645..0a33871c3e 100644
+--- a/OvmfPkg/OvmfPkgX64.dsc
++++ b/OvmfPkg/OvmfPkgX64.dsc
+@@ -942,7 +942,6 @@
+   OvmfPkg/VirtioBlkDxe/VirtioBlk.inf
+   OvmfPkg/VirtioScsiDxe/VirtioScsi.inf
+   OvmfPkg/VirtioSerialDxe/VirtioSerial.inf
+-  OvmfPkg/VirtioKeyboardDxe/VirtioKeyboard.inf
+   MdeModulePkg/Universal/WatchdogTimerDxe/WatchdogTimer.inf
+   MdeModulePkg/Universal/MonotonicCounterRuntimeDxe/MonotonicCounterRuntimeDxe.inf
+   MdeModulePkg/Universal/CapsuleRuntimeDxe/CapsuleRuntimeDxe.inf
+diff --git a/OvmfPkg/OvmfPkgX64.fdf b/OvmfPkg/OvmfPkgX64.fdf
+index a9af6e4fa3..4f8c33d298 100644
+--- a/OvmfPkg/OvmfPkgX64.fdf
++++ b/OvmfPkg/OvmfPkgX64.fdf
+@@ -217,7 +217,6 @@ INF  OvmfPkg/Virtio10Dxe/Virtio10.inf
+ INF  OvmfPkg/VirtioBlkDxe/VirtioBlk.inf
+ INF  OvmfPkg/VirtioScsiDxe/VirtioScsi.inf
+ INF  OvmfPkg/VirtioSerialDxe/VirtioSerial.inf
+-INF  OvmfPkg/VirtioKeyboardDxe/VirtioKeyboard.inf
+ 
+ !if $(SECURE_BOOT_ENABLE) == TRUE
+   INF  SecurityPkg/VariableAuthenticated/SecureBootConfigDxe/SecureBootConfigDxe.inf
+-- 
+2.47.3
+
