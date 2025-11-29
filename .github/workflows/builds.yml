@@ -48,7 +48,7 @@ jobs:
 
       # Linux Containers projects
       DISTROBUILDER_TAG: "distrobuilder-3.2"
-      INCUS_TAG: "v6.18.0"
+      INCUS_TAG: "v6.19.0"
       INCUS_UI_CANONICAL_TAG: "incus-0.18.3"
       LXCFS_TAG: "v6.0.5"
       LXC_TAG: "v6.0.5"
@@ -308,35 +308,6 @@ jobs:
           REPO="${PWD}"
 
           cd /build/incus
-
-          git cherry-pick bdc0122e9ab489f18362eb09ac9aecaf45c925c7  # incusd/network/ovn: Tweak port removal logic
-          git cherry-pick d3655af47bc5c9de2103d9f413e855d404f2de3d  # incusd/instance/qemu: Disable virtio-snd on Windows
-          git cherry-pick 7bc4a855f45da999556ecdc7919d1faadfceeb11  # incusd/instance/qmp: Remove double line break
-          git cherry-pick 88c2cbb05049dd43e435aafdb39632301ff15dc6  # incusd/instance/qmp: Don't log serial port changes
-          git cherry-pick 72f338b94564ea9049df6569ae5e349ce308be19  # incusd/device/disk: Skip VirtioFS Posix ACLs on Windows
-          git cherry-pick e8e97906fa4f65ef4b424fef0063aadb205a3d94  # incusd/lifecycle: Fix project prefix in volume name
-          git cherry-pick 5ca55ac3ac7f0f58217707d17b94a0e43010ab85  # incusd/cluster: Use server name instead of IP
-          git cherry-pick 0b88deda2fdc8044bb071bf236e5acd08a5d564d  # cmd/generate-database/db: Fix create/update with composite keys
-          git cherry-pick 982ad95923ae3a4439e80485c9ea2a0b49005a83  # incusd/storage_volumes: Better handle bad patterns
-          git cherry-pick 1fbe4bffb9748cc3b07aaf5db310d463c1e827d0  # incusd/apparmor/lxc: Don't bother with sys/proc protections when nesting enabled
-          git cherry-pick 38742467fc5442e7ea82cc076975e3b4262b1d6f  # incusd/acme: Handle HTTPS proxies
-          git cherry-pick ad9fc087908bf7955bb42b8a0323a71a57815486  # incusd: Fix lifecycle events being emited on pending entities
-          git cherry-pick f02931f0570bd5bc2776dc874545d883d1f007cc  # incusd/network: Fix vlan/parent modification on physical uplink
-          git cherry-pick 6c41923f05f52f43fd9c464af649779846f9cb0b  # incusd/storage: Fix sparse writer performance
-          git cherry-pick fd867bd05871be8518c02fa763561400a3c2d450  # incus-migrate: Write in 4MB chunks
-          git cherry-pick e86e1d0ad04782dd71226f481e0989685df64305  # incus-migrate: Strict error checking
-          git cherry-pick b0c6c0bac42c6ac27d536984cc043a6ec02b9e7c  # incusd/storage: Tighten storage pool volume permissions
-          git cherry-pick 3abdc12cf6a8dce391d28d340a32c137125357dd  # incusd/patches: Re-apply storage permissions on update
-          git cherry-pick 27232680a75f5c96bae1f39dc085b7e59b882815  # incusd/patches: Fix incorrect error check in permission patch
-          git cherry-pick 3b1f39835d871c72d3679eff5c89b57422d78d3b  # incusd/instance/qemu: Fix macOS agent
-          git cherry-pick de220f6483700cc02b8c4455f920b9fe9ecd68ef  # incusd/instance/qemu: Properly parse dashed disk names when detaching
-          git cherry-pick 63bf93505a0ce39f70959427efde98489e920907  # incusd/api: Refresh OIDC on changes to oidc.scopes
-          git cherry-pick d782c59f509a660f7eb941fd75df314f2dd8ea9f  # incusd: Allow some remote internal API interactions
-          git cherry-pick cf62a5e0dbe07f8abbc8cf0643aa89a3458c1f1e  # incusd/daemon: Setup /var/lib/incus/devices as a tmpfs
-          git cherry-pick d0532b60a24cd7a3163c99d239fa5fb51f5475f7  # incusd/daemon: Remove nodev check now that we control that path
-          git cherry-pick 69387b236ef768e22fecdfe814e372d7f4fd5f38  # internal/linux: Add IoctlBlkZname
-          git cherry-pick 3a26837acde2f2b8d0612b55780feab5a28ee098  # incusd/storage/zfs: Rework zvol resolution logic
-          git cherry-pick c18cbc2aa8a5faac8cf95e365851534599ed0733  # incusd/storage/linstor: Parse URLs ourselves
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
