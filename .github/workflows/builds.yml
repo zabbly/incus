@@ -309,6 +309,16 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick e6d865e0fcb14ad144550dd0ec8c4dcada4b41f1  # agent-loader/install-linux.sh Fix SELinux issue with agent run path
+          git cherry-pick 1efe37d4dd38a1c81af9f6e674af145b567dc824  # incusd/device/nic: Fix link to instances-limit-units
+          git cherry-pick c36d1199cfee9ecdca9a935893c1ab2a8df3b9f7  # doc: fix instances-limit-units reference links
+          git cherry-pick 73749572d7af2f2ec390636e66996d67e134202a  # Added default environment variables for the Windows agent.
+          git cherry-pick 81d74eedb1da62f7ad4ee0fd3f57980c4acfb10d  # instance/drivers/driver_common: Fix cat order bug in selinuxContext()
+          git cherry-pick 20f383dbb7bad06f93d3af665f7f591bf05bb808  # incusd/instance/lxc: Generate a stable MAC for managed physical bridged networks
+          git cherry-pick 7d017f58c16c00e33cd0b7a85f8cb4cca7f99493  # Added new Windows environment variable 'SystemDrive'
+          git cherry-pick a30f46bd3a12ae456062ade31682260f6c055edf  # incus/create: Allow reading Ephemeral flag from stdin
+          git cherry-pick f822e318be4d3e03087a8bee65d80fe9bc769a19  # incusd/device/nic_physical: Fix VLAN for VMs
+
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" github.com/lxc/incus/v6/cmd/incus-benchmark
