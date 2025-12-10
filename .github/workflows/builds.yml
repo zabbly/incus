@@ -318,6 +318,9 @@ jobs:
           git cherry-pick 7d017f58c16c00e33cd0b7a85f8cb4cca7f99493  # Added new Windows environment variable 'SystemDrive'
           git cherry-pick a30f46bd3a12ae456062ade31682260f6c055edf  # incus/create: Allow reading Ephemeral flag from stdin
           git cherry-pick f822e318be4d3e03087a8bee65d80fe9bc769a19  # incusd/device/nic_physical: Fix VLAN for VMs
+          git cherry-pick bbe92113452030faed2b2acd789be97dd00a8772  # incusd/network/bridge: Don't listen for incoming RAs
+          git cherry-pick 0a9ec27a3d99d9756e5a5fd497a18563ae56f46f  # incusd/network/zone: Allow trailing dot in NS records
+          git cherry-pick 4c8e616c634d77e6062c261ecc60cd0b853c108e  # incusd/device/physical: Allow live-migration of bridged physical NICs
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
