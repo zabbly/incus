@@ -623,13 +623,6 @@ jobs:
             -C "$(cat ${REPO}/zabbly-sb.oem.crt)" \
             -o "/opt/incus/share/qemu/OVMF_VARS.4MB.ms.fd"
 
-      - name: Systemd units
-        run: |
-          cp systemd/*.service systemd/*.socket /opt/incus/lib/systemd/system/
-          cp systemd/incusd /opt/incus/lib/systemd/
-          cp systemd/incus-startup /opt/incus/lib/systemd/
-          cp systemd/incus-user /opt/incus/lib/systemd/
-
       - name: Strip and cleanup binaries
         run: |
           rm -Rf /opt/incus/lib/debug/
@@ -662,16 +655,25 @@ jobs:
           [ "${PKGOS}" = "ubuntu-22.04" ] && CODENAME=jammy
           [ "${PKGOS}" = "ubuntu-24.04" ] && CODENAME=noble
 
-          mkdir -p pkg/ pkg/lib/systemd/ pkg/opt/ pkg/usr/bin/ \
+          mkdir -p \
+            pkg/ \
+            pkg/etc \
+            pkg/lib/sysctl.d/ \
+            pkg/lib/systemd/ \
+            pkg/opt/ \
+            pkg/usr/bin/ \
             pkg/usr/share/bash-completion/completions/ \
             pkg/usr/share/fish/vendor_completions.d/ \
             pkg/usr/share/zsh/vendor-completions/
 
           cp -R debian pkg/debian
-          cp bin/* pkg/usr/bin/
+          cp -R bin/* pkg/usr/bin/
           cp -R /opt/incus pkg/opt/
-          cp -R etc pkg/etc
-          mv pkg/opt/incus/lib/systemd/system pkg/lib/systemd/system
+          cp -R etc/* pkg/etc/
+
+          cp -R systemd/system/* pkg/lib/systemd/system/
+          cp -R systemd/wrappers/* pkg/lib/systemd/
+          cp -R systemd/sysctl.d/* pkg/lib/sysctl.d/
 
           ln -s /opt/incus/share/completions/bash pkg/usr/share/bash-completion/completions/incus
           ln -s /opt/incus/share/completions/fish pkg/usr/share/fish/vendor_completions.d/incus.fish

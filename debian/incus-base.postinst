@@ -59,6 +59,9 @@ if [ "$1" = "configure" ]; then
 
         rm -f "/etc/systemd/system/${unit}"
     done
+
+    # Cleanup old sysctl.d.
+    rm -f /etc/sysctl.d/50-incus.conf
 fi
 
 #DEBHELPER#
