@@ -659,7 +659,7 @@ jobs:
             pkg/ \
             pkg/etc \
             pkg/lib/sysctl.d/ \
-            pkg/lib/systemd/ \
+            pkg/lib/systemd/system/ \
             pkg/opt/ \
             pkg/usr/bin/ \
             pkg/usr/share/bash-completion/completions/ \
