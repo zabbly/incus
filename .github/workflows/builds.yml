@@ -187,7 +187,7 @@ jobs:
             /opt/incus/bin/ \
             /opt/incus/include/ \
             /opt/incus/lib/ \
-            /opt/incus/lib/systemd/system/ \
+            /opt/incus/lib/systemd \
             /opt/incus/share/
 
       - name: Get the code
@@ -681,10 +681,10 @@ jobs:
           mkdir -p \
             pkg/ \
             pkg/etc \
-            pkg/lib/sysctl.d/ \
             pkg/lib/systemd/system/ \
             pkg/opt/ \
             pkg/usr/bin/ \
+            pkg/usr/lib/sysctl.d/ \
             pkg/usr/share/bash-completion/completions/ \
             pkg/usr/share/fish/vendor_completions.d/ \
             pkg/usr/share/zsh/vendor-completions/
@@ -695,8 +695,8 @@ jobs:
           cp -R etc/* pkg/etc/
 
           cp -R systemd/system/* pkg/lib/systemd/system/
-          cp -R systemd/wrappers/* pkg/lib/systemd/
-          cp -R systemd/sysctl.d/* pkg/lib/sysctl.d/
+          cp -R systemd/wrappers/* pkg/opt/incus/lib/systemd/
+          cp -R systemd/sysctl.d/* pkg/usr/lib/sysctl.d/
 
           ln -s /opt/incus/share/completions/bash pkg/usr/share/bash-completion/completions/incus
           ln -s /opt/incus/share/completions/fish pkg/usr/share/fish/vendor_completions.d/incus.fish
