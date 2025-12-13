@@ -321,6 +321,9 @@ jobs:
           git cherry-pick bbe92113452030faed2b2acd789be97dd00a8772  # incusd/network/bridge: Don't listen for incoming RAs
           git cherry-pick 0a9ec27a3d99d9756e5a5fd497a18563ae56f46f  # incusd/network/zone: Allow trailing dot in NS records
           git cherry-pick 4c8e616c634d77e6062c261ecc60cd0b853c108e  # incusd/device/physical: Allow live-migration of bridged physical NICs
+          git cherry-pick 4ee6f041c7396e808ee6b63a29c73d5c05d5775c  # incusd/instance/qemu: Don't attempt agent connections on frozen VMs
+          git cherry-pick 6a2d1d5944eec249dc13861fa2f2ec5447608583  # incusd/instance/qemu: Rework state reporting
+          git cherry-pick dd99b7c6bd851a7242248b64655ec1e03f594303  # incusd/operations: Return a copy of the metadata to avoid concurrent access
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
