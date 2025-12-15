@@ -75,6 +75,7 @@ Suggests:
   btrfs-progs,
   ceph-common,
   lvm2,
+  xfsprogs,
   zfsutils-linux | openzfs-zfsutils
 Pre-Depends: ${misc:Pre-Depends}
 Breaks: incus (<< ${source:Version}), incus-tools
