@@ -323,6 +323,11 @@ jobs:
           git cherry-pick 4c8e616c634d77e6062c261ecc60cd0b853c108e  # incusd/device/physical: Allow live-migration of bridged physical NICs
           git cherry-pick 4ee6f041c7396e808ee6b63a29c73d5c05d5775c  # incusd/instance/qemu: Don't attempt agent connections on frozen VMs
           git cherry-pick dd99b7c6bd851a7242248b64655ec1e03f594303  # incusd/operations: Return a copy of the metadata to avoid concurrent access
+          git cherry-pick 6a2d1d5944eec249dc13861fa2f2ec5447608583  # incusd/instance/qemu: Rework state reporting
+          git cherry-pick 2d6faab20bc4a38586a27fb9b26c5c2eb1763036  # incusd/instance/qemu: Fix regression in reported state
+          git cherry-pick f0c4438e702be76536d136e2574df7f355f9bc66  # incus/io: #2636 fix linter complaints in `internal/io`
+          git cherry-pick 4bda52a72631c2b2adc5c8ea6a65a5bd671abe4a  # incusd/storage_volumes: Fix state handling in getVolumeFull
+          git cherry-pick 045bee77df6455cfd5a237e9a4e04313ddb8c0d7  # internal/jmap: Refactor Map methods and add comprehensive tests
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
