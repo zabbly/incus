@@ -309,6 +309,9 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick 0b0311794c2750b50e9a0aa598143f547ee5653e  # doc/openfga: Improve required config keys
+          git cherry-pick eafa7db765970d7f09c20474781efed3c63f5446  # incusd/network/ovn: Drop now obsolete DNS check
+
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" github.com/lxc/incus/v6/cmd/incus-benchmark
