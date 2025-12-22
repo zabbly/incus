@@ -305,6 +305,7 @@ jobs:
           git cherry-pick c5359c809836c0f3b1e6022bf0528bb90ce06ad7  # incusd/storage: Tighten storage pool volume permissions
           git cherry-pick 57096066959c843e1c413c4a97f64077b95cb397  # incusd/patches: Re-apply storage permissions on update
           git cherry-pick f3dc9c0e6b77bb8765b347564702e026c2a8f9c6  # incusd/patches: Fix incorrect error check in permission patch
+          git cherry-pick d6a1ea3912938dae740cf821cd070e66e7a623ff  # incusd/apparmor/lxc: Don't bother with sys/proc protections when nesting enabled
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
