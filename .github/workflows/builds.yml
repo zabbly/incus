@@ -612,6 +612,7 @@ jobs:
           cp /build/qemu/pc-bios/vgabios-qxl.bin /opt/incus/share/qemu/
           cp /build/qemu/pc-bios/vgabios-virtio.bin /opt/incus/share/qemu/
           cp /build/qemu/pc-bios/efi-virtio.rom /opt/incus/share/qemu/
+          cp /build/qemu/pc-bios/efi-vmxnet3.rom /opt/incus/share/qemu/
 
       - name: Build Secure Boot firmware
         run: |
