@@ -308,6 +308,7 @@ jobs:
           git cherry-pick d6a1ea3912938dae740cf821cd070e66e7a623ff  # incusd/apparmor/lxc: Don't bother with sys/proc protections when nesting enabled
           git cherry-pick d6f0a77dd26df4c1ced80ffa63848279fd4330cc  # internal/instance: Prevent line breaks in environment variables
           git cherry-pick 92ac6ac999a4928cfdb92c485a048e4d51f471d0  # incusd/instance/lxc: Restrict path of template files and targets
+          git cherry-pick f8da60633e493bb5c0521981fa031bc909988c95  # doc: Fix build failure
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
