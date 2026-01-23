@@ -48,7 +48,7 @@ jobs:
 
       # Linux Containers projects
       DISTROBUILDER_TAG: "distrobuilder-3.2"
-      INCUS_TAG: "v6.20.0"
+      INCUS_TAG: "v6.21.0"
       INCUS_UI_CANONICAL_TAG: "incus-0.19.1"
       LXCFS_TAG: "v6.0.5"
       LXC_TAG: "v6.0.5"
@@ -308,23 +308,6 @@ jobs:
           REPO="${PWD}"
 
           cd /build/incus
-
-          git cherry-pick 0b0311794c2750b50e9a0aa598143f547ee5653e  # doc/openfga: Improve required config keys
-          git cherry-pick eafa7db765970d7f09c20474781efed3c63f5446  # incusd/network/ovn: Drop now obsolete DNS check
-          git cherry-pick 539860ce96195859ffc5d477a701c4d7ce967669  # incusd/storage/truenas: fix SetVolumeQuota issue when growing FS volumes
-          git cherry-pick eb0b2f5d9b35ecf90d09d63854e80ea8602744a7  # cmd/incus-user: Don't reset setup if user has access
-          git cherry-pick f95e2af5b76c91caa20c2ecef85df9ff6074d70e  # incusd/network/physical: Allow parent re-use for bridges
-          git cherry-pick 969f32300002fd980992e3b62bedf398bdf7dbe6  # incusd/network/physical: Allow vlan.tagged
-          git cherry-pick b72643a540172fdb69b97b82dd60740ac06ad890  # incusd/device: Add vlan.tagged to physical NICs
-          git cherry-pick add134c50d1ab69af063f8c0af4178129f09d51e  # incusd/device/nic_physical: Fix internal bridge handling
-          git cherry-pick 110a5235313c8b415d12aa2d72ece95e70bd574f  # doc/network_ovn: Add note about advanced external_interfaces syntax
-          git cherry-pick 58e7df140e1af36dc6d30abc8578b05889be813b  # incusd/instance/drivers: Add size parameter to UpdateBlockSize method
-          git cherry-pick 06309e0d5fdbc265d7e9a226f773c25d624f654d  # incusd/storage/drivers: Export roundAbove function
-          git cherry-pick 62b535b9c03f9b21c625bd56369a235fa528afbd  # incusd/storage/drivers: Add Qcow2Resize and export isQcow2Block function
-          git cherry-pick ef90f5de6a14ca4ac4eb4e8a3d2929128d84d2e4  # incusd/storage: Add support for resizing qcow2 volumes
-          git cherry-pick 27870526d1cb69d50b443c8b89187d9a16a30ea7  # Added a few more environment variables. PATHEXT and COMPUTERNAME were needed for 'shutdown.exe'. Meanwhile, I've connected as SYSTEM with PsExec to show the environment variables by default and added them.
-          git cherry-pick bef2fc76a6f9c070cc07e068c7dd3a205884e3d1  # incusd/instance/drivers: Fix adding disk with a device name longer than 31 bytes
-          git cherry-pick fe9c020eea99b05ed3eee2a5c50ed124e15df14a  # incusd/instance/drivers: Add tests for hashName
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
