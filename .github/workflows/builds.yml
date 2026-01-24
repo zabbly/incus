@@ -309,6 +309,11 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick 1c0455c2ca201ec282b504c28096f50cb13a071b  # incusd/device/nic: Fix connected logic for non-NIC QEMU devices
+          git cherry-pick c829eba4b7eec64d3d4f8fdc3d20433b40bb5c8c  # doc: Update config
+          git cherry-pick 945a885af9d3f88c905ad5c5b7af9f1232b69433  # incusd/instance/qmp: Prevent setting link up at initialization
+          git cherry-pick ee2fc45f2d9300e58d9fb5b378a7f2531034cceb  # incusd/instance/qemu: Properly initialize connected status
+
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" github.com/lxc/incus/v6/cmd/incus-benchmark
