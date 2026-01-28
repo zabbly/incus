@@ -33,11 +33,13 @@ override_dh_install:
 	# Handle incus-extra
 	rm debian/incus-base/usr/bin/distrobuilder
 	rm debian/incus-base/usr/bin/fuidshift
+	rm debian/incus-base/usr/bin/incus-benchmark
 	rm debian/incus-base/usr/bin/incus-migrate
 	rm debian/incus-base/usr/bin/incus-simplestreams
 	rm debian/incus-base/usr/bin/lxc-to-incus
 	rm debian/incus-base/opt/incus/bin/distrobuilder
 	rm debian/incus-base/opt/incus/bin/fuidshift
+	rm debian/incus-base/opt/incus/bin/incus-benchmark
 	rm debian/incus-base/opt/incus/bin/incus-migrate
 	rm debian/incus-base/opt/incus/bin/incus-simplestreams
 	rm debian/incus-base/opt/incus/bin/lxc-to-incus
