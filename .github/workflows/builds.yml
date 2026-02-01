@@ -672,10 +672,7 @@ jobs:
           ln -s /opt/incus/share/completions/fish pkg/usr/share/fish/vendor_completions.d/incus.fish
           ln -s /opt/incus/share/completions/zsh pkg/usr/share/zsh/vendor-completions/_incus
 
-          ln -s /opt/incus/bin/lxd-to-incus pkg/usr/bin/lxd-to-incus
-
           ln -s /opt/incus/bin/fuidshift pkg/usr/bin/fuidshift
-          ln -s /opt/incus/bin/incus-migrate pkg/usr/bin/incus-migrate
           ln -s /opt/incus/bin/incus-simplestreams pkg/usr/bin/incus-simplestreams
           ln -s /opt/incus/bin/incus-benchmark pkg/usr/bin/incus-benchmark
 
