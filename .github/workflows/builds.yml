@@ -57,7 +57,7 @@ jobs:
       COWSQL_TAG: "v1.15.9"
       CRIU_TAG: "v4.2"
       EDK2_TAG: "edk2-stable202511"
-      GOLANG_TAG: "go1.25.6"
+      GOLANG_TAG: "go1.25.7"
       LEGO_TAG: "v4.31.0"
       LIBTPMS_TAG: "v0.10.2"
       LIBURING_TAG: "liburing-2.13"
