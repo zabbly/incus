@@ -344,6 +344,8 @@ jobs:
           git cherry-pick ebd805b9f29d8715a3b0975c6a57fa00d56fb37d  # doc/cloud-init: Fix bad link
           git cherry-pick 71588565dbd30a79dab6b511c381e4c5732c4ce0  # incusd: Search OVS switch external_interfaces
           git cherry-pick 337985bfd83f5908894160fc321ccf8d1b7087c0  # doc/backup: Fix MarkdownLint warnings
+          git cherry-pick df76956b950424d43a5bdd95bf9a96a195a7bbda  # incusd/storage_volumes_snapshot: Treat pongo templates as unique
+          git cherry-pick cc9b34b188af8e45cc874a2707ccd8bd4cb8bf95  # incusd/instance/drivers: Propagate error when adding qcow2 backing block device
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
