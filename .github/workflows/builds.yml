@@ -332,6 +332,11 @@ jobs:
           git cherry-pick b2a41e7b9f0883dff992c4d91193648f977c266e  # incusd/cluster: Restrict join token to database servers
           git cherry-pick b234ba988cff3ee1b94347c224a2c37fb2dc1e74  # incusd/storage/lvm: Prevent use of lvmcluster with loop files
           git cherry-pick bb6e2b09ebbeb61c84354c1515b3de8f92edc295  # incusd/operations: Prevent concurrent access to metadata
+          git cherry-pick 5c9b30069d1ddb91ebcb5a0f1f14940e531e6067  # incusd/storage: Add support for renaming qcow2 volumes
+          git cherry-pick 336ec10ad1038c8efc8fad7f755cadda502b1e02  # incusd/storage/drivers: Load NBD module for lvmcluster
+          git cherry-pick e2e098d6f2ae95538b2da212f193fd098b361331  # incusd/instance/drivers: Pass information about whether migration is live
+          git cherry-pick 1dde134919cb77115e04e2767aa0009f0558160c  # incusd/storage: Add support for qcow2 volume migration
+          git cherry-pick b3b3d1c27cad8a16b8307b6c384ec0854b82943b  # incusd/storage: Add snapshot mount paths parameter to the task function
           git cherry-pick c8938372104e34f5b2c2bc438d05765793d1a251  # incusd/device/nic_riov: Retry MAC setting logic
           git cherry-pick 290594583613db81f9b789e044cab2bbcc5dc98c  # doc/howto/instances: Mention keeping agent drive attached
           git cherry-pick da03a4bf41b5ea10921b1889b9c547d7a8926802  # incusd/instances/agent-loader: Silence semanage
@@ -340,6 +345,18 @@ jobs:
           git cherry-pick 71588565dbd30a79dab6b511c381e4c5732c4ce0  # incusd: Search OVS switch external_interfaces
           git cherry-pick 337985bfd83f5908894160fc321ccf8d1b7087c0  # doc/backup: Fix MarkdownLint warnings
           git cherry-pick df76956b950424d43a5bdd95bf9a96a195a7bbda  # incusd/storage_volumes_snapshot: Treat pongo templates as unique
+          git cherry-pick cc9b34b188af8e45cc874a2707ccd8bd4cb8bf95  # incusd/instance/drivers: Propagate error when adding qcow2 backing block device
+          git cherry-pick dd0740be1678b1f128726e4eeca1e6652c6eb203  # incusd/instance/qemu: gofumpt
+          git cherry-pick 4410362bfa7adbd5e5dd9e8c0191f1d32188db08  # incusd/device/disk: Add IsSpecialDisk
+          git cherry-pick 5980894f36a28af14507475816fe4bfa2ada007b  # incusd/instance/lxc: Skip metrics on special disks
+          git cherry-pick a5e48412a31e3fe9eb54c91f5f0313352c49ea40  # incusd/storage: Prevent moving shared storage volumes
+          git cherry-pick 3496d3eb36fe0c96722535dc7de5eb31bdf2f797  # doc: Update incus-migrate documentation
+          git cherry-pick 83edce68d51e89428417a2536f3ae92af01350f3  # incusd: Validate that instance can be migrated
+          git cherry-pick 87d4380fd85ef6dd1201f8b69fef59ba5327654d  # incusd/instance/drivers: Add writable argument to NBDBlockExportAdd
+          git cherry-pick 76fb4423ee9a217d0f680d184f18dd2fa131a197  # incusd/instance/drivers/qmp: Add NBDUnixServerStart
+          git cherry-pick 356889a52e3aa72bf8a8b21613b4b49d06f6c7ec  # incusd/instance: Add ExportQcow2Disk
+          git cherry-pick d28d49e020e179ca69dd92cab5ffda774014c6fb  # incusd/storage: Support live migration of qcow2 volumes
+          git cherry-pick 2ca7d816411f37304684543d1f2b4f64655dfd26  # doc: Add information about lvmcluster limitation
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
