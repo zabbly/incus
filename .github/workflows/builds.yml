@@ -646,7 +646,6 @@ jobs:
           rm /opt/incus/bin/qemu-bridge-helper
           rm /opt/incus/bin/qemu-edid
           rm /opt/incus/bin/qemu-io
-          rm /opt/incus/bin/qemu-nbd
           rm /opt/incus/bin/qemu-pr-helper
           rm /opt/incus/bin/qemu-storage-daemon
           rm /opt/incus/bin/swtpm_*
