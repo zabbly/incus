@@ -51,7 +51,7 @@ jobs:
       # Linux Containers projects
       DISTROBUILDER_TAG: "distrobuilder-3.2"
       INCUS_TAG: "main"
-      INCUS_UI_CANONICAL_TAG: "incus-0.19.3"
+      INCUS_UI_CANONICAL_TAG: "incus-0.19.4"
       LXCFS_TAG: "v6.0.5"
       LXC_TAG: "v6.0.5"
 
@@ -67,10 +67,10 @@ jobs:
       MINIO_TAG: "RELEASE.2025-10-15T17-29-55Z"
       NASM_TAG: "nasm-2.16.03"
       NVIDIA_CONTAINER_TAG: "v1.18.2"
-      QEMU_TAG: "v10.2.0"
+      QEMU_TAG: "v10.2.1"
       RAFT_TAG: "v0.22.1"
       SEABIOS_TAG: "rel-1.17.0"
-      SKOPEO_TAG: "v1.21.0"
+      SKOPEO_TAG: "v1.22.0"
       SWTPM_TAG: "v0.10.1"
       TRUENAS_INCUS_CTL_TAG: "v0.7.3"
       VIRTIOFSD_TAG: "v1.13.3"
