@@ -502,6 +502,8 @@ jobs:
           patch -p1 < "${REPO}/patches/edk2-0008-Disable-virtio-keyboard.patch"
           patch -p1 < "${REPO}/patches/edk2-0009-disable-UEFI-shell-under-SecureBoot.patch"
 
+          sed -i "s#02/02/2022#$(date +%m/%d/%Y)#g" OvmfPkg/SmbiosPlatformDxe/SmbiosPlatformDxe.c
+
           EDK2_ARCH="X64"
           EDK2_PKG="OvmfPkg/OvmfPkgX64.dsc"
           EDK2_FV_CODE="OVMF_CODE"
