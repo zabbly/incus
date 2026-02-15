@@ -344,6 +344,7 @@ jobs:
           git cherry-pick ebd805b9f29d8715a3b0975c6a57fa00d56fb37d  # doc/cloud-init: Fix bad link
           git cherry-pick 71588565dbd30a79dab6b511c381e4c5732c4ce0  # incusd: Search OVS switch external_interfaces
           git cherry-pick 337985bfd83f5908894160fc321ccf8d1b7087c0  # doc/backup: Fix MarkdownLint warnings
+
           git cherry-pick df76956b950424d43a5bdd95bf9a96a195a7bbda  # incusd/storage_volumes_snapshot: Treat pongo templates as unique
           git cherry-pick cc9b34b188af8e45cc874a2707ccd8bd4cb8bf95  # incusd/instance/drivers: Propagate error when adding qcow2 backing block device
           git cherry-pick dd0740be1678b1f128726e4eeca1e6652c6eb203  # incusd/instance/qemu: gofumpt
@@ -356,7 +357,27 @@ jobs:
           git cherry-pick 76fb4423ee9a217d0f680d184f18dd2fa131a197  # incusd/instance/drivers/qmp: Add NBDUnixServerStart
           git cherry-pick 356889a52e3aa72bf8a8b21613b4b49d06f6c7ec  # incusd/instance: Add ExportQcow2Disk
           git cherry-pick d28d49e020e179ca69dd92cab5ffda774014c6fb  # incusd/storage: Support live migration of qcow2 volumes
-          git cherry-pick 2ca7d816411f37304684543d1f2b4f64655dfd26  # doc: Add information about lvmcluster limitation
+          git cherry-pick 2ca7d816411f37304684543d1f2b4f64655dfd26  # doc: Add information about lvmcluster limitations
+          git cherry-pick 01f1702e9fffdb8b1ad0cd53aa98e9342da6951a  # incusd/instance: Add QCOW2 live migration support for instances with snapshots
+          git cherry-pick 63a91a126dc960e9e08d26895b94e3ebed08488c  # incusd/storage: Add QCOW2 live migration support for instances with snapshots
+          git cherry-pick 0065387fb1a5291177374033a0c8c72c5863d671  # incusd: Remove ensureMigratable as checks are no longer valid
+          git cherry-pick 27ab629c3532dfa86b8771b801ee3138e1fac2a4  # doc: Remove outdated doc about live QCOW2 migration limitation
+          git cherry-pick aaa1b2bea1a1f653194605b78d1caab00e31b0b4  # incusd/instance/drivers: Propagate live migration information
+          git cherry-pick e43dd3ce26dd4ce101ba297fc09f7196e3c99ee9  # incusd/storage: Skip final filesystem sync for VMs during migration
+          git cherry-pick 2da034d1c768b53312a742cd4189923aad3655e3  # doc/requirements: Bump minimal requirements
+          git cherry-pick af8f62bf9964e2791b47fc3d4f08d6eb974d4703  # Validate requested storage pool during instance migration
+          git cherry-pick 8d63da8aae8e7f3d899328630a86142655e6005f  # incusd/instance/qemu: Rename onDisconnectEvent to initialized
+          git cherry-pick bff2bf92a42c2230d0044571eaef3b5867941234  # incusd/instance/qemu: Add EventVMReset
+          git cherry-pick f2264d9f8db6799804e575ded3840e51bdd86c91  # incusd/instance/qemu: Use standard QEMU actions and catch in handler
+          git cherry-pick 4bf7943a92b8670e005e5f0c3013f98c9d2599a8  # internal/instance: Add volatile.vm.needs_reset
+          git cherry-pick fecec8cbb8fbaa58cd9ca70b310206635da75662  # incusd/instance/qemu: Implement fast reboot
+          git cherry-pick 478d3c63bc04f2cdac32729d38d3fe5d9c59a54d  # doc: Update config
+          git cherry-pick 75f50c23fbef65a547c93cd58536b0f9bc87866f  # incusd/instance/qmp: Fix cross-server live-migration
+          git cherry-pick 56e15e45c49ef74ba2703bc73a58cad370d5fc95  # incusd/instance/qemu: Report QEMU error on VM restore
+          git cherry-pick 156800b1135fa54a62dd23b2d5bc3d4f8a00be3d  # incus-migrate: Fix URL detection
+          git cherry-pick 46f90806d7992e8a22e1c418eab82e8a58601f8c  # incusd/instance/drivers: Remove instance volume on revert after failed live migration
+          git cherry-pick 69d4b28ac27199c67b303d64b61308183fbd0236  # incusd/instance/drivers: Propagate target migration failure to source using context cancellation
+          git cherry-pick acf27c1ed354b96cf3e89abbf5d603f82a9649ab  # incusd/storage: Prevent concurrent QCOW2 snapshot deletions
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
