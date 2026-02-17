@@ -379,6 +379,7 @@ jobs:
           git cherry-pick acf27c1ed354b96cf3e89abbf5d603f82a9649ab  # incusd/storage: Prevent concurrent QCOW2 snapshot deletions
           git cherry-pick b52b3d8cb9083fe975cc363a80593800161a7619  # incusd/instance/qemu: Require full restart after eject
           git cherry-pick 1f8a4309d005d07f134efe0144858ae84db14903  # incusd/storage: Prevent concurrent snapshot deletions
+          git cherry-pick 7df3e454d83c707a10fc16019a50e9dd135ae9e2  # incusd/instance/qemu: Force a real reboot after applying templates
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
