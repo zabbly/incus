@@ -49,7 +49,7 @@ jobs:
       # Linux Containers projects
       DISTROBUILDER_TAG: "distrobuilder-3.2"
       INCUS_TAG: "v6.21.0"
-      INCUS_UI_CANONICAL_TAG: "incus-0.19.5"
+      INCUS_UI_CANONICAL_TAG: "incus-0.19.6"
       LXCFS_TAG: "v6.0.5"
       LXC_TAG: "v6.0.5"
 
@@ -380,6 +380,9 @@ jobs:
           git cherry-pick b52b3d8cb9083fe975cc363a80593800161a7619  # incusd/instance/qemu: Require full restart after eject
           git cherry-pick 1f8a4309d005d07f134efe0144858ae84db14903  # incusd/storage: Prevent concurrent snapshot deletions
           git cherry-pick 7df3e454d83c707a10fc16019a50e9dd135ae9e2  # incusd/instance/qemu: Force a real reboot after applying templates
+          git cherry-pick 2414cdaa3478137f5e071d4f78013eb41e835e1e  # incusd/storage/ceph: Use the standard error for unsupported disk usage
+          git cherry-pick a6f6e60fdd2dd29c282c6197ce76124d34ffa49d  # incusd/instance/qmp: Fix gofumpt
+          git cherry-pick c4a608a97846f31bdc705056c4b1eae98e3dadb8  # incusd/storage/qcow2: Wait for qemu-nbd to be ready
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
