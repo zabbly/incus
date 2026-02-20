@@ -383,6 +383,13 @@ jobs:
           git cherry-pick 2414cdaa3478137f5e071d4f78013eb41e835e1e  # incusd/storage/ceph: Use the standard error for unsupported disk usage
           git cherry-pick a6f6e60fdd2dd29c282c6197ce76124d34ffa49d  # incusd/instance/qmp: Fix gofumpt
           git cherry-pick c4a608a97846f31bdc705056c4b1eae98e3dadb8  # incusd/storage/qcow2: Wait for qemu-nbd to be ready
+          git cherry-pick 6687bbcadad745d2b0a26b6f44e7f7f9aaef6991  # incusd/instance/drivers: Fix backing block device ordering when fetching from QEMU
+          git cherry-pick e14f947a95e8ccde9f714564317bb711398c59d3  # internal/server/instance/drivers: Get vsock client for Windows
+          git cherry-pick 14e2b692d3e7689850af9c3f2e3f2265a6ec323f  # cmd/incus-agent: Add serial communication for Windows
+          git cherry-pick 496bbf98bc717fa18f77ba963882059072d6c926  # incusd/storage/drivers: Delete mount paths when deleting snapshots
+          git cherry-pick 945b5a4e80f5c50017c119110057e5d3383ff187  # cmd/incus-agent: Only use TCP agent for macOS
+          git cherry-pick e2393796a7964c86a513ad5158c1bdc6d7ba7205  # cmd/incus-agent: Use vsock for Windows agent
+          git cherry-pick 9c14b11fcaecaf85ddb4434ecaa57621631c108b  # Use vsock fork
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
