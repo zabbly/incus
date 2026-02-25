@@ -396,6 +396,14 @@ jobs:
           git cherry-pick 2f71c4e555a1dafd6e0bd8ff618f6c355da40687  # incusd/instance/qmp: Add MemoryConfiguration
           git cherry-pick a8e88e5f9906d9c19b20801e4113ef3c52566454  # incusd/instance/qemu: Improve error message on memory hotplug
           git cherry-pick 24e0a95d2643dc4555a9377d4de08451a7778ab3  # doc/instance: Cover CPU and memory hotplug limits
+          git cherry-pick 4ed9e204065bd99bef1e8904edff848f021108f3  # incusd/storage/drivers: Allow creation of qcow2 custom volumes
+          git cherry-pick 754b359010a019b1e6262f47751cf1b3d313ca48  # incusd/instance/drivers: Support detaching qcow2 custom volumes
+          git cherry-pick 3c47b7a2469211b2675f262b47fada55b7c4146b  # incusd/storage: Add snapshot management for qcow2 custom volumes
+          git cherry-pick 5203fdc5de6c08be61b9ced060292c701aec1bd2  # incusd/device: Pass backing path information for disk devices
+          git cherry-pick 09b258db143066fcdd55d880c473de56fc0a71ae  # incusd/storage: Block custom volume snapshot create/delete when attached to an instance
+          git cherry-pick 554d1191dc3f42c92d55868fe2b6054af9d599ed  # incusd/cluster: Implement evacuating and restoring states
+          git cherry-pick c2e46ec9f2aaa439f5fe17785a16da2f84492d7a  # incusd/device/nic_ovn: Fix nested NIC state
+          git cherry-pick d9e857863e0b2f243ebf7acabab0fa6880053c19  # incusd/storage/linstor: Propagate error when volume filler fails
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
