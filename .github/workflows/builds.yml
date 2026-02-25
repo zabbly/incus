@@ -52,7 +52,7 @@ jobs:
       DISTROBUILDER_TAG: "distrobuilder-3.2"
       INCUS_TAG: "main"
       INCUS_UI_CANONICAL_TAG: "incus-0.19.7"
-      LXCFS_TAG: "v6.0.5"
+      LXCFS_TAG: "v6.0.6"
       LXC_TAG: "v6.0.5"
 
       # External dependencies
