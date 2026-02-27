@@ -49,9 +49,9 @@ jobs:
       # Linux Containers projects
       DISTROBUILDER_TAG: "distrobuilder-3.2"
       INCUS_TAG: "v6.21.0"
-      INCUS_UI_CANONICAL_TAG: "incus-0.19.7"
+      INCUS_UI_CANONICAL_TAG: "incus-0.19.8"
       LXCFS_TAG: "v6.0.6"
-      LXC_TAG: "v6.0.5"
+      LXC_TAG: "v6.0.6"
 
       # External dependencies
       COWSQL_TAG: "v1.15.9"
