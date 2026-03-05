@@ -451,7 +451,7 @@ jobs:
           patch -p1 < "${REPO}/patches/edk2-0006-disable-EFI-memory-attributes-protocol.patch"
           patch -p1 < "${REPO}/patches/edk2-0007-OvmfPkg-X64-add-opt-org-tianocore-UninstallMemAttrProtocol-support.patch"
           patch -p1 < "${REPO}/patches/edk2-0008-Disable-virtio-keyboard.patch"
-          patch -p1 < "${REPO}/patches/edk2-0009-disable-UEFI-shell-under-SecureBoot.patch"
+          patch -p1 < "${REPO}/patches/edk2-9999-disable-UEFI-shell-under-SecureBoot.patch"
 
           sed -i "s#02/02/2022#$(date +%m/%d/%Y)#g" OvmfPkg/SmbiosPlatformDxe/SmbiosPlatformDxe.c
 
