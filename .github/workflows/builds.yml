@@ -309,6 +309,23 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick dfd6776eb9767d297a16b396df657ec4b395c59f  # incusd/instance: Allow custom volume snapshot create/delete when attached to running instance
+          git cherry-pick 0bdd30275b8078a4694581d66a68d1b0cccc80b3  # incusd/server: Allow custom volume snapshot create/delete when attached to running instance
+          git cherry-pick 51e416c7efc765cb5364863fa251a67d8d95894f  # shared/cliconfig: Add lock to prevent panic
+          git cherry-pick f9b3047734eb84f02ed74544c86ab27a9e47bb3d  # incusd/endpoints/starttls: Report correct ServerName
+          git cherry-pick 02a5da3bd7799f332f7e4f2620afa0e0b8c77f0e  # cmd/generate-database: fix linter complaints - #2636
+          git cherry-pick 71439fa3e30a668c1062b55b89b72223a65338b1  # internal/server/firewall: fix linter complaints - #2636
+          git cherry-pick 69fb80406e9ced79be000ed3c5b3d158c6aa3792  # internal/server/sys: fix linter complaints - #2636
+          git cherry-pick 0624971f72a57439c08762bf69c15902e04937b6  # internal/server/project: fix linter complaints - #2636
+          git cherry-pick cfc2412555b143026b02d32aeba668b66703e2c3  # internal/server/util: fix linter complaints - #2636
+          git cherry-pick 51f3816a5479041b79d5118712ee65a6d16d4744  # incusd/instance/lxc: Add /usr/bin/init to OCI PID1 list
+          git cherry-pick 784341787a9778ec8e234befab68cc47c107d75f  # internal/server/seccomp: fix linter complaints - #2636
+          git cherry-pick 868d95842d6522b8fe6a23cfb19201a64659130f  # internal/server/migration: fix linter complaints - #2636
+          git cherry-pick 675ed1d3aa62a2a8e708ae8bf3d934d5b3ef66a8  # internal/server/task: fix linter complaints - #2636
+          git cherry-pick c1caca2a0f29eab60535c3cd820e7590b8552403  # shared/api: Add InstanceDebugRepairPost
+          git cherry-pick f4b175e432791c4d3c5fb4c9d6957a7d0072e6d4  # incusd/storage: Implement ActivateTask
+          git cherry-pick 2544af0f4dedfc1def952bd95488ab6a5ef93ca9  # incusd/instance/debug: Implement instance repair API
+
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" github.com/lxc/incus/v6/cmd/incus-benchmark
