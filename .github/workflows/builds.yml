@@ -325,6 +325,14 @@ jobs:
           git cherry-pick c1caca2a0f29eab60535c3cd820e7590b8552403  # shared/api: Add InstanceDebugRepairPost
           git cherry-pick f4b175e432791c4d3c5fb4c9d6957a7d0072e6d4  # incusd/storage: Implement ActivateTask
           git cherry-pick 2544af0f4dedfc1def952bd95488ab6a5ef93ca9  # incusd/instance/debug: Implement instance repair API
+          git cherry-pick 10145de283c19f552f9cd719bcb427e7fefbfc21  # incusd/operations: Fix missing Unlock
+          git cherry-pick 8f4fc5c3e764950a1a9e14a7275c03deb73811b0  # incusd: Fix typo
+          git cherry-pick 9888ec0412a44790162e88beea62fdc4669989fd  # incusd/metrics: Increase node-exporter timeout to 5s
+          git cherry-pick a9afe06dd277e0078ee21ebb9aa834cdf9ec196e  # incusd/instance_logs: Prevent bad values for exec-output
+          git cherry-pick 96b27eece616d88e4e5fe0c02d605b328235a595  # incus-migrate: Restrict OVA unpack path
+          git cherry-pick 5b8cb2e8ed5be50fb348a0629c34ac48ca93dc47  # incus/network_allocation: Fix project handling
+          git cherry-pick d56540062b5ed7592f5c4277eb2f7688e20ed5b0  # incusd/network_allocations: Use canAccessNetwork
+          git cherry-pick 15ca92d879c87967ea29d66a70b1117cb5e0a928  # incusd/instance/qemu: Relax SEV check
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
