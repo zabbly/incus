@@ -330,7 +330,6 @@ jobs:
           git cherry-pick 9888ec0412a44790162e88beea62fdc4669989fd  # incusd/metrics: Increase node-exporter timeout to 5s
           git cherry-pick a9afe06dd277e0078ee21ebb9aa834cdf9ec196e  # incusd/instance_logs: Prevent bad values for exec-output
           git cherry-pick 96b27eece616d88e4e5fe0c02d605b328235a595  # incus-migrate: Restrict OVA unpack path
-          git cherry-pick 5b8cb2e8ed5be50fb348a0629c34ac48ca93dc47  # incus/network_allocation: Fix project handling
           git cherry-pick d56540062b5ed7592f5c4277eb2f7688e20ed5b0  # incusd/network_allocations: Use canAccessNetwork
           git cherry-pick 15ca92d879c87967ea29d66a70b1117cb5e0a928  # incusd/instance/qemu: Relax SEV check
 
