@@ -332,6 +332,17 @@ jobs:
           git cherry-pick 96b27eece616d88e4e5fe0c02d605b328235a595  # incus-migrate: Restrict OVA unpack path
           git cherry-pick d56540062b5ed7592f5c4277eb2f7688e20ed5b0  # incusd/network_allocations: Use canAccessNetwork
           git cherry-pick 15ca92d879c87967ea29d66a70b1117cb5e0a928  # incusd/instance/qemu: Relax SEV check
+          git cherry-pick aef1d651b76a09e058d18d8f76cb62f42e0f3616  # incus: Fix import shadowing
+          git cherry-pick 11c181acc16912b0af496cea5633e0afc685ed5d  # incusd/storage_volumes: Use switch statement
+          git cherry-pick b70a01c7f378b0967fde7e4c88c448781cea9eb4  # incusd/network/common: Use FPrintf instead of WriteString
+          git cherry-pick d95c0f66abce2cb070942fedb46ea89416a7e8eb  # incusd/device/nic_physical: Drop support for connected key
+          git cherry-pick 466c8fe825499ec9847919152a1c5c026dc2dca1  # incusd/backup: Make extra sure backup.yaml is consistent on disk
+          git cherry-pick 094b598814703508b279dbaec32cc6d636c47c52  # incusd/instance/lxc: Stop any forkfile instances prior to migration
+          git cherry-pick 16c62a0a51cbdfad00afbdeff5b52b7071440e1e  # incusd/storage/zfs: Freeze ZFS instances when using block_mode
+          git cherry-pick 995853ef4a1d3d3141c32b3f10656cc559de0514  # incusd/storage/zfs: Don't create temporary snapshot for inactive volumes
+          git cherry-pick 3b62e861167f640615fb773a1b4e0213fe5c1675  # incusd/storage/zfs: Don't unmap a mounted snapshot
+          git cherry-pick b5ca1c523053ed2c2f93b08208908112b9ad9676  # incusd/storage: Don't allow loop pools on IncusOS
+          git cherry-pick 4a5dd51189bb63dfdb79206ba488929440e84e94  # cmd/incus: fix log in sftpRecursiveMkdir
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
