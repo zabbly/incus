@@ -48,7 +48,7 @@ jobs:
 
       # Linux Containers projects
       DISTROBUILDER_TAG: "distrobuilder-3.2"
-      INCUS_TAG: "v6.0.5"
+      INCUS_TAG: "v6.0.6"
       INCUS_UI_CANONICAL_TAG: "incus-0.19.1"
       LXCFS_TAG: "v6.0.5"
       LXC_TAG: "v6.0.5"
@@ -301,14 +301,6 @@ jobs:
           REPO="${PWD}"
 
           cd /build/incus
-
-          git cherry-pick c5359c809836c0f3b1e6022bf0528bb90ce06ad7  # incusd/storage: Tighten storage pool volume permissions
-          git cherry-pick 57096066959c843e1c413c4a97f64077b95cb397  # incusd/patches: Re-apply storage permissions on update
-          git cherry-pick f3dc9c0e6b77bb8765b347564702e026c2a8f9c6  # incusd/patches: Fix incorrect error check in permission patch
-          git cherry-pick d6a1ea3912938dae740cf821cd070e66e7a623ff  # incusd/apparmor/lxc: Don't bother with sys/proc protections when nesting enabled
-          git cherry-pick d6f0a77dd26df4c1ced80ffa63848279fd4330cc  # internal/instance: Prevent line breaks in environment variables
-          git cherry-pick 92ac6ac999a4928cfdb92c485a048e4d51f471d0  # incusd/instance/lxc: Restrict path of template files and targets
-          git cherry-pick f8da60633e493bb5c0521981fa031bc909988c95  # doc: Fix build failure
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
