@@ -343,6 +343,9 @@ jobs:
           git cherry-pick 3b62e861167f640615fb773a1b4e0213fe5c1675  # incusd/storage/zfs: Don't unmap a mounted snapshot
           git cherry-pick b5ca1c523053ed2c2f93b08208908112b9ad9676  # incusd/storage: Don't allow loop pools on IncusOS
           git cherry-pick 4a5dd51189bb63dfdb79206ba488929440e84e94  # cmd/incus: fix log in sftpRecursiveMkdir
+          git cherry-pick 469aab7d208663a86fc943b5ae1c0295e05e1026  # incusd/daemon: Allow internal and os API during startup
+          git cherry-pick 5a6a4104a218e45d775916a28673434e852eef33  # incusd/storage/drivers: Disallow  for qcow2 custom block volumes
+          git cherry-pick e9937f8cac7d8b4e24bd5c546f822b604bb77e18  # doc: Document  restriction for qcow2 custom block volumes
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
