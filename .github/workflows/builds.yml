@@ -302,6 +302,27 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick 22250ad42e2c1262e1e1039d00539ffe61cf1b42  # shared/ws: Remove CheckOrigin bypass
+          git cherry-pick fe13edab36e587d5ed282257dcb073fe96a94248  # incusd/s3: Use standard TLS config on S3 API calls
+          git cherry-pick d43fcb2ed6f8be89b569f5c0856561ad79e7ba4c  # incusd/auth/oidc: Tighten cookie policy
+          git cherry-pick 7dfb2e4ee85c3f8139914421195783907d190313  # incus-agent: Tighten HTTP listener configuration
+          git cherry-pick 9e9eb1602d2c19fb56fbd2bfc00a0071a868fda1  # incusd: Tighten HTTP listener configuration
+          git cherry-pick 0fc965cff8db656b6c28ad708f0bf70f4f0edeff  # incusd/certificates: Prevent any type change
+          git cherry-pick 83c26c3a3a040d53944d578b506886efd886c877  # tests: Confirm certificate type can't be changed
+          git cherry-pick f29c08287e560aefa7d75b08acadc99216f91e3b  # incus-migrate: Fix OVA handling within os.Root
+          git cherry-pick 6cfe935553734098f8a02f43874734823b4f10e3  # client: Make ImageFileRequest require a ReadWriteSeeker
+          git cherry-pick 7a24680dbd032d01278246d97af68dd19de8e6ea  # incus: Update for changes to incus.ImageFileRequest
+          git cherry-pick c12b987962fcf10de1601a5a0b131439f11ac416  # incusd: Update for changes to incus.ImageFileRequest
+          git cherry-pick 68a298199238e390106b36680848da973f1d8462  # client/simplestreams: Validate the full image hash
+          git cherry-pick a2f9bf3ee3b79a4924a27b9e10fbb214dc17f5c6  # incusd/instance_console: Prevent symlink attacks
+          git cherry-pick cd438b07ae421091ba66329bc311b226c6cf2460  # incusd/storage/s3: Don't assume backup structure
+          git cherry-pick e3fba84027f50d82b33b5221de3cd30e41aefdbc  # incusd/instance: Use restricted pongo2 parser
+          git cherry-pick 5ba367a8aaa007bdc93d850c12dd20c56525355d  # incus/remote: Actually validate the token code in `incus webui`
+          git cherry-pick 208b5de23423ecfaf2b99b2846d8028fc471c10b  # doc/authentication: Clarify the type of incus.allowed_subnets
+          git cherry-pick e61846207b9145b63846f11560086bfc458515bc  # incusd/auth/oidc: Cleanup and tighten subnet claim handling
+          git cherry-pick 15a53447740d17ca54d39ad4232fc5c2b2a1f968  # incusd/instances_post: Add extra validation during backup import
+          git cherry-pick d0f2c86fcb4a7d38343807c83ea3541bb4661e1e  # incusd/instance/lxc: Confine credentials write to credentials directory
+
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" github.com/lxc/incus/v6/cmd/incus-benchmark
