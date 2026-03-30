@@ -584,7 +584,12 @@ jobs:
 
       - name: Build TrueNAS Incus CTL
         run: |
+          REPO="${PWD}"
+
           cd /build/truenas_incus_ctl
+
+          patch -p1 < "${REPO}/patches/truenas-0001-bump-timeouts.patch"
+
           go build -o "/opt/incus/bin/truenas_incus_ctl" truenas/truenas_incus_ctl
 
       - name: Build QEMU
