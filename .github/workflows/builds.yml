@@ -309,6 +309,31 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick 12dda5c91a8257a4f8ffb347751d64e60d332636  # shared/cliconfig: Shorten path to using keepalive proxy
+          git cherry-pick ff17bc7c7862b8a669a8771e381bebab3ef289e7  # shared/cliconfig: Implement TLS cert/key/ca caching
+          git cherry-pick 5068001c23a0bfa2cfa66a9d2ccb064d49d8d847  # shared/cliconfig: Add support for encrypted TLS keys to keepalive proxy
+          git cherry-pick c9c054f6d5bad5d9c4c43f0df79822a069e279e1  # client: Optionally skip blocking for OIDC authentication
+          git cherry-pick 7144a9f7ffe9fdfeb80e524fddb4ce78ebbed8f4  # incus/version: Gracefully fail when server unreachable
+          git cherry-pick ad80c08869115e774484a1d1db864b612d183878  # incusd/instance/agent-loader: Use Linux arch names
+          git cherry-pick c95f5ba529fd57eada628d7ee10299f5f5200b86  # incusd: Fix bad type in format strings
+          git cherry-pick e0ade0dfc5cfd20abd9c7a99fd3e0618b8bc3a90  # incusd/storage: Delete dependent volumes on instance deletion
+          git cherry-pick 42653279acb5652b391273508a13648c0bb4d667  # tests: Test dependent volume deletion on instance deletion
+          git cherry-pick 0c0fd0e32929d9877bf647892128b91f27a6e5b8  # internal/incusos: Allow non-GET requests
+          git cherry-pick 312ba9f57187ad7ebc3837ba0b8c9f3cd34c8813  # internal/incusos: Implement TriggerSystemUpdateCheck
+          git cherry-pick 3d4a75f7c9e314d4ebd2fe468d6eafb5e10b4747  # incusd: Trigger IncusOS update check on version mismatch
+          git cherry-pick 33fa8fe83bed5188d4b28a2d29ee6946e703a560  # incusd/response: Make pipeResponse flush headers ASAP
+          git cherry-pick 2f3b0f04c6d712a78f5a542e9799873a215ba894  # incusd: Disallow setting the 'dependent' key on volume creation
+          git cherry-pick ff71fe4423bf1386a205d083154d9e3f9d4802e1  # incusd/device: Update 'dependent' flag on device add and detach
+          git cherry-pick f7f600b2d20ee649fca3e7643e6cf7afa232b3a2  # tests: Add additional tests for dependent volume handling
+          git cherry-pick 71b33fb57be320dd1ab4c957749699a408485015  # incusd/instance/common: Don't perform costly storage actions when no snapshots
+          git cherry-pick 77d89e32eb21e8fc77f933409e4c5b105f78f6bc  # incusd: Remove explicit caching mechanism in favor of implicit
+          git cherry-pick 5d05e18a870fcdcaf6f33576afe37216d5214133  # incusd/storage/zfs: Implement better caching
+          git cherry-pick ac805fc4a0c2a09c7b21532172212fa4feb06804  # incusd/storage/truenas: Implement better caching
+          git cherry-pick 568bca413fd60873682bd4c7f220ef7cff2e7568  # incusd/instances: Allow more concurency
+          git cherry-pick 8c8733af634ccbb3c021650ad26662130c1e38a2  # incusd/storage/truenas: Retry iSCSI map request
+          git cherry-pick c37b9bf7ccbd63e5d4658eb6cd9f92fdc2955161  # shared/cliconfig: Avoid treating `=` as part of a remote name
+          git cherry-pick 17e857533e03fcd5bb270efd5a9e5a33f8aa5ea6  # incusd/network/state: Use canAccessNetwork
+
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" github.com/lxc/incus/v6/cmd/incus-benchmark
