@@ -1,0 +1,190 @@
+diff --git a/cmd/config.go b/cmd/config.go
+index cd3c97b..0985dfa 100644
+--- a/cmd/config.go
++++ b/cmd/config.go
+@@ -615,7 +615,7 @@ func loginToHost(cmd *cobra.Command, api core.Session, args []string) error {
+ 			},
+ 		}
+ 
+-		res, err := client.Call("api_key.create", 30, params)
++		res, err := client.Call("api_key.create", defaultCallTimeout, params)
+ 		if err != nil {
+ 			client.Close()
+ 			return fmt.Errorf("Failed to create API key: %v", err)
+diff --git a/cmd/dataset.go b/cmd/dataset.go
+index 3788ddb..3c1744c 100644
+--- a/cmd/dataset.go
++++ b/cmd/dataset.go
+@@ -339,7 +339,7 @@ func createOrUpdateDataset(cmd *cobra.Command, api core.Session, args []string)
+ 
+ 	if len(listToUpdate) > 0 {
+ 		objRemap := map[string][]interface{}{"": core.ToAnyArray(listToUpdate)}
+-		out, _, err := MaybeBulkApiCall(api, "pool.dataset.update", 10, []interface{}{outMap}, objRemap, false)
++		out, _, err := MaybeBulkApiCall(api, "pool.dataset.update", defaultCallTimeout, []interface{}{outMap}, objRemap, false)
+ 		if err != nil {
+ 			return err
+ 		}
+@@ -354,7 +354,7 @@ func createOrUpdateDataset(cmd *cobra.Command, api core.Session, args []string)
+ 		}
+ 
+ 		objRemap := map[string][]interface{}{"name": core.ToAnyArray(listToCreate)}
+-		out, _, err := MaybeBulkApiCall(api, "pool.dataset.create", 10, []interface{}{outMap}, objRemap, false)
++		out, _, err := MaybeBulkApiCall(api, "pool.dataset.create", defaultCallTimeout, []interface{}{outMap}, objRemap, false)
+ 		if err != nil {
+ 			return err
+ 		}
+@@ -460,7 +460,7 @@ func promoteDataset(cmd *cobra.Command, api core.Session, args []string) error {
+ 
+ 	params := []interface{}{args[0]}
+ 	objRemap := map[string][]interface{}{"": core.ToAnyArray(args)}
+-	out, _, err := MaybeBulkApiCall(api, "pool.dataset.promote", 10, params, objRemap, false)
++	out, _, err := MaybeBulkApiCall(api, "pool.dataset.promote", defaultCallTimeout, params, objRemap, false)
+ 	if err != nil {
+ 		return err
+ 	}
+diff --git a/cmd/nfs.go b/cmd/nfs.go
+index c8ebf23..1a21250 100644
+--- a/cmd/nfs.go
++++ b/cmd/nfs.go
+@@ -134,7 +134,7 @@ func createNfs(cmd *cobra.Command, api core.Session, args []string) error {
+ 	cmd.SilenceUsage = true
+ 
+ 	objRemap := map[string][]interface{}{"path": core.ToAnyArray(paths)}
+-	out, _, err := MaybeBulkApiCall(api, "sharing.nfs.create", 10, params, objRemap, false)
++	out, _, err := MaybeBulkApiCall(api, "sharing.nfs.create", defaultCallTimeout, params, objRemap, false)
+ 	if err != nil {
+ 		return err
+ 	}
+@@ -232,7 +232,7 @@ func updateNfs(cmd *cobra.Command, api core.Session, args []string) error {
+ 
+ 	if len(listToUpdate) > 0 {
+ 		objRemap := map[string][]interface{}{"": core.ToAnyArray(listToUpdate)}
+-		out, _, err := MaybeBulkApiCall(api, "sharing.nfs.update", 10, params, objRemap, false)
++		out, _, err := MaybeBulkApiCall(api, "sharing.nfs.update", defaultCallTimeout, params, objRemap, false)
+ 		if err != nil {
+ 			return err
+ 		}
+@@ -243,7 +243,7 @@ func updateNfs(cmd *cobra.Command, api core.Session, args []string) error {
+ 
+ 	if len(listToCreate) > 0 {
+ 		objRemap := map[string][]interface{}{"path": core.ToAnyArray(listToCreate)}
+-		out, _, err := MaybeBulkApiCall(api, "sharing.nfs.create", 10, params, objRemap, false)
++		out, _, err := MaybeBulkApiCall(api, "sharing.nfs.create", defaultCallTimeout, params, objRemap, false)
+ 		if err != nil {
+ 			return err
+ 		}
+@@ -296,7 +296,7 @@ func deleteNfs(cmd *cobra.Command, api core.Session, args []string) error {
+ 		DebugJson(params)
+ 
+ 		objRemap := map[string][]interface{}{"": core.ToAnyArray(idListInts)}
+-		_, _, err := MaybeBulkApiCall(api, "sharing.nfs.delete", 10, params, objRemap, false)
++		_, _, err := MaybeBulkApiCall(api, "sharing.nfs.delete", defaultCallTimeout, params, objRemap, false)
+ 		return err
+ 	}
+ 
+@@ -338,7 +338,7 @@ func deleteNfs(cmd *cobra.Command, api core.Session, args []string) error {
+ 
+ 	params := []interface{}{responseIdList[0]}
+ 	objRemap := map[string][]interface{}{"": responseIdList}
+-	out, _, err := MaybeBulkApiCall(api, "sharing.nfs.delete", 10, params, objRemap, false)
++	out, _, err := MaybeBulkApiCall(api, "sharing.nfs.delete", defaultCallTimeout, params, objRemap, false)
+ 	if err != nil {
+ 		return err
+ 	}
+diff --git a/cmd/snapshot.go b/cmd/snapshot.go
+index 24fd556..3e3de9c 100644
+--- a/cmd/snapshot.go
++++ b/cmd/snapshot.go
+@@ -171,11 +171,11 @@ func createSnapshot(cmd *cobra.Command, api core.Session, args []string) error {
+ 		delMap := make(map[string]interface{})
+ 		delMap["recursive"] = true
+ 		delObjRemap := map[string][]interface{}{"": core.ToAnyArray(args)}
+-		_, _, _ = MaybeBulkApiCall(api, "zfs.snapshot.delete", 10, []interface{}{args[0], delMap}, delObjRemap, true)
++		_, _, _ = MaybeBulkApiCall(api, "zfs.snapshot.delete", defaultCallTimeout, []interface{}{args[0], delMap}, delObjRemap, true)
+ 	}
+ 
+ 	objRemap := map[string][]interface{}{"dataset": core.ToAnyArray(datasetList), "name": core.ToAnyArray(nameList)}
+-	out, _, err := MaybeBulkApiCall(api, "zfs.snapshot.create", 10, params, objRemap, false)
++	out, _, err := MaybeBulkApiCall(api, "zfs.snapshot.create", defaultCallTimeout, params, objRemap, false)
+ 	if err != nil {
+ 		return err
+ 	}
+@@ -204,7 +204,7 @@ func deleteOrRollbackSnapshot(cmd *cobra.Command, api core.Session, args []strin
+ 	cmd.SilenceUsage = true
+ 
+ 	objRemap := map[string][]interface{}{"": core.ToAnyArray(snapshots)}
+-	out, _, err := MaybeBulkApiCall(api, "zfs.snapshot."+cmdType, 10, params, objRemap, false)
++	out, _, err := MaybeBulkApiCall(api, "zfs.snapshot."+cmdType, defaultCallTimeout, params, objRemap, false)
+ 	if err != nil {
+ 		return err
+ 	}
+diff --git a/cmd/util_common.go b/cmd/util_common.go
+index f16aa90..c2a9f19 100644
+--- a/cmd/util_common.go
++++ b/cmd/util_common.go
+@@ -12,7 +12,7 @@ import (
+ )
+ 
+ // defautCallTimeout should be used when calling API call functions.
+-const defaultCallTimeout = 30
++const defaultCallTimeout = 120
+ 
+ type typeQueryParams struct {
+ 	valueOrder         []string
+diff --git a/cmd/util_testing.go b/cmd/util_testing.go
+index c5354b8..4e67389 100644
+--- a/cmd/util_testing.go
++++ b/cmd/util_testing.go
+@@ -45,7 +45,7 @@ func (s *UnitTestSession) CallRaw(method string, timeoutSeconds int64, params in
+ }
+ 
+ func (s *UnitTestSession) CallAsyncRaw(method string, params interface{}) (int64, error) {
+-	_, err := s.CallRaw(method, 10, params)
++	_, err := s.CallRaw(method, defaultCallTimeout, params)
+ 	return -1, err
+ }
+ 
+diff --git a/core/daemon.go b/core/daemon.go
+index 61e0017..4fc1d86 100644
+--- a/core/daemon.go
++++ b/core/daemon.go
+@@ -22,7 +22,7 @@ import (
+ 
+ const TNC_PREFIX_STRING = "tnc_daemon."
+ const JOB_WAIT_STRING = "core.job_wait"
+-const DEFAULT_CALL_TIMEOUT = "30s" // also see: cmd.defaultCallTimeout
++const DEFAULT_CALL_TIMEOUT = "120s" // also see: cmd.defaultCallTimeout
+ 
+ type TruenasSession struct {
+ 	url             string
+diff --git a/truenas_api/truenas_api.go b/truenas_api/truenas_api.go
+index 95b368a..2aceee7 100644
+--- a/truenas_api/truenas_api.go
++++ b/truenas_api/truenas_api.go
+@@ -126,7 +126,7 @@ func (c *Client) SubscribeToJobs() error {
+ 	params := []interface{}{"core.get_jobs"} // Core function to subscribe to job updates
+ 
+ 	// Make the subscription call via WebSocket
+-	res, err := c.Call("core.subscribe", 10, params)
++	res, err := c.Call("core.subscribe", 30, params)
+ 	if err != nil {
+ 		return err
+ 	}
+@@ -356,7 +356,7 @@ func (c *Client) CallWithJob(method string, params interface{}, callback func(pr
+ 
+ // Ping sends a ping request to the server to check connectivity.
+ func (c *Client) Ping() (string, error) {
+-	res, err := c.Call("core.ping", 10, []interface{}{}) // Empty array as params
++	res, err := c.Call("core.ping", 30, []interface{}{}) // Empty array as params
+ 
+ 	if err != nil {
+ 		return "", err
+@@ -394,7 +394,7 @@ func (c *Client) Login(username, password, apiKey string) error {
+ 	}
+ 
+ 	// Make the login call
+-	res, err := c.Call(method, 10, params)
++	res, err := c.Call(method, 30, params)
+ 	if err != nil {
+ 		return fmt.Errorf("login failed: %w", err)
+ 	}
