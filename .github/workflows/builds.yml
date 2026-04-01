@@ -333,6 +333,20 @@ jobs:
           git cherry-pick 8c8733af634ccbb3c021650ad26662130c1e38a2  # incusd/storage/truenas: Retry iSCSI map request
           git cherry-pick c37b9bf7ccbd63e5d4658eb6cd9f92fdc2955161  # shared/cliconfig: Avoid treating `=` as part of a remote name
           git cherry-pick 17e857533e03fcd5bb270efd5a9e5a33f8aa5ea6  # incusd/network/state: Use canAccessNetwork
+          git cherry-pick dfc98eeaf3745382c0870dd679078e5260eb3d2b  # incusd/storage/truenas: Use old-style ZFS types
+          git cherry-pick ac893aecc34e4dfe429008917925e6d6379c03ed  # incusd/storage/zfs: Use old-style ZFS types
+          git cherry-pick bca9d223dfd373bd7914f739f4d4a7ce83f4909d  # incusd/device: Ignore 'not found' errors when updating dependent config during device add/remove
+          git cherry-pick 8f8fc283537bd356262175581fa3e1a8a4989095  # incusd/storage: Add ShouldMigrateDependentVolume
+          git cherry-pick d2af510ecb1120354e36cbd3b2cf33d63a67b452  # incusd/instance: Add support for disk name to ExportQcow2Block
+          git cherry-pick 372818c855b59a943fa5e67c0ab237f070a7a4af  # incusd/instance/drivers: Add support for cross-cluster dependent volumes migration
+          git cherry-pick c25590ea55115ae7a1cb8f663963919dec4dc1d9  # incusd/storage: Add support for cross-cluster dependent volumes migration
+          git cherry-pick a223c01b8ff6f2c218d76aaabd300888d23c0a3f  # incusd/instance: Add HasDependentDisk and ForEachDependentDiskType to instance interface
+          git cherry-pick 43d86bef5f7e9a9ac60f5f29348e9caac2af3b57  # incusd/storage: use ForEachDependentDiskType and HasDependentDisk from instance
+          git cherry-pick 6573e9bc75eb1488d9799201e31d2e0f32c4c261  # incusd/instance: Pass additional parameter to Delete method
+          git cherry-pick beed5b58807bbc8dbe1035c1061ae94a159b0713  # incusd/storage: Pass additional parameter to Delete method
+          git cherry-pick 95b7619231066934726b89b6557966689caaf542  # incusd/instance: Move dependent volume deletion from storage to instance delete()
+          git cherry-pick a1d3f28c939235d2ed710ab57e46718b6784b91e  # incusd/storage: Move dependent volume deletion from storage to instance delete()
+          git cherry-pick 41589e8368ca953e6da8794cd13e5980d280c06a  # incusd/storage: Fix race in caching logic
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
