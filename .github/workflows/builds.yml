@@ -347,6 +347,9 @@ jobs:
           git cherry-pick 95b7619231066934726b89b6557966689caaf542  # incusd/instance: Move dependent volume deletion from storage to instance delete()
           git cherry-pick a1d3f28c939235d2ed710ab57e46718b6784b91e  # incusd/storage: Move dependent volume deletion from storage to instance delete()
           git cherry-pick 41589e8368ca953e6da8794cd13e5980d280c06a  # incusd/storage: Fix race in caching logic
+          git cherry-pick 913dd148242583fba1f95496c6395d4a55b7796a  # incusd/storage: Fix potential deadlock
+          git cherry-pick d84ed053de7ad8514fa81e84021b32f3a420e574  # incusd/migration: Implement cancelation in migration logic
+          git cherry-pick ea8289d960cde163f46954b6de1a5ad39f859d22  # incusd/instances: Implement cancelation in exec logic
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
