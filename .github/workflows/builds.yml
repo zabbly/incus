@@ -350,6 +350,17 @@ jobs:
           git cherry-pick 913dd148242583fba1f95496c6395d4a55b7796a  # incusd/storage: Fix potential deadlock
           git cherry-pick d84ed053de7ad8514fa81e84021b32f3a420e574  # incusd/migration: Implement cancelation in migration logic
           git cherry-pick ea8289d960cde163f46954b6de1a5ad39f859d22  # incusd/instances: Implement cancelation in exec logic
+          git cherry-pick 9c4945c2b4aefe0c0caa40faf85fd430a36af6b3  # incusd: Clarify shutdown message
+          git cherry-pick 617d880282c5c9e9cbbbeac382288261e2372709  # incusd/instance: Rename deleteDependentVolumes to cleanupDependencies
+          git cherry-pick 40a7bbae08acb39524e3202a8761d5a23a2adb4d  # incus/server/network/ovn/nb: Add function to get PortGroups by Port UUID
+          git cherry-pick 65a56f4e33d39688bf94976168a90d9f3947f4f0  # incus/server/network/ovn/driver: Cleanup stale instance port uuids from acl port groups on instance stop
+          git cherry-pick 07faf5e0bb1f0263fe2d5a614eb6d66ea509eb59  # incusd/storage: Support optimized storage for dependent volumes
+          git cherry-pick 068dce801c500384b95c4d653c7970e5670162ff  # incusd/storage: Improve logging during dependent volume creation from backup
+          git cherry-pick 1ea73e37b86521a17d03f4b336b5536affb00d95  # incusd/storage: Rename createDependentVolumes to createDependentVolumesFromBackup
+          git cherry-pick 58fd96a51c99ace38e2fd6942c349d6f5643f492  # incusd/device: Add cleanupDependencies argument to Remove() method
+          git cherry-pick 68d6be36e5ea32f615c31d3c3899d2251d116b88  # incusd/instance/drivers: Pass the cleanupDependencies flag to device Remove
+          git cherry-pick 672189f1014df0ba7f899afe9faca4ff4da5dc60  # incusd/storage: Improve comments on locks
+          git cherry-pick 2889445b3bbd399e03dffafe90e116b9d2580d13  # incusd/forksyscall: Handle mount arguments when using idmap
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
