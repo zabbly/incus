@@ -335,6 +335,25 @@ jobs:
           git cherry-pick 17e857533e03fcd5bb270efd5a9e5a33f8aa5ea6  # incusd/network/state: Use canAccessNetwork
           git cherry-pick dfc98eeaf3745382c0870dd679078e5260eb3d2b  # incusd/storage/truenas: Use old-style ZFS types
           git cherry-pick ac893aecc34e4dfe429008917925e6d6379c03ed  # incusd/storage/zfs: Use old-style ZFS types
+          git cherry-pick 0fae4ba67c978de1ea4740d1532718d5742f7317  # shared/api: Switch to go-yaml/v4
+          git cherry-pick a74d566c0f0f64d7d87f106421de8712d6133399  # shared/cliconfig: Switch to go-yaml/v4
+          git cherry-pick cda3ac59b76ecdaa9b93c6b9ab301ecd6fc0c59e  # shared/cmd: Switch to go-yaml/v4
+          git cherry-pick 28e767d808d6ff71bab2cbc6bb4fac8cd36174cc  # shared/subprocess: Switch to go-yaml/v4
+          git cherry-pick 9f8574a71a005cf3308c0459d843a691ba20f3a3  # shared/validate: Switch to go-yaml/v4
+          git cherry-pick de27e44be9f986e858d0942606b9703760565fc2  # incusd/instance/drivers: Switch to go-yaml/v4
+          git cherry-pick fa3a8d4ddc93e880712dd86794f4257cd005393d  # incusd/storage: Switch to go-yaml/v4
+          git cherry-pick 39a18a73b30299ca7cfc0ea2486e728bfa0363c0  # incus-agent: Switch to go-yaml/v4
+          git cherry-pick 7a8c6aea461ef67b72307d9eb33671d375a40623  # incus-migrate: Switch to go-yaml/v4
+          git cherry-pick 20a8c5e06a86290a078e8b43df1329ffdf09ad66  # incus-simplestreams: Switch to go-yaml/v4
+          git cherry-pick b73a1fe4c2546ae524810b0b7a10b590aa3ff269  # incusd/backup: Switch to go-yaml/v4
+          git cherry-pick 3d178e135ed83ff767272cdd74c0d8c91c34c3ee  # incusd/storage/drivers: Switch to go-yaml/v4
+          git cherry-pick 0adef7322791db7343eb16dea27572ffb34e5072  # incusd: Switch to go-yaml/v4
+          git cherry-pick 4b69bf2db71a2600b74652197f18d05dbcebdeb9  # incus: Switch to go-yaml/v4
+          git cherry-pick 853f96f9d24bb09b68d3d62a16f5a5c3976796b8  # test: Switch to go-yaml/v4
+          git cherry-pick a996d03ae7cd3ae9b1ac0cac6d717fe5ab1a6fa7  # gomod: Update dependencies
+          git cherry-pick 81044dc52babaedbcea2f0e7b48bd88456d1b474  # incus: Update for new YAML empty reader behavior
+          git cherry-pick 271cd4cf0cee01bce9cee4a51f459923ccd0ca0a  # test: Fix ordering of godeps.list
+          git cherry-pick e69aba01fb747d4b5305dd3766dccb92a477408f  # tests: Update for slight YAML differences
           git cherry-pick bca9d223dfd373bd7914f739f4d4a7ce83f4909d  # incusd/device: Ignore 'not found' errors when updating dependent config during device add/remove
           git cherry-pick 8f8fc283537bd356262175581fa3e1a8a4989095  # incusd/storage: Add ShouldMigrateDependentVolume
           git cherry-pick d2af510ecb1120354e36cbd3b2cf33d63a67b452  # incusd/instance: Add support for disk name to ExportQcow2Block
