@@ -380,6 +380,15 @@ jobs:
           git cherry-pick 68d6be36e5ea32f615c31d3c3899d2251d116b88  # incusd/instance/drivers: Pass the cleanupDependencies flag to device Remove
           git cherry-pick 672189f1014df0ba7f899afe9faca4ff4da5dc60  # incusd/storage: Improve comments on locks
           git cherry-pick 2889445b3bbd399e03dffafe90e116b9d2580d13  # incusd/forksyscall: Handle mount arguments when using idmap
+          git cherry-pick 142e03b80f866b0abc92624855cc9b095b69e467  # incusd/storage: Use device name when importing dependent volumes from backup
+          git cherry-pick b84add734530e4ba6e06ae110d6f7e7e48a79f6a  # tests: Add tests for exporting/importing dependent volumes
+          git cherry-pick 644d69d7f303327c444c55e3244d07a272a87614  # incusd/cluster/config: Clarify description of oidc.claim option
+          git cherry-pick 3777a484e4993e9773b7f9ea82dae6ccb988d888  # doc: Update metadata
+          git cherry-pick 880c84caab6129f99d1c9c9834b40f77ced7618e  # incusd/device/nic_physical: Fix device validation
+          git cherry-pick 39eef97658213c4df17b8fbec6b6bafa92f80037  # doc: Update config
+          git cherry-pick b29ab524b38d2475858792a702a1878b8348e8a3  # incusd/instance: Add support for stateful snapshots for qcow2 volumes
+          git cherry-pick d71c370445b27a474652faf762a435734e259c4a  # incusd/storage: Add support for stateful snapshots for qcow2 volumes
+          git cherry-pick eefd6f880126519339dfe7a9e97c5db10cb1dc63  # incusd: Don't expose the API extension list pre-authentication
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
