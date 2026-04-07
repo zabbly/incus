@@ -391,6 +391,7 @@ jobs:
           git cherry-pick eefd6f880126519339dfe7a9e97c5db10cb1dc63  # incusd: Don't expose the API extension list pre-authentication
           git cherry-pick 2259e714e41eeecb6e2f74ca08464fc2bc79f1da  # incusd/device/nic_physical: Fix bridge handling
           git cherry-pick 974eb2b8a38a7c333229bcde3b178a8569a37f20  # incusd/device/nic_physical: Fix inheritance from network
+          git cherry-pick 7f4c5832053227a8e0df8e5e93ddb2afe0b90f8a  # incusd/device/nic_bridged: Handle physical NICs
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
