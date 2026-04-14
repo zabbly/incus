@@ -393,6 +393,16 @@ jobs:
           git cherry-pick 974eb2b8a38a7c333229bcde3b178a8569a37f20  # incusd/device/nic_physical: Fix inheritance from network
           git cherry-pick 7f4c5832053227a8e0df8e5e93ddb2afe0b90f8a  # incusd/device/nic_bridged: Handle physical NICs
           git cherry-pick a001d5e8dd9e8c5c889114b1992e149c829e0373  # incusd/instance/drivers: Fix live migration of instances with snapshots
+          git cherry-pick 8babda1d90d35a049086f57c4892702c1dc9dbb3  # incus: Enable admin recover and admin sql on all platforms
+          git cherry-pick 89f54836630fbd40367d737178f9f093fe5da1ae  # client: Forward skopeo errors
+          git cherry-pick 17ce1b91c3bc62b05d20be5118fdf6197c1a2b0a  # incusd/storage: Add instanceStateful flag to volume snapshot operations
+          git cherry-pick 13f4389fa3adc939008efe19564426a203ba1403  # incusd/device: Pass instanceStateful flag during instance snapshot
+          git cherry-pick cb0dc427b00553443b3f20d33b4a5d90d9699445  # incusd: Pass instanceStateful flag during instance snapshot
+          git cherry-pick 629047c3f8a91d0f8f3007629d71fbd03cd76fa1  # incusd/apparmor/qemuimg: Expand symlinks
+          git cherry-pick b67d5b8ab726701b781d00363e26880f6f7b92fd  # incus: Fix Windows absolute paths
+          git cherry-pick f8ec5611ab0cad849a94ef1006adf309e57a006c  # incus: Enforce stricter directory checks
+          git cherry-pick aac4f8a206ca3ff142b41c55b2ae97411ee7fd53  # tests: Add strict pull checks for directories
+          git cherry-pick d5bc02c0040c080fc16ab5edd2dfd39eec8921e4  # incusd/instance/qemu: Fix RTC handling on Windows
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
