@@ -315,7 +315,18 @@ jobs:
           git cherry-pick c9c054f6d5bad5d9c4c43f0df79822a069e279e1  # client: Optionally skip blocking for OIDC authentication
           git cherry-pick 7144a9f7ffe9fdfeb80e524fddb4ce78ebbed8f4  # incus/version: Gracefully fail when server unreachable
           git cherry-pick ad80c08869115e774484a1d1db864b612d183878  # incusd/instance/agent-loader: Use Linux arch names
+          git cherry-pick 0ad430455f485d37660fc2d1b3f03335885114d4  # incusd/instance/qmp: Add QuerySpice
+          git cherry-pick 72d84b95163d3be8689f13ded891000588749c41  # incusd/instance/qemu: Add SPICE detection logic
+          git cherry-pick e8797236277969dacb51a58cd1ca8eccd3eedde2  # incusd/instance/qemu: Disable SPICE on systems missing support
+          git cherry-pick 59bcf3c8b8df7a0657309a987e0e02504a0a755a  # incusd/instances/qemu: Rework qemuArchConfig
+          git cherry-pick 182a89bb2826a6d844780f61522432d57b44ff31  # incusd/instance/qmp: Add Query9pDevice
+          git cherry-pick 6b2bbb0148eb037838076ffb3d82f17c853bc69a  # incusd/instance/qemu: Add plan9 detection logic
+          git cherry-pick 1143820ebdcd9ed3e9a7e3ec1b99ab242256919c  # incusd/instance/qemu: Export plan9 drives only when supported
+          git cherry-pick 60cc2aacbbc3f99d8e4525224f582465c3408356  # incusd/instance/qemu: enable SPICE audio via feature gate
           git cherry-pick c95f5ba529fd57eada628d7ee10299f5f5200b86  # incusd: Fix bad type in format strings
+          git cherry-pick f305f8fdd5a3899a1d37ddf6ed4dd72d72affbbf  # incusd/instance/qmp: Add QueryVirtioSoundDevice
+          git cherry-pick 9d5c86f4f122ad80ab4d67bd7ffedd7d380890f8  # incusd/instance/qemu: Add virtio-sound detection logic
+          git cherry-pick 204c0fa52f548015d47f1caac619ee083f8fcb85  # incusd/instance/qemu: Omit audio device on systems without virtio-sound
           git cherry-pick e0ade0dfc5cfd20abd9c7a99fd3e0618b8bc3a90  # incusd/storage: Delete dependent volumes on instance deletion
           git cherry-pick 42653279acb5652b391273508a13648c0bb4d667  # tests: Test dependent volume deletion on instance deletion
           git cherry-pick 0c0fd0e32929d9877bf647892128b91f27a6e5b8  # internal/incusos: Allow non-GET requests
@@ -391,8 +402,10 @@ jobs:
           git cherry-pick eefd6f880126519339dfe7a9e97c5db10cb1dc63  # incusd: Don't expose the API extension list pre-authentication
           git cherry-pick 2259e714e41eeecb6e2f74ca08464fc2bc79f1da  # incusd/device/nic_physical: Fix bridge handling
           git cherry-pick 974eb2b8a38a7c333229bcde3b178a8569a37f20  # incusd/device/nic_physical: Fix inheritance from network
+          git cherry-pick ee5d142bf1a34e4d8f078cea1ff316b2fe720ae9  # incusd/instances/qemu: Skip vmcoreinfo on ppc64le
           git cherry-pick 7f4c5832053227a8e0df8e5e93ddb2afe0b90f8a  # incusd/device/nic_bridged: Handle physical NICs
           git cherry-pick a001d5e8dd9e8c5c889114b1992e149c829e0373  # incusd/instance/drivers: Fix live migration of instances with snapshots
+          git cherry-pick 9d4f3b77065bba94a01a2bcb924db7ce0f9d755d  # incusd/instance/qemu: Scale SCSI queues with CPUs
           git cherry-pick 8babda1d90d35a049086f57c4892702c1dc9dbb3  # incus: Enable admin recover and admin sql on all platforms
           git cherry-pick 89f54836630fbd40367d737178f9f093fe5da1ae  # client: Forward skopeo errors
           git cherry-pick 17ce1b91c3bc62b05d20be5118fdf6197c1a2b0a  # incusd/storage: Add instanceStateful flag to volume snapshot operations
@@ -403,6 +416,29 @@ jobs:
           git cherry-pick f8ec5611ab0cad849a94ef1006adf309e57a006c  # incus: Enforce stricter directory checks
           git cherry-pick aac4f8a206ca3ff142b41c55b2ae97411ee7fd53  # tests: Add strict pull checks for directories
           git cherry-pick d5bc02c0040c080fc16ab5edd2dfd39eec8921e4  # incusd/instance/qemu: Fix RTC handling on Windows
+          git cherry-pick 18d1e53dc26c99e3379f136aff212e83fda28fc1  # incusd/storage/drivers: Fix ordering in Qcow2DeletionCleanup
+          git cherry-pick 99cc09c7bdd66831e3ec7aa5b0d9292501cb4164  # incusd/instance/drivers: Improve snapshot creation rollback handling
+          git cherry-pick f272bb3566289f357e7bc51a893b1660ffacbf6f  # incusd/storage: Improve snapshot creation rollback handling
+          git cherry-pick 26227cae3c23be2c1dc862d419b95ab7ee020861  # internal/instance: Introduce volatile.vm.boot_state
+          git cherry-pick ee5cb850deda229cc95314b2cfe60fa493a4ccaf  # incusd/instance/qemu: Rename internal structs
+          git cherry-pick 1f8037877f690d1a0db25fa5655357cb9d4a16da  # incusd/instance/qemu: Add new migration state volatile
+          git cherry-pick 0c0a3ddfb4b65f452ce8ecfe7c5f5ff9126a0c8d  # incusd/instance/qemu: Move topology functions to new file
+          git cherry-pick a4aed86f01d2f47baa0a363f8c28725231355d13  # incusd/instance/qemu: Make use of new migration state logic
+          git cherry-pick a59ad82ebad2df63ef804f6c9497d8080da7d38a  # incusd/instance/qemu: Don't export internal vcpus and numa nodes maps
+          git cherry-pick 2826d1ae9c5f57e5cb5f49df8a24662a31c10270  # doc: Update config
+          git cherry-pick 69255206c7d54506c57f40f28526a84ee4ace697  # incusd/instance/qemu: Handle stateful detection corner case
+          git cherry-pick bed4cd20f6930342db9374432252cec1ad7308f8  # incusd/migrate: Set short timeouts on read/write of control data
+          git cherry-pick c9d51c46674ee296010f03b54775caddb0dc0318  # client: Fix bad error handling
+          git cherry-pick 91868e4366bd10cbf33aff06ef298e252697bab9  # incus/server/network/ovn/nb: Mark route as discord when nexthop is 'discard'
+          git cherry-pick 8f7b2a2145e48f86e2f83f1547d9c4afc8cadcd1  # incus/server/network/ovn/driver: Only add discard route if it doesn't exist already
+          git cherry-pick 62cda5636b79a32a67ce9bee240ddee35fe564e4  # incusd/storage: Improve qcow2 volume handling
+          git cherry-pick 1de0a465211f9a068e1eab051b61a9b77fd4fd43  # incusd/storage/drivers: Add syncBtrfs
+          git cherry-pick d4c9dfcead3a2939a0174be25a78b996e6b368db  # incusd/storage/drivers: Use 'qemu-img info' in read-only mode
+          git cherry-pick da618fb1d1610d9ab9bf58608b992829ca53f286  # incusd/instances: Don't delete ephemeral instances on system shutdown
+          git cherry-pick 42278bd2b5bee46bb74937f2641b6044cf7de136  # shared/archive: Improve detection and error handling
+          git cherry-pick e57a32b762abaea9f3b1defdb57f42107a03303f  # shared/subprocess: Cleanup pointless check
+          git cherry-pick 4e8b6742831bc40031cc97ac1cb2cb602b81b83c  # incusd/seccomp: Cleanup pointless check
+          git cherry-pick 85dc304ae8335f2827737fef905bd72c243e1a51  # incusd/migrate: Bump migration timeouts
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
