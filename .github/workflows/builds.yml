@@ -439,6 +439,15 @@ jobs:
           git cherry-pick e57a32b762abaea9f3b1defdb57f42107a03303f  # shared/subprocess: Cleanup pointless check
           git cherry-pick 4e8b6742831bc40031cc97ac1cb2cb602b81b83c  # incusd/seccomp: Cleanup pointless check
           git cherry-pick 85dc304ae8335f2827737fef905bd72c243e1a51  # incusd/migrate: Bump migration timeouts
+          git cherry-pick ec50d3b37b6487b4567ea5c1a734897df79e8e6d  # incusd/migration: Bump timeouts to 30s
+          git cherry-pick 606647b8807c808571be38ce4c4d2e1acbe944a2  # incusd/instance/qemu: Fix boot state recording
+          git cherry-pick f1c264a79682e308155237f3f2281d0e71abe562  # incusd/devices/disk: Lock creation of ISO images
+          git cherry-pick 18e9f087927fc69d508240482591e338fa38c01d  # incusd: Increase devices tmpfs
+          git cherry-pick 4777803e0656e842867b971af749ceb44f9df046  # incusd/device/nic: Prevent USB NICs on migratable VMs
+          git cherry-pick 31c5e214fc75926d0e4e104cb7a5decf8e0da52f  # incusd/instance/drivers/qmp: Wait for block job completion after issuing block-job-complete
+          git cherry-pick c0ea1f9520062191d96c11e1ea022bcdfff56f4a  # incusd/instance/drivers: Add support for handling BLOCK_JOB_COMPLETED and BLOCK_JOB_ERROR events
+          git cherry-pick c6b9378c12892cae3f026e6b738fa809f93bfd7f  # incusd/migrate: Limit timeout to initial handshake
+          git cherry-pick dc6833bbb726dee68f2816c58021971f30c4d342  # shared/archive: Avoid concurrent calls to Wait
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
