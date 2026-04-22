@@ -429,6 +429,7 @@ jobs:
           git cherry-pick 69255206c7d54506c57f40f28526a84ee4ace697  # incusd/instance/qemu: Handle stateful detection corner case
           git cherry-pick bed4cd20f6930342db9374432252cec1ad7308f8  # incusd/migrate: Set short timeouts on read/write of control data
           git cherry-pick c9d51c46674ee296010f03b54775caddb0dc0318  # client: Fix bad error handling
+          git cherry-pick 7f9535fa31cc07af7e102e6a19576dbea980538a  # incusd/response/upgrade: Add small delay for NBD
           git cherry-pick 91868e4366bd10cbf33aff06ef298e252697bab9  # incus/server/network/ovn/nb: Mark route as discord when nexthop is 'discard'
           git cherry-pick 8f7b2a2145e48f86e2f83f1547d9c4afc8cadcd1  # incus/server/network/ovn/driver: Only add discard route if it doesn't exist already
           git cherry-pick 62cda5636b79a32a67ce9bee240ddee35fe564e4  # incusd/storage: Improve qcow2 volume handling
@@ -440,6 +441,16 @@ jobs:
           git cherry-pick 4e8b6742831bc40031cc97ac1cb2cb602b81b83c  # incusd/seccomp: Cleanup pointless check
           git cherry-pick 85dc304ae8335f2827737fef905bd72c243e1a51  # incusd/migrate: Bump migration timeouts
           git cherry-pick ec50d3b37b6487b4567ea5c1a734897df79e8e6d  # incusd/migration: Bump timeouts to 30s
+          git cherry-pick 9fb55bf99d209a7d294a7a06d0fc71551cfc938c  # shared/util: Introduce SafeCopy
+          git cherry-pick 1396bcc735fb4b8ea2fe1bc24e855da081614284  # incusd: Switch io.CopyN to util.SafeCopy
+          git cherry-pick 2614f7ff1d9644ce35962cc50db16e666780a384  # client: Switch io.Copy to util.SafeCopy
+          git cherry-pick a08d2db1b536d78123faf0bcd4f8b5112c470997  # shared/ws: Switch io.Copy to util.SafeCopy
+          git cherry-pick efc0c11e167aea3766f7fadfd4331630b1537733  # shared/cliconfig: Switch io.Copy to util.SafeCopy
+          git cherry-pick 309a2e60b2046303d49f937dad4b1887b623bbdf  # shared/util: Switch io.Copy to util.SafeCopy
+          git cherry-pick 0e6b86c210bd51f2e5fad185d6064fcad75c876b  # internal/util: Switch io.Copy to util.SafeCopy
+          git cherry-pick 262451981d93aa1a7865812d1f77a650b1ec6510  # internal/io: Switch io.Copy to util.SafeCopy
+          git cherry-pick 3f98917f3e367646f20ea45e3fa96dcfd3835831  # internal/rsync: Switch io.Copy to util.SafeCopy
+          git cherry-pick f05bd57bd453f2c3dcc324703b5067e101132ee5  # incusd: Switch io.Copy to util.SafeCopy
           git cherry-pick 606647b8807c808571be38ce4c4d2e1acbe944a2  # incusd/instance/qemu: Fix boot state recording
           git cherry-pick f1c264a79682e308155237f3f2281d0e71abe562  # incusd/devices/disk: Lock creation of ISO images
           git cherry-pick 18e9f087927fc69d508240482591e338fa38c01d  # incusd: Increase devices tmpfs
