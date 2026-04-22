@@ -448,6 +448,10 @@ jobs:
           git cherry-pick c0ea1f9520062191d96c11e1ea022bcdfff56f4a  # incusd/instance/drivers: Add support for handling BLOCK_JOB_COMPLETED and BLOCK_JOB_ERROR events
           git cherry-pick c6b9378c12892cae3f026e6b738fa809f93bfd7f  # incusd/migrate: Limit timeout to initial handshake
           git cherry-pick dc6833bbb726dee68f2816c58021971f30c4d342  # shared/archive: Avoid concurrent calls to Wait
+          git cherry-pick 93a87a98b3b9f2b2e15230ff70558445d5b58dba  # incusd/storage/drivers: Extract unpackVolume and backupVolume to util
+          git cherry-pick ff161e795608bde99c98af892137ff1b961bafbe  # incusd/storage/drivers: Make createParentSnapshotDirIfMissing public
+          git cherry-pick ecde36d9fd8e88ecba1ee58352942ebb9998ee50  # incusd/storage: Add support for export/import qcow2 in raw format
+          git cherry-pick 1de223c97691b36520a73ad7068eff3447ca832f  # incusd/instance/qemu: Improve OS detection for FreeBSD
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
