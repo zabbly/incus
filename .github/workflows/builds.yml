@@ -407,6 +407,22 @@ jobs:
           git cherry-pick a001d5e8dd9e8c5c889114b1992e149c829e0373  # incusd/instance/drivers: Fix live migration of instances with snapshots
           git cherry-pick 9d4f3b77065bba94a01a2bcb924db7ce0f9d755d  # incusd/instance/qemu: Scale SCSI queues with CPUs
           git cherry-pick 8babda1d90d35a049086f57c4892702c1dc9dbb3  # incus: Enable admin recover and admin sql on all platforms
+          git cherry-pick e133c59e995cd388896544711e1ff43d7e5e3995  # incusd/auth: Add can_connect_nbd
+          git cherry-pick b2c209539467ed46fd4c97d04dcc1c91f6f73e36  # client: Add GetStoragePoolVolumeBlockNBDConn
+          git cherry-pick 5f4869b5c3af742fb60409b6a7c485a0f079c4bb  # incusd/storage_volumes: Add NBD API
+          git cherry-pick 926002c7f08b7288173494b15eb6263126c54a08  # incusd/storage: Implement NBD functions
+          git cherry-pick fc7d19bb586b0203b39de5597b9781e35c570eb3  # incusd/instance: Implement ConnectNBD
+          git cherry-pick 020793d72458eb163e00576485d63f4ad8826353  # incusd/instance/qmp: Add QueryBlockExports and QueryNBDBlockExports
+          git cherry-pick eaf588f0748df2adc121b52463e67c79d5dde77d  # incusd/instance/drivers: Improve error when NBD server is already running
+          git cherry-pick 2db310feb78fde5e9542af0420f1a15aedc1ec40  # incusd/instance: Export snapshot when VM is running to ensure consistency
+          git cherry-pick 9833e0508c174280e989e5a683394ee1e3b4e93b  # incusd/storage: Export snapshot when VM is running to ensure consistency
+          git cherry-pick 437b102d2d56390ab6f596ca7c9801af681a5fe7  # incusd/storage/drivers: Implement ActivateTask
+          git cherry-pick b2d72df1b6eeb8aac52fed585f759ee51faf719f  # incusd/storage: Support NBD export in offline mode
+          git cherry-pick 46f96f98320ed58ef112a2c7ba486f37e62cf2f7  # incusd/instance/qmp: Add commands to manage dirty bitmaps
+          git cherry-pick f4ad06efbef20c5d9514d2eb0598c1d2df748d97  # shared/api: Add structs for managing dirty bitmaps
+          git cherry-pick b9d98fb6e8d8e6226d96f3619bd356e92c222d9d  # incusd/instance: Add methods to manage dirty bitmaps
+          git cherry-pick 1de4ab1bce4b539275ebe4ec993acd3be52df4ed  # incusd/storage: Add InstanceByVolumeName
+          git cherry-pick a9e6edfc9a3de3419abd1abf0f8e37392e6f3147  # incusd/instance/lxc: Don't return nil when not implemented
           git cherry-pick 89f54836630fbd40367d737178f9f093fe5da1ae  # client: Forward skopeo errors
           git cherry-pick 17ce1b91c3bc62b05d20be5118fdf6197c1a2b0a  # incusd/storage: Add instanceStateful flag to volume snapshot operations
           git cherry-pick 13f4389fa3adc939008efe19564426a203ba1403  # incusd/device: Pass instanceStateful flag during instance snapshot
@@ -416,6 +432,8 @@ jobs:
           git cherry-pick f8ec5611ab0cad849a94ef1006adf309e57a006c  # incus: Enforce stricter directory checks
           git cherry-pick aac4f8a206ca3ff142b41c55b2ae97411ee7fd53  # tests: Add strict pull checks for directories
           git cherry-pick d5bc02c0040c080fc16ab5edd2dfd39eec8921e4  # incusd/instance/qemu: Fix RTC handling on Windows
+          git cherry-pick 4bb79479dc36cad5e3b2aa5aece7bec60c3373a7  # incusd/instance/drivers: Allow exposing dirty bitmaps through NBD export in online mode
+          git cherry-pick bf9506254466cfe5c09a4979d1b49423b095b797  # incusd/storage: Allow exposing dirty bitmaps through NBD export in offline mode
           git cherry-pick 18d1e53dc26c99e3379f136aff212e83fda28fc1  # incusd/storage/drivers: Fix ordering in Qcow2DeletionCleanup
           git cherry-pick 99cc09c7bdd66831e3ec7aa5b0d9292501cb4164  # incusd/instance/drivers: Improve snapshot creation rollback handling
           git cherry-pick f272bb3566289f357e7bc51a893b1660ffacbf6f  # incusd/storage: Improve snapshot creation rollback handling
@@ -440,7 +458,6 @@ jobs:
           git cherry-pick e57a32b762abaea9f3b1defdb57f42107a03303f  # shared/subprocess: Cleanup pointless check
           git cherry-pick 4e8b6742831bc40031cc97ac1cb2cb602b81b83c  # incusd/seccomp: Cleanup pointless check
           git cherry-pick 85dc304ae8335f2827737fef905bd72c243e1a51  # incusd/migrate: Bump migration timeouts
-          git cherry-pick ec50d3b37b6487b4567ea5c1a734897df79e8e6d  # incusd/migration: Bump timeouts to 30s
           git cherry-pick 9fb55bf99d209a7d294a7a06d0fc71551cfc938c  # shared/util: Introduce SafeCopy
           git cherry-pick 1396bcc735fb4b8ea2fe1bc24e855da081614284  # incusd: Switch io.CopyN to util.SafeCopy
           git cherry-pick 2614f7ff1d9644ce35962cc50db16e666780a384  # client: Switch io.Copy to util.SafeCopy
@@ -451,6 +468,7 @@ jobs:
           git cherry-pick 262451981d93aa1a7865812d1f77a650b1ec6510  # internal/io: Switch io.Copy to util.SafeCopy
           git cherry-pick 3f98917f3e367646f20ea45e3fa96dcfd3835831  # internal/rsync: Switch io.Copy to util.SafeCopy
           git cherry-pick f05bd57bd453f2c3dcc324703b5067e101132ee5  # incusd: Switch io.Copy to util.SafeCopy
+          git cherry-pick ec50d3b37b6487b4567ea5c1a734897df79e8e6d  # incusd/migration: Bump timeouts to 30s
           git cherry-pick 606647b8807c808571be38ce4c4d2e1acbe944a2  # incusd/instance/qemu: Fix boot state recording
           git cherry-pick f1c264a79682e308155237f3f2281d0e71abe562  # incusd/devices/disk: Lock creation of ISO images
           git cherry-pick 18e9f087927fc69d508240482591e338fa38c01d  # incusd: Increase devices tmpfs
