@@ -18,19 +18,16 @@ jobs:
         os:
           - ubuntu-22.04
           - ubuntu-24.04
-          - debian-11
+          - ubuntu-26.04
           - debian-12
           - debian-13
         arch:
           - amd64
           - arm64
-        exclude:
-          - os: debian-11
-            arch: arm64
     runs-on:
       - self-hosted
-      - cpu-4
-      - mem-8G
+      - cpu-8
+      - mem-16G
       - disk-50G
       - arch-${{ matrix.arch }}
       - image-${{ matrix.os }}
