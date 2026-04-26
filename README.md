@@ -14,11 +14,11 @@ Those packages are built for:
 
 * Ubuntu 22.04 LTS (`jammy`)
 * Ubuntu 24.04 LTS (`noble`)
-* Debian 11 (`bullseye`) (`amd64` only)
+* Ubuntu 26.04 LTS (`resolute`)
 * Debian 12 (`bookworm`)
 * Debian 13 (`trixie`)
 
-Unless otherwise mentioned, packages are built for both `amd64` (Intel/AMD 64bit) and `arm64` (Arm 64bit).
+All  packages are built for both `amd64` (Intel/AMD 64bit) and `arm64` (Arm 64bit).
 
 NOTE: It is often possible to use those packages on other non-LTS Ubuntu releases by picking the closest LTS release prior to the Ubuntu version being run.
 
