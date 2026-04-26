@@ -481,6 +481,24 @@ jobs:
           git cherry-pick ff161e795608bde99c98af892137ff1b961bafbe  # incusd/storage/drivers: Make createParentSnapshotDirIfMissing public
           git cherry-pick ecde36d9fd8e88ecba1ee58352942ebb9998ee50  # incusd/storage: Add support for export/import qcow2 in raw format
           git cherry-pick 1de223c97691b36520a73ad7068eff3447ca832f  # incusd/instance/qemu: Improve OS detection for FreeBSD
+          git cherry-pick a9df55ddf7a09b93ff8519f901b6cae9b8097e6c  # incusd/instance/qemu: Use timeouts for agent operations
+          git cherry-pick 08fb9970fcdf6caf4b4ec324c20c42886de540e1  # incusd: Add validation for dependent volumes during copy request
+          git cherry-pick 1e9450074889c36b7f66c9c30a5ceaeaa0b472b4  # incusd: Allow copy only when all volumes are on remote storage
+          git cherry-pick 685ef4c2c1f6e9b6fe5dd955111e7cc80b79070a  # incusd/storage: Include dependent disks in copy requests
+          git cherry-pick f6a612ac5ef734f09e0820aeacc8907d4639e417  # incusd/instance/drivers: Remove temporary snapshot block device after migration
+          git cherry-pick 3dee40eabc2e79d3ce044800f1d23a2bde2abcc7  # incusd/storage: Add support for migrating dependent volumes with a new name
+          git cherry-pick a357bb02adbb7a46098d4671a9c869052801204f  # incusd/storage: Add support for copying dependent volumes on the same target when the root volume storage changes
+          git cherry-pick d19382c0af7e8d414d596befb878465f6254f137  # incusd/instance/drivers: Add support for live-migration of dependent volumes with a changed name
+          git cherry-pick 2eb8f2cb2a9ac1063cfc03608f791c0b21d2cfba  # incusd/instance/drivers: Add check to notify disk only during cluster move
+          git cherry-pick b54b7ca36cc9ddec728180954b1fdf5e5b96c968  # incusd/instances/qemu: Fix crash on nil qmp handler in RunJSON
+          git cherry-pick 235b4dc891682a10baded1c253cdf8e9d7fa3aa0  # incusd/storage: Prevent migration of dependent volumes for snapshot instances
+          git cherry-pick a05cb3bd0a9694a749503dac8c6dc1db6ab2f581  # shared/validate: Fix name validation on single character
+          git cherry-pick c35a936f9c58e0d4e0816fffe443dd22ed340870  # internal/linux: Add logging to ClearBlock
+          git cherry-pick 2c92a0712ec887afd79d81082f419bb7853e0a35  # incusd/networks: Support targeting of network list
+          git cherry-pick 6695640961cc45584a2d760225a2a4f579909900  # incus/network: Add --target to network list
+          git cherry-pick f88c382cd430f39d3e6f61289b1223f6a6aa8611  # incus/instance/drivers/common: Add isErrorStatusCode function Signed-off-by: Leon Schoch <git@darkress.xyz>
+          git cherry-pick f96d10c34dff7ad753af26034fa70a502d41af59  # incus/instance/drivers/qemu: Early return state call in case instance is in error state Signed-off-by: Leon Schoch <git@darkress.xyz>
+          git cherry-pick 0a78b368be2262c438563812127ed304aabacb44  # incus/instance/drivers/lxc: Early return state call in case instance is in error state Signed-off-by: Leon Schoch <git@darkress.xyz>
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
