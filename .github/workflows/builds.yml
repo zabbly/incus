@@ -376,7 +376,11 @@ jobs:
 
       - name: Build CRIU
         run: |
+          REPO="${PWD}"
+
           cd /build/criu
+          patch -p1 < "${REPO}/patches/criu-0001-fix-rseq-detection.patch"
+
           make WERROR=0
           cp criu/criu /opt/incus/bin/
 

@@ -1,0 +1,29 @@
+From ffd2adc2b36c60f80e849aff37e1dc690d7e799b Mon Sep 17 00:00:00 2001
+From: Andrei Vagin <avagin@gmail.com>
+Date: Tue, 3 Mar 2026 17:21:05 +0000
+Subject: [PATCH] scripts: rseq: fix detection of rseq_cpu_id_state
+
+gcc doesn't report any warnings if there are two identical enums with the
+same name. Actually, we wanted to detect if a specific enum is already
+exists. By using a different member name in the test, we ensure that a
+conflict occurs if the enum is already defined in the system headers.
+
+Signed-off-by: Andrei Vagin <avagin@gmail.com>
+---
+ scripts/feature-tests.mak | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/scripts/feature-tests.mak b/scripts/feature-tests.mak
+index 727e9689ea..ea5b88647e 100644
+--- a/scripts/feature-tests.mak
++++ b/scripts/feature-tests.mak
+@@ -165,8 +165,7 @@ define FEATURE_TEST_NO_LIBC_RSEQ_DEFS
+ #endif
+ 
+ enum rseq_cpu_id_state {
+-	RSEQ_CPU_ID_UNINITIALIZED = -1,
+-	RSEQ_CPU_ID_REGISTRATION_FAILED = -2,
++	RSEQ_CPU_CRIU_TEST = -1,
+ };
+ 
+ int main(void)
