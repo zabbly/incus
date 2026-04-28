@@ -1,0 +1,47 @@
+From 64982fb993e91cf4f90e67fe3b2957a07be9cadf Mon Sep 17 00:00:00 2001
+From: Dimitry Andric <dimitry@unified-streaming.com>
+Date: Tue, 28 Apr 2026 20:48:10 +0200
+Subject: [PATCH] Fix -Wdiscarded-qualifiers warnings when using C23 memchr
+
+The pointers `p`, `version_str`, `addr` and `id_str` are not really
+const, so remove the const specifier.
+
+Fixes #44.
+---
+ src/server.c | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/src/server.c b/src/server.c
+index e91ec5b..acb6db7 100644
+--- a/src/server.c
++++ b/src/server.c
+@@ -987,10 +987,10 @@ static const struct client_node_info *findNodeInCache(
+  * representation. */
+ static int parseNodeStore(char *buf, size_t len, struct node_store_cache *cache)
+ {
+-	const char *p = buf;
++	char *p = buf;
+ 	const char *end = buf + len;
+ 	char *nl;
+-	const char *version_str;
++	char *version_str;
+ 	const char *addr;
+ 	const char *id_str;
+ 	const char *dig;
+@@ -1126,12 +1126,12 @@ static int parseLocalInfo(char *buf,
+ 			  char **local_addr,
+ 			  uint64_t *local_id)
+ {
+-	const char *p = buf;
++	char *p = buf;
+ 	const char *end = buf + len;
+ 	char *nl;
+-	const char *version_str;
+-	const char *addr;
+-	const char *id_str;
++	char *version_str;
++	char *addr;
++	char *id_str;
+ 	const char *dig;
+ 	unsigned long long id;
+ 
