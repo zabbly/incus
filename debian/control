@@ -1,7 +1,7 @@
 Source: incus
 Section: admin
 Priority: optional
-Maintainer: Zabbly ZFS builds <info@zabbly.com>
+Maintainer: Zabbly <info@zabbly.com>
 Build-Depends: debhelper-compat (= 12)
 Standards-Version: 4.6.2
 Homepage: https://linuxcontainers.org
