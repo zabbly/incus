@@ -717,7 +717,7 @@ jobs:
           REPO="${PWD}"
 
           cd /build/libtpms
-          patch -p1 < "${REPO}/patches/libtpms-0001-tpm_library-Remove-const-qualifier-on-overwriten-sta.patch"
+          patch -p1 < "${REPO}/patches/libtpms-0001-Fix-a-compilation-error-in-TPMLIB_GetPlaintext.patch"
 
           ./autogen.sh
           ./configure --prefix=/opt/incus --with-tpm2 --with-openssl
