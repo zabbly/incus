@@ -524,7 +524,11 @@ jobs:
 
       - name: Build libtpms
         run: |
+          REPO="${PWD}"
+
           cd /build/libtpms
+          patch -p1 < "${REPO}/patches/libtpms-0001-tpm_library-Remove-const-qualifier-on-overwriten-sta.patch"
+
           ./autogen.sh
           ./configure --prefix=/opt/incus --with-tpm2 --with-openssl
           make
