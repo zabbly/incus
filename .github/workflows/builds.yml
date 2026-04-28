@@ -522,7 +522,7 @@ jobs:
           ln -s OVMF_CODE.4MB.fd /opt/incus/share/qemu/OVMF_CODE.fd
           ln -s OVMF_VARS.4MB.fd /opt/incus/share/qemu/OVMF_VARS.fd
 
-      - name: Build libtmps
+      - name: Build libtpms
         run: |
           cd /build/libtpms
           ./autogen.sh
