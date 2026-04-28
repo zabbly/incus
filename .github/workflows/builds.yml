@@ -243,7 +243,11 @@ jobs:
 
       - name: Build cowsql
         run: |
+          REPO="${PWD}"
+
           cd /build/cowsql
+          patch -p1 < "${REPO}/patches/cowsql-0001-discarded-qualifiers.patch"
+
           autoreconf -i
           ./configure --prefix=/opt/incus
           make
