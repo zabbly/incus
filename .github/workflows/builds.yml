@@ -874,11 +874,11 @@ jobs:
         env:
           PKGOS: ${{ matrix.os }}
         run: |
-          [ "${PKGOS}" = "debian-11" ] && CODENAME=bullseye
           [ "${PKGOS}" = "debian-12" ] && CODENAME=bookworm
           [ "${PKGOS}" = "debian-13" ] && CODENAME=trixie
           [ "${PKGOS}" = "ubuntu-22.04" ] && CODENAME=jammy
           [ "${PKGOS}" = "ubuntu-24.04" ] && CODENAME=noble
+          [ "${PKGOS}" = "ubuntu-26.04" ] && CODENAME=resolute
 
           mkdir -p \
             pkg/ \
@@ -923,7 +923,7 @@ jobs:
 
           cd pkg
 
-          if [ "${PKGOS}" = "debian-13" ] || [ "${PKGOS}" = "ubuntu-24.04" ]; then
+          if [ "${PKGOS}" = "debian-13" ] || [ "${PKGOS}" = "ubuntu-24.04" ] || [ "${PKGOS}" = "ubuntu-26.04" ]; then
             sed -i debian/control \
               -e "s/LIBPNG16/libpng16-16t64/g" \
               -e "s/LIBUSBREDIRPARSER1/libusbredirparser1t64/g" \
