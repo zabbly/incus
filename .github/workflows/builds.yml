@@ -312,33 +312,33 @@ jobs:
           REPO="${PWD}"
 
           cd /build/incus
-          go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
-          go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
-          go build -o "/opt/incus/bin/incus-benchmark" github.com/lxc/incus/v6/cmd/incus-benchmark
-          go build -o "/opt/incus/bin/incus-migrate" github.com/lxc/incus/v6/cmd/incus-migrate
-          go build -o "/opt/incus/bin/incus-simplestreams" github.com/lxc/incus/v6/cmd/incus-simplestreams
-          go build -o "/opt/incus/bin/incus-user" github.com/lxc/incus/v6/cmd/incus-user
-          go build -o "/opt/incus/bin/incusd" -tags=libsqlite3 github.com/lxc/incus/v6/cmd/incusd
-          go build -o "/opt/incus/bin/lxc-to-incus" github.com/lxc/incus/v6/cmd/lxc-to-incus
-          go build -o "/opt/incus/bin/lxd-to-incus" -tags=libsqlite3 github.com/lxc/incus/v6/cmd/lxd-to-incus
+          go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v7/cmd/fuidshift
+          go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v7/cmd/incus
+          go build -o "/opt/incus/bin/incus-benchmark" github.com/lxc/incus/v7/cmd/incus-benchmark
+          go build -o "/opt/incus/bin/incus-migrate" github.com/lxc/incus/v7/cmd/incus-migrate
+          go build -o "/opt/incus/bin/incus-simplestreams" github.com/lxc/incus/v7/cmd/incus-simplestreams
+          go build -o "/opt/incus/bin/incus-user" github.com/lxc/incus/v7/cmd/incus-user
+          go build -o "/opt/incus/bin/incusd" -tags=libsqlite3 github.com/lxc/incus/v7/cmd/incusd
+          go build -o "/opt/incus/bin/lxc-to-incus" github.com/lxc/incus/v7/cmd/lxc-to-incus
+          go build -o "/opt/incus/bin/lxd-to-incus" -tags=libsqlite3 github.com/lxc/incus/v7/cmd/lxd-to-incus
 
           mkdir -p /opt/incus/agent
           if [ "$(uname -m)" = "x86_64" ]; then
-              GOARCH=amd64 GOOS=darwin CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.macos.x86_64" -tags=agent,netgo github.com/lxc/incus/v6/cmd/incus-agent
+              GOARCH=amd64 GOOS=darwin CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.macos.x86_64" -tags=agent,netgo github.com/lxc/incus/v7/cmd/incus-agent
 
-              GOARCH=amd64 GOOS=freebsd CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.freebsd.x86_64" -tags=agent,netgo github.com/lxc/incus/v6/cmd/incus-agent
-              GOARCH=386 GOOS=freebsd CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.freebsd.i686" -tags=agent,netgo github.com/lxc/incus/v6/cmd/incus-agent
+              GOARCH=amd64 GOOS=freebsd CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.freebsd.x86_64" -tags=agent,netgo github.com/lxc/incus/v7/cmd/incus-agent
+              GOARCH=386 GOOS=freebsd CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.freebsd.i686" -tags=agent,netgo github.com/lxc/incus/v7/cmd/incus-agent
 
-              GOARCH=amd64 CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.linux.x86_64" -tags=agent,netgo github.com/lxc/incus/v6/cmd/incus-agent
-              GOARCH=386 CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.linux.i686" -tags=agent,netgo github.com/lxc/incus/v6/cmd/incus-agent
+              GOARCH=amd64 CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.linux.x86_64" -tags=agent,netgo github.com/lxc/incus/v7/cmd/incus-agent
+              GOARCH=386 CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.linux.i686" -tags=agent,netgo github.com/lxc/incus/v7/cmd/incus-agent
 
-              GOARCH=amd64 GOOS=windows CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.windows.x86_64" -tags=agent,netgo github.com/lxc/incus/v6/cmd/incus-agent
-              GOARCH=386 GOOS=windows CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.windows.i686" -tags=agent,netgo github.com/lxc/incus/v6/cmd/incus-agent
+              GOARCH=amd64 GOOS=windows CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.windows.x86_64" -tags=agent,netgo github.com/lxc/incus/v7/cmd/incus-agent
+              GOARCH=386 GOOS=windows CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.windows.i686" -tags=agent,netgo github.com/lxc/incus/v7/cmd/incus-agent
           elif [ "$(uname -m)" = "aarch64" ]; then
-              GOARCH=arm64 GOOS=darwin CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.macos.aarch64" -tags=agent,netgo github.com/lxc/incus/v6/cmd/incus-agent
-              GOARCH=amd64 GOOS=freebsd CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.freebsd.aarch64" -tags=agent,netgo github.com/lxc/incus/v6/cmd/incus-agent
-              GOARCH=arm64 CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.linux.aarch64" -tags=agent,netgo github.com/lxc/incus/v6/cmd/incus-agent
-              GOARCH=arm64 GOOS=windows CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.windows.aarch64" -tags=agent,netgo github.com/lxc/incus/v6/cmd/incus-agent
+              GOARCH=arm64 GOOS=darwin CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.macos.aarch64" -tags=agent,netgo github.com/lxc/incus/v7/cmd/incus-agent
+              GOARCH=amd64 GOOS=freebsd CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.freebsd.aarch64" -tags=agent,netgo github.com/lxc/incus/v7/cmd/incus-agent
+              GOARCH=arm64 CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.linux.aarch64" -tags=agent,netgo github.com/lxc/incus/v7/cmd/incus-agent
+              GOARCH=arm64 GOOS=windows CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.windows.aarch64" -tags=agent,netgo github.com/lxc/incus/v7/cmd/incus-agent
           fi
 
           make build-mo
