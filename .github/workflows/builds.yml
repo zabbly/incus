@@ -306,6 +306,11 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick faa636b70c05a5cca0346492a0586d5747e4b117  # doc/devices/disk: Fix broken link
+          git cherry-pick a5f50d36eaa41580f2233b05936bd29fe1b15100  # incusd/instance/qemu: Fix version detection for qemu-kvm
+          git cherry-pick 1e6ce18e8cd92b5b3eb4346e7bd27fd4a7d1fb9b  # incusd: Re-introduce core scheduling detection
+          git cherry-pick 5f2cdf7545c5398290dc507313de9ee547fe803f  # incusd/instance/lxc: Fix swap=false failure
+
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v7/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v7/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" github.com/lxc/incus/v7/cmd/incus-benchmark
