@@ -61,8 +61,6 @@ jobs:
       LEGO_TAG: "v4.35.2"
       LIBTPMS_TAG: "v0.10.2"
       LIBURING_TAG: "liburing-2.14"
-      MINIO_MC_TAG: "RELEASE.2025-08-13T08-35-41Z"
-      MINIO_TAG: "RELEASE.2025-10-15T17-29-55Z"
       NASM_TAG: "nasm-2.16.03"
       NVIDIA_CONTAINER_TAG: "v1.19.0"
       QEMU_TAG: "v11.0.0"
@@ -204,8 +202,6 @@ jobs:
           git clone https://github.com/cowsql/cowsql /build/cowsql --depth 1 -b "${COWSQL_TAG}"
           git clone https://github.com/cowsql/raft /build/raft --depth 1 -b "${RAFT_TAG}"
           git clone https://github.com/go-acme/lego /build/lego --depth 1 -b "${LEGO_TAG}"
-          git clone https://github.com/minio/mc /build/mc --depth 1 -b "${MINIO_MC_TAG}"
-          git clone https://github.com/minio/minio /build/minio --depth 1 -b "${MINIO_TAG}"
           git clone https://github.com/NVIDIA/libnvidia-container /build/libnvidia-container --depth 1 -b "${NVIDIA_CONTAINER_TAG}"
           git clone https://github.com/stefanberger/libtpms /build/libtpms --depth 1 -b "${LIBTPMS_TAG}"
           git clone https://github.com/stefanberger/swtpm /build/swtpm --depth 1 -b "${SWTPM_TAG}"
@@ -398,18 +394,6 @@ jobs:
           rsync -a /build/target/libnvidia-container/bin/ /opt/incus/bin/
           rsync -a /build/target/libnvidia-container/include/ /opt/incus/include/
           rsync -a /build/target/libnvidia-container/lib/ /opt/incus/lib/
-
-      - name: Build minio
-        run: |
-          cd /build/minio
-          make build
-          cp minio /opt/incus/bin/
-
-      - name: Build minio client
-        run: |
-          cd /build/mc
-          make build
-          cp mc /opt/incus/bin/
 
       - name: Build seabios
         if: ${{ matrix.arch == 'amd64' }}
