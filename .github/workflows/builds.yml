@@ -739,7 +739,7 @@ jobs:
               -e "s/LIBUV1/libuv1/g"
           fi
 
-          if [ "${PKGOS}" = "debian-13" ]; then
+          if [ "${PKGOS}" = "debian-13" ] || [ "${PKGOS}" = "ubuntu-26.04" ]; then
             sed -i debian/control \
               -e "s/LIBFUSE3/libfuse3-4/g"
           else
