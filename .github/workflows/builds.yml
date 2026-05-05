@@ -737,8 +737,15 @@ jobs:
               -e "s/LIBUSBREDIRPARSER1/libusbredirparser1t64/g" \
               -e "s/LIBAIO1/libaio1t64/g" \
               -e "s/LIBBTRFS0/libbtrfs0t64/g" \
-              -e "s/LIBGPGME11/libgpgme11t64/g" \
               -e "s/LIBUV1/libuv1t64/g"
+
+            if [ "${PKGOS}" = "ubuntu-26.04" ]; then
+              sed -i debian/control \
+                -e "s/LIBGPGME11/libgpgme45/g"
+            else
+              sed -i debian/control \
+                -e "s/LIBGPGME11/libgpgme11t64/g"
+            fi
           else
             sed -i debian/control \
               -e "s/LIBPNG16/libpng16-16/g" \
