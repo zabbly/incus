@@ -320,6 +320,7 @@ jobs:
           git cherry-pick 3a104e4dc24897f0d6543136bb1043fcd4a33632  # incusd/projects: Fix targeting on project delete
           git cherry-pick 41878729f06e9c31df9d4fac20fb8c384608577c  # test/network_acl: Add test for ACL used by instance in different project
           git cherry-pick c1f18c78fc6bc4850df20574bdcc541e5eefc4ac  # incusd/instance/qemu: Remove deprecated QEMU flag
+          git cherry-pick 5b29ecc164ef28239d2e2a874a7c871a2e419083  # incusd/cluster: Re-order evacuations to happen earlier on shutdown
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v7/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v7/cmd/incus
