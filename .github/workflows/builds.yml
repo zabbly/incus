@@ -764,6 +764,14 @@ jobs:
               -e "s/LIBFUSE3/libfuse3-3/g"
           fi
 
+          if [ "${PKGOS}" = "ubuntu-26.04" ]; then
+            sed -i debian/control \
+              -e "s/LIBNET1/libnet9/g"
+          else
+            sed -i debian/control \
+              -e "s/LIBNET1/libnet1/g"
+          fi
+
           dch --package incus --create -D ${CODENAME} -M -m "Automated Incus stable build" -v 1:$(echo ${INCUS_TAG} | sed -e "s/v//" -e "s/.0$//")-$(echo ${PKGOS} | sed "s/-//g")-$(date -u +%Y%m%d%H%M) --force-distribution
           dpkg-buildpackage -b
 
