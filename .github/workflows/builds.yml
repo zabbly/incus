@@ -657,7 +657,6 @@ jobs:
           rm /opt/incus/bin/qemu-io
           rm /opt/incus/bin/qemu-pr-helper
           rm /opt/incus/bin/qemu-storage-daemon
-          rm /opt/incus/bin/swtpm_*
           rm /opt/incus/share/qemu/trace-events-all
 
           strip /opt/incus/agent/*linux*
