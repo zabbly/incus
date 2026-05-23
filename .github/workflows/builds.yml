@@ -559,7 +559,7 @@ jobs:
       - name: Build lego
         run: |
           cd /build/lego
-          go build -o "/opt/incus/bin/lego" github.com/go-acme/lego/v4/cmd/lego
+          go build -o "/opt/incus/bin/lego" github.com/go-acme/lego/v5
 
       - name: Build skopeo
         run: |
