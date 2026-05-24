@@ -2,7 +2,7 @@
 
 Incus package builds provided by Zabbly.
 
-There are three repositories available:
+There are four repositories available:
 
 * `lts-6.0` (Incus 6.0.x LTS)
 * `lts-7.0` (Incus 7.0.x LTS)
