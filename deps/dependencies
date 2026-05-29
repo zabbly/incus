@@ -8,7 +8,7 @@ COWSQL_TAG https://github.com/cowsql/cowsql v
 CRIU_TAG https://github.com/checkpoint-restore/criu v
 EDK2_TAG https://github.com/tianocore/edk2 edk2-stable
 GOLANG_TAG https://github.com/golang/go go
-LEGO_TAG https://github.com/go-acme/lego v
+LEGO_TAG https://github.com/go-acme/lego v4
 LIBTPMS_TAG https://github.com/stefanberger/libtpms v
 LIBURING_TAG https://github.com/axboe/liburing liburing-
 NASM_TAG https://github.com/netwide-assembler/nasm nasm-2

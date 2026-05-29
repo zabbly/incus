@@ -55,7 +55,7 @@ jobs:
       CRIU_TAG: "v4.2"
       EDK2_TAG: "edk2-stable202605"
       GOLANG_TAG: "go1.26.3"
-      LEGO_TAG: "v5.2.0"
+      LEGO_TAG: "v4.35.2"
       LIBTPMS_TAG: "v0.10.2"
       LIBURING_TAG: "liburing-2.14"
       NASM_TAG: "nasm-2.16.03"
@@ -565,7 +565,7 @@ EOF
       - name: Build lego
         run: |
           cd /build/lego
-          go build -o "/opt/incus/bin/lego" github.com/go-acme/lego/v5
+          go build -o "/opt/incus/bin/lego" github.com/go-acme/lego/v4/cmd/lego
 
       - name: Build skopeo
         run: |
