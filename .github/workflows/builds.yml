@@ -563,7 +563,7 @@ jobs:
       - name: Build skopeo
         run: |
           cd /build/skopeo
-          go build -o "/opt/incus/bin/skopeo" github.com/containers/skopeo/cmd/skopeo
+          go build -o "/opt/incus/bin/skopeo" ./cmd/skopeo
 
       - name: Build TrueNAS Incus CTL
         run: |
