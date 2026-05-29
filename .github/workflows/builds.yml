@@ -45,7 +45,7 @@ jobs:
 
       # Linux Containers projects
       DISTROBUILDER_TAG: "distrobuilder-3.2"
-      INCUS_TAG: "v7.0.0"
+      INCUS_TAG: "v7.1.0"
       INCUS_UI_CANONICAL_TAG: "incus-0.19.9"
       LXCFS_TAG: "v7.0.0"
       LXC_TAG: "v7.0.0"
@@ -305,22 +305,6 @@ jobs:
           REPO="${PWD}"
 
           cd /build/incus
-
-          git cherry-pick faa636b70c05a5cca0346492a0586d5747e4b117  # doc/devices/disk: Fix broken link
-          git cherry-pick a5f50d36eaa41580f2233b05936bd29fe1b15100  # incusd/instance/qemu: Fix version detection for qemu-kvm
-          git cherry-pick 1e6ce18e8cd92b5b3eb4346e7bd27fd4a7d1fb9b  # incusd: Re-introduce core scheduling detection
-          git cherry-pick 5f2cdf7545c5398290dc507313de9ee547fe803f  # incusd/instance/lxc: Fix swap=false failure
-          git cherry-pick 47377e345930e77d3fbce29d037fc7dbd6823dcf  # incusd/forknet: Persist DHCPv6 client DUID across restarts
-          git cherry-pick d7f1c9d75ca33eb2ddb0bf10cec934fd6e352089  # incusd/forknet: Include FQDN in DHCPv6 INFO requests
-          git cherry-pick 3b127758c17752302b3f4bf907f42e926ab664e4  # incusd/forknet: Properly renew stateful DHCPv6
-          git cherry-pick 2b24a260b6177c033047f270286933563f05a999  # incusd/forknet: Add jitter to DHCPv6 renewal
-          git cherry-pick 33ffcf71745e138dd4f3546839115c293e6be083  # incusd/device/nic_bridged: Fix swapped IPv4/IPv6 DNS record
-          git cherry-pick c65ac0f4e6e94859b8565bce41bbf1595f4a8085  # doc/authorization: Fix reference to old "manager" relation
-          git cherry-pick 2a3584b6fccf152be42cf5614e54241bdb13e671  # incusd/network/acl: Fix issue with instances in different project than ACL
-          git cherry-pick 3a104e4dc24897f0d6543136bb1043fcd4a33632  # incusd/projects: Fix targeting on project delete
-          git cherry-pick 41878729f06e9c31df9d4fac20fb8c384608577c  # test/network_acl: Add test for ACL used by instance in different project
-          git cherry-pick c1f18c78fc6bc4850df20574bdcc541e5eefc4ac  # incusd/instance/qemu: Remove deprecated QEMU flag
-          git cherry-pick 5b29ecc164ef28239d2e2a874a7c871a2e419083  # incusd/cluster: Re-order evacuations to happen earlier on shutdown
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v7/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v7/cmd/incus
