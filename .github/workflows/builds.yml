@@ -536,10 +536,10 @@ jobs:
 
           mkdir -p /opt/incus/etc/
           cat > /opt/incus/etc/swtpm-localca.options << EOF
---platform-manufacturer Incus
---platform-version 2.1
---platform-model QEMU
-EOF
+          --platform-manufacturer Incus
+          --platform-version 2.1
+          --platform-model QEMU
+          EOF
 
       - name: Build virtiofsd
         run: |
