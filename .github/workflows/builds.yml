@@ -533,6 +533,13 @@ jobs:
           rsync -a /build/target/swtpm/opt/incus/include/ /opt/incus/include/
           rsync -a /build/target/swtpm/opt/incus/lib/ /opt/incus/lib/
 
+          mkdir -p /opt/incus/etc/
+          cat > /opt/incus/etc/swtpm-localca.options << EOF
+--platform-manufacturer Incus
+--platform-version 2.1
+--platform-model QEMU
+EOF
+
       - name: Build virtiofsd
         run: |
           cd /build/virtiofsd
