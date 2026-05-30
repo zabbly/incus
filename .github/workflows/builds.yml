@@ -321,6 +321,10 @@ jobs:
           git cherry-pick 41878729f06e9c31df9d4fac20fb8c384608577c  # test/network_acl: Add test for ACL used by instance in different project
           git cherry-pick c1f18c78fc6bc4850df20574bdcc541e5eefc4ac  # incusd/instance/qemu: Remove deprecated QEMU flag
           git cherry-pick 5b29ecc164ef28239d2e2a874a7c871a2e419083  # incusd/cluster: Re-order evacuations to happen earlier on shutdown
+          git cherry-pick d71c5053a4c8318e6eb07337a7a4a07a6608ef73  # incusd/storage: Fix unsafe access to backup data
+          git cherry-pick ab6b7dff0c770044875d9d26a6254a7075b4d00b  # incusd/storage: Guard nil ExpiresAt in CreateCustomVolumeFromBackup
+          git cherry-pick 98e64f0a6fcfdc9676eea0246418d490c53297bf  # incusd/storage: Guard nil fields in createDependentVolumesFromBackup
+          git cherry-pick a6012422b45c86f3b1956788cff5d75c604ad838  # incusd/storage/s3: Confine multipart uploads with os.Root
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v7/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v7/cmd/incus
