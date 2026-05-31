@@ -306,6 +306,8 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick a1276cdb57297245496ac8c1db76b90d1fcebd3b  # incusd/instance/lxc: Fix environment quoting
+
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v7/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v7/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" github.com/lxc/incus/v7/cmd/incus-benchmark
