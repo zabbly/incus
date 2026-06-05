@@ -320,7 +320,6 @@ jobs:
           go build -o "/opt/incus/bin/incus-user" github.com/lxc/incus/v7/cmd/incus-user
           go build -o "/opt/incus/bin/incusd" -tags=libsqlite3 github.com/lxc/incus/v7/cmd/incusd
           go build -o "/opt/incus/bin/lxc-to-incus" github.com/lxc/incus/v7/cmd/lxc-to-incus
-          go build -o "/opt/incus/bin/lxd-to-incus" -tags=libsqlite3 github.com/lxc/incus/v7/cmd/lxd-to-incus
 
           mkdir -p /opt/incus/agent
           if [ "$(uname -m)" = "x86_64" ]; then
