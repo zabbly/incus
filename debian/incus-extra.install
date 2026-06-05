@@ -4,11 +4,9 @@ usr/bin/incus-benchmark
 usr/bin/incus-migrate
 usr/bin/incus-simplestreams
 usr/bin/lxc-to-incus
-usr/bin/lxd-to-incus
 opt/incus/bin/distrobuilder
 opt/incus/bin/fuidshift
 opt/incus/bin/incus-benchmark
 opt/incus/bin/incus-migrate
 opt/incus/bin/incus-simplestreams
 opt/incus/bin/lxc-to-incus
-opt/incus/bin/lxd-to-incus
