@@ -99,6 +99,7 @@ jobs:
             flex \
             gawk \
             gettext \
+            gnutls-dev \
             git \
             iproute2 \
             libacl1-dev \
@@ -524,7 +525,7 @@ jobs:
         run: |
           cd /build/swtpm
           ./autogen.sh
-          ./configure --prefix=/opt/incus --with-seccomp --with-openssl --without-cuse
+          ./configure --prefix=/opt/incus --with-gnutls --with-seccomp --with-openssl --without-cuse
           make
 
           mkdir -p /build/target/swtpm/
