@@ -95,6 +95,7 @@ jobs:
             flex \
             gawk \
             gettext \
+            gnutls-bin \
             gnutls-dev \
             git \
             iproute2 \
