@@ -152,10 +152,11 @@ jobs:
             python3-venv \
             rsync \
             socat \
-            systemd-dev \
             uuid-dev \
             xmlto \
             xorriso
+
+          sudo apt-get install --no-install-recommends --yes systemd-dev || true
 
           pipx install meson
           pipx install tomli
