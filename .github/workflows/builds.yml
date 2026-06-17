@@ -181,7 +181,7 @@ jobs:
 
       - name: Build environment
         run: |
-          sudo mkdir /build/ /opt/
+          sudo -p mkdir /build/ /opt/
           sudo chown $(id -u):$(id -g) /build/ /opt/
 
           mkdir -p \
