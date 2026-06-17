@@ -162,13 +162,13 @@ jobs:
 
       - name: Install Go
         run: |
-          curl -sL "https://go.dev/dl/${GOLANG_TAG}.linux-${OS_ARCH}.tar.gz" | tar -C /usr/local/ -zx
+          curl -sL "https://go.dev/dl/${GOLANG_TAG}.linux-${OS_ARCH}.tar.gz" | sudo tar -C /usr/local/ -zx
           go version
 
       - name: Install Rust
         run: |
           curl -sL https://sh.rustup.rs -o install-rust.sh
-          bash install-rust.sh -y
+          sudo bash install-rust.sh -y
 
       - name: Install Node
         run: |
@@ -176,8 +176,8 @@ jobs:
           [ "${OS_ARCH}" = "arm64" ] && NODE_ARCH=arm64
 
 
-          mkdir /usr/local/node/
-          curl -sL "https://nodejs.org/dist/v22.11.0/node-v22.11.0-linux-${NODE_ARCH}.tar.xz" | tar -C /usr/local/node/ -Jx --strip-components=1
+          sudo mkdir /usr/local/node/
+          curl -sL "https://nodejs.org/dist/v22.11.0/node-v22.11.0-linux-${NODE_ARCH}.tar.xz" | sudo tar -C /usr/local/node/ -Jx --strip-components=1
 
       - name: Build environment
         run: |
