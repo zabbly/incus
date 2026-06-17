@@ -38,13 +38,12 @@ jobs:
     env:
       OS_ARCH: ${{ matrix.arch }}
       OS_NAME: ${{ matrix.os }}
-      HOME: "/root/"
       PKG_CONFIG_PATH: "/opt/incus/lib/pkgconfig/"
       CGO_LDFLAGS: "-L/opt/incus/lib/"
       CGO_CFLAGS: "-I/opt/incus/include/"
       LD_LIBRARY_PATH: "/opt/incus/lib/"
       CPATH: "/opt/incus/include/"
-      PATH: "/opt/incus/bin:/root/.cargo/bin:/usr/local/go/bin:/usr/local/node/bin:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
+      PATH: "/home/runner/.cargo/bin:/home/runner/.local/bin:/opt/incus/bin:/usr/local/go/bin:/usr/local/node/bin:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
 
       # Linux Containers projects
       DISTROBUILDER_TAG: "distrobuilder-3.2"
@@ -82,8 +81,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          apt-get update
-          apt-get install --no-install-recommends --yes \
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes \
             acpica-tools \
             asciidoc \
             autoconf \
@@ -141,6 +140,7 @@ jobs:
             lsb-release \
             mtools \
             ninja-build \
+            pipx \
             pkg-config \
             protobuf-c-compiler \
             protobuf-compiler \
@@ -152,14 +152,13 @@ jobs:
             python3-venv \
             rsync \
             socat \
+            systemd-dev \
             uuid-dev \
             xmlto \
             xorriso
 
-          apt-get install --no-install-recommends --yes systemd-dev || true
-
-          pip3 install meson || pip3 install meson --break-system-packages
-          pip3 install tomli || pip3 install tomli --break-system-packages
+          pipx install meson
+          pipx install tomli
 
       - name: Install Go
         run: |
@@ -182,7 +181,9 @@ jobs:
 
       - name: Build environment
         run: |
-          mkdir /build/
+          sudo mkdir /build/ /opt/
+          sudo chown $(id -u):$(id -g) /build/ /opt/
+
           mkdir -p \
             /opt/incus/bin/ \
             /opt/incus/include/ \
