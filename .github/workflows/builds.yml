@@ -159,7 +159,6 @@ jobs:
           sudo apt-get install --no-install-recommends --yes systemd-dev || true
 
           pipx install meson
-          pipx install tomli
 
       - name: Install Go
         run: |
