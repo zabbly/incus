@@ -360,7 +360,7 @@ jobs:
           # Complete re-branding.
           find -type f -name "*.ts" -o -name "*.tsx" -o -name "*.scss" | xargs sed -i -f "${REPO}/patches/ui-canonical-renames.sed"
 
-          npm install --legacy-peer-deps yarn
+          npm install -g --prefix /home/runner/.local yarn
           yarn install
           yarn build
 
