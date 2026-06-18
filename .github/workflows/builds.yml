@@ -149,6 +149,7 @@ jobs:
             python3-pexpect \
             python3-pip \
             python3-setuptools \
+            python3-tomli \
             python3-venv \
             rsync \
             socat \
