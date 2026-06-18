@@ -168,7 +168,7 @@ jobs:
       - name: Install Rust
         run: |
           curl -sL https://sh.rustup.rs -o install-rust.sh
-          sudo bash install-rust.sh -y
+          bash install-rust.sh -y
 
       - name: Install Node
         run: |
