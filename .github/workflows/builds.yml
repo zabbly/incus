@@ -48,7 +48,7 @@ jobs:
       # Linux Containers projects
       DISTROBUILDER_TAG: "distrobuilder-3.2"
       INCUS_TAG: "main"
-      INCUS_UI_CANONICAL_TAG: "incus-0.19.9"
+      INCUS_UI_CANONICAL_TAG: "incus-0.21.0"
       LXCFS_TAG: "v7.0.0"
       LXC_TAG: "v7.0.0"
 
@@ -62,7 +62,7 @@ jobs:
       LIBURING_TAG: "liburing-2.14"
       NASM_TAG: "nasm-2.16.03"
       NVIDIA_CONTAINER_TAG: "v1.19.1"
-      QEMU_TAG: "v11.0.1"
+      QEMU_TAG: "v11.0.2"
       RAFT_TAG: "v0.22.1"
       SEABIOS_TAG: "rel-1.17.0"
       SKOPEO_TAG: "v1.23.0"
