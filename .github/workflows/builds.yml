@@ -26,9 +26,7 @@ jobs:
           - arm64
     runs-on:
       - self-hosted
-      - cpu-8
-      - mem-16G
-      - disk-50G
+      - zabbly-incus-build
       - arch-${{ matrix.arch }}
       - image-${{ matrix.os }}
 
