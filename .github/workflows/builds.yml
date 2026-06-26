@@ -44,7 +44,7 @@ jobs:
 
       # Linux Containers projects
       DISTROBUILDER_TAG: "distrobuilder-3.2"
-      INCUS_TAG: "v7.1.0"
+      INCUS_TAG: "v7.2.0"
       INCUS_UI_CANONICAL_TAG: "incus-0.21.0"
       LXCFS_TAG: "v7.0.0"
       LXC_TAG: "v7.0.0"
@@ -309,8 +309,6 @@ jobs:
           REPO="${PWD}"
 
           cd /build/incus
-
-          git cherry-pick a1276cdb57297245496ac8c1db76b90d1fcebd3b  # incusd/instance/lxc: Fix environment quoting
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v7/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v7/cmd/incus
