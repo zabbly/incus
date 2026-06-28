@@ -308,6 +308,10 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick 30c603507e631eb90ed189a9803709a95ed61c71  # incus/move: Apply --storage pool to dependent disks
+          git cherry-pick c97d867faabce3bb56176709396b0506afc0d95e  # incusd/firewall: Fix double Wait in nftParseRuleset
+          git cherry-pick 713a400c979c2473e40f813a92246b7788aebe17  # incusd/device: Allow static CIDR address on unmanaged bridge
+
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v7/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v7/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" github.com/lxc/incus/v7/cmd/incus-benchmark
