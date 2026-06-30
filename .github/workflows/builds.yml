@@ -311,6 +311,11 @@ jobs:
           git cherry-pick 30c603507e631eb90ed189a9803709a95ed61c71  # incus/move: Apply --storage pool to dependent disks
           git cherry-pick c97d867faabce3bb56176709396b0506afc0d95e  # incusd/firewall: Fix double Wait in nftParseRuleset
           git cherry-pick 713a400c979c2473e40f813a92246b7788aebe17  # incusd/device: Allow static CIDR address on unmanaged bridge
+          git cherry-pick 31de4be43c17eafa6c9aa516f9f5a99cea1569c6  # shared/logger: Add WarnOnErrorExcept helper
+          git cherry-pick 7a6df891b5c60087333458479fc6757b4055a586  # incus: Avoid double-close warning on volume/bucket/instance import
+          git cherry-pick bfece20827965836d27c90579be4a766e6ac4748  # incusd/device: Reset VM disk I/O limits on unset
+          git cherry-pick 6eb95b4dae48ac81be7e4ca4b13e4c637f343234  # incusd/devices: Allow /32 and /128 for OCI addresses
+          git cherry-pick 661d3c36df2467e36f5b80208aa11d4ef7833526  # incusd/operations: Fix nil deref race in Cancel
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v7/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v7/cmd/incus
