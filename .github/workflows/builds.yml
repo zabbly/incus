@@ -308,14 +308,47 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick c9a2d2ee52f4ed352027bb840714c931ce2e61a9  # cmd/incusd: `isolated` on `restricted.containers.privilege` prevents setting `security.privileged` to `true`
+          git cherry-pick 10a2343604d148e66f2142d69c106b36cdf20872  # doc: regenerate configurable options index
+          git cherry-pick 388c9e6cdb8db152c275441affaf9fe389493915  # api: regenerate `/1.0/metadata/configuration` options
           git cherry-pick 30c603507e631eb90ed189a9803709a95ed61c71  # incus/move: Apply --storage pool to dependent disks
+          git cherry-pick f7f0a7aa18fda9898c3a88148601702c26d7f238  # doc: fix `config set` deprectation warning
           git cherry-pick c97d867faabce3bb56176709396b0506afc0d95e  # incusd/firewall: Fix double Wait in nftParseRuleset
           git cherry-pick 713a400c979c2473e40f813a92246b7788aebe17  # incusd/device: Allow static CIDR address on unmanaged bridge
+          git cherry-pick 9ad1a55d69d0f20e674496d2e6d60ff9879b5360  # incusd/instance/qemu/qmp: Run guest memory dump detached
           git cherry-pick 31de4be43c17eafa6c9aa516f9f5a99cea1569c6  # shared/logger: Add WarnOnErrorExcept helper
           git cherry-pick 7a6df891b5c60087333458479fc6757b4055a586  # incus: Avoid double-close warning on volume/bucket/instance import
           git cherry-pick bfece20827965836d27c90579be4a766e6ac4748  # incusd/device: Reset VM disk I/O limits on unset
           git cherry-pick 6eb95b4dae48ac81be7e4ca4b13e4c637f343234  # incusd/devices: Allow /32 and /128 for OCI addresses
           git cherry-pick 661d3c36df2467e36f5b80208aa11d4ef7833526  # incusd/operations: Fix nil deref race in Cancel
+          git cherry-pick 2954ccafa9a29b62ec02f9cd57a36d136441c680  # cmd/generate-database/db: Manually specify uuid package
+          git cherry-pick 40c8d60da3cb09c3b2135ca9d06ec838da8dad50  # incus: Avoid double-close warning on export and file pull
+          git cherry-pick 3340de6bcf5ce49c896ed2359043ee53d6bbcea0  # doc/incus-cli: reword docs for configuration file path
+          git cherry-pick 0dada138cb52c0633c8f4fad102155a9d0d2e536  # incusd/device/disk: Use resolved project for Ceph ISO RBD names
+          git cherry-pick 047f5295b41579ce1497ae6f4e3622c334afad71  # incusd: Switch OCI network configuration to interfaces.json
+          git cherry-pick c9348b64e60f0a817a3353f5fb36be0ebe2f03fa  # incusd/device: Mention "none" as valid NIC gateway value
+          git cherry-pick c0fa4b2e642d2bba66e27d497e23a6fda6b79d07  # incusd: Support "none" gateways in OCI containers
+          git cherry-pick 5030da4a504edd8cddbae4e5a57a9097dce18dc2  # doc: Update configuration option metadata
+          git cherry-pick 9c6002e864bbaac617331cb7dd2028d3187ec76f  # incusd: Use constant-time comparison for secrets
+          git cherry-pick ee81502afe879599eb7124c170724f842ea4ddb2  # incusd: Limit websocket control message size
+          git cherry-pick de3d67d43a9cd71a96317d77b8e28a9995f35f26  # incusd/device: Use IsAPIName for device name validation
+          git cherry-pick 4030981f25b2016c6e99d1b0aa43b624fd84e438  # incusd/storage/s3: Pin certificate for local S3 bucket transfers
+          git cherry-pick 65025e292df9adad2efd211cccc515ee65f3955b  # incusd/db/query: Use hex blob literal in database dumps
+          git cherry-pick d416f3c6216ce63d23c4ac8f8e289d15438cd273  # incusd/instance/qemu: Use a shared memory backend on all architectures
+          git cherry-pick 58e7b5cb502732f6bb114d65497a1923433508a2  # incusd/storage: Honor btrfs.compression on instances from optimized images
+          git cherry-pick a07f9326d66ed0ad6a3412595b79bc3ce1aba94a  # test: Cover btrfs.compression on instances from optimized images
+          git cherry-pick b32e98aec2c657a156d36268a35b0db2ad88b1b3  # incusd/storage/s3: Add GetBucketVersioning
+          git cherry-pick 629a8853722bd64f43b25706e37e7e5505af215b  # incusd/forknet: Wait up to 5s for initial DHCP configuration
+          git cherry-pick 7c42ac4c479c1980dfb8efc224844859efa43ef5  # incusd/instance/qemu: Handle missing kvm64
+          git cherry-pick b7f8d10487c323f4672bb1c3b9eb8a361aa8dc75  # client: Only pass device overrides to sources supporting them
+          git cherry-pick 3b370a4ff2435f3d44876cccea93071b325bcd7e  # incusd/instance/qemu: Serialize CPU pinning data in the CPU topology
+          git cherry-pick f3286684948fe294ce58f1b19fa3a1db5f2cb5bb  # incusd/instance/qemu: Re-compute CPU pins on stateful start
+          git cherry-pick a08f2fadd5f235c5a93a75bf1997c30b5757bb91  # incus: Fix remote path handling on Windows
+          git cherry-pick 86395a281f4e75f2b57588081b6ecd8c7415c051  # incusd/forksyscall: Fix mknod emulation for relative paths
+          git cherry-pick 82800c3e65ce4a8e401b5e277ffe8542d092848e  # internal/instance: Mention cgroup2 limitations
+          git cherry-pick 114ffb2dc0af29cbd5967a75f5df2613283d11ac  # doc: Update config
+          git cherry-pick da70ae3b0d366dd964653e579864e1eeb3348825  # incusd/dev_incus: Fix race in ConnPidMapper access
+          git cherry-pick 45439e0b23035427d44ef2e727bd79b1e99f0ede  # incusd/forksyscall: Check for path truncation in mknod emulation
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v7/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v7/cmd/incus
