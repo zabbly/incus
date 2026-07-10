@@ -46,7 +46,7 @@ jobs:
       # Linux Containers projects
       DISTROBUILDER_TAG: "distrobuilder-3.2"
       INCUS_TAG: "main"
-      INCUS_UI_CANONICAL_TAG: "incus-0.21.2"
+      INCUS_UI_CANONICAL_TAG: "incus-0.21.3"
       LXCFS_TAG: "v7.0.0"
       LXC_TAG: "v7.0.0"
 
@@ -54,10 +54,10 @@ jobs:
       COWSQL_TAG: "v1.15.9"
       CRIU_TAG: "v4.2"
       EDK2_TAG: "edk2-stable202605"
-      GOLANG_TAG: "go1.26.4"
+      GOLANG_TAG: "go1.26.5"
       LEGO_TAG: "v4.35.2"
       LIBTPMS_TAG: "v0.10.2"
-      LIBURING_TAG: "liburing-2.14"
+      LIBURING_TAG: "liburing-2.15"
       NASM_TAG: "nasm-2.16.03"
       NVIDIA_CONTAINER_TAG: "v1.19.1"
       QEMU_TAG: "v11.0.2"
@@ -66,7 +66,7 @@ jobs:
       SKOPEO_TAG: "v1.23.0"
       SWTPM_TAG: "v0.10.1"
       TRUENAS_INCUS_CTL_TAG: "v0.7.7"
-      VIRTIOFSD_TAG: "v1.13.3"
+      VIRTIOFSD_TAG: "v1.14.0"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
