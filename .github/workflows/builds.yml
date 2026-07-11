@@ -158,6 +158,7 @@ jobs:
 
           if [ "${OS_NAME}" = "debian-13" ] || [ "${OS_NAME}" = "ubuntu-26.04" ]; then
             sudo apt-get install --no-install-recommends --yes \
+                libdrm-dev \
                 libegl1-mesa-dev \
                 libgbm-dev \
                 libepoxy-dev
@@ -220,6 +221,10 @@ jobs:
           git clone https://gitlab.com/qemu-project/qemu /build/qemu --depth 1 -b "${QEMU_TAG}"
           git clone https://gitlab.com/qemu-project/seabios /build/seabios --depth 1 -b "${SEABIOS_TAG}"
           git clone https://gitlab.com/virtio-fs/virtiofsd /build/virtiofsd --depth 1 -b "${VIRTIOFSD_TAG}"
+
+          if [ "${OS_NAME}" = "debian-13" ] || [ "${OS_NAME}" = "ubuntu-26.04" ]; then
+            git clone https://gitlab.freedesktop.org/virgl/virglrenderer /build/virglrenderer --depth 1 -b "${VIRGLRENDERER_TAG}"
+          fi
 
           mkdir /build/nasm/
           curl -sL "https://www.nasm.us/pub/nasm/releasebuilds/$(echo ${NASM_TAG} | cut -d- -f2)/${NASM_TAG}.tar.gz" --resolve www.nasm.us:443:198.137.202.136 | tar -C /build/nasm/ -zx --strip-components=1
@@ -576,6 +581,23 @@ jobs:
 
           go build -o "/opt/incus/bin/truenas_incus_ctl" truenas/truenas_incus_ctl
 
+      - name: Build virglrenderer
+        if: ${{ matrix.os == 'debian-13' || matrix.os == 'ubuntu-26.04' }}
+        run: |
+          cd /build/virglrenderer
+
+          meson setup build \
+                  --prefix=/opt/incus \
+                  --libdir=/opt/incus/lib \
+                  -Dplatforms=egl \
+                  -Ddrm-renderers=amdgpu-experimental,asahi,msm,panfrost-experimental,i915-experimental
+          meson compile -C build
+
+          mkdir -p /build/target/virglrenderer/
+          DESTDIR=/build/target/virglrenderer/ meson install -C build
+          rsync -a /build/target/virglrenderer/opt/incus/include/ /opt/incus/include/
+          rsync -a /build/target/virglrenderer/opt/incus/lib/ /opt/incus/lib/
+
       - name: Build QEMU
         run: |
           REPO="${PWD}"
@@ -777,6 +799,15 @@ jobs:
           else
             sed -i debian/control \
               -e "s/LIBNET1/libnet1/g"
+          fi
+
+          if [ "${PKGOS}" = "debian-13" ] || [ "${PKGOS}" = "ubuntu-26.04" ]; then
+            sed -i debian/control \
+              -e "s/^  LIBVIRGL,$/  libdrm-amdgpu1,\n  libdrm2,\n  libegl1,\n  libepoxy0,\n  libgbm1,/"
+            echo "opt/incus/lib/libvirglrenderer.so*" >> debian/incus.install
+          else
+            sed -i debian/control \
+              -e "/^  LIBVIRGL,$/d"
           fi
 
           dch --package incus --create -D ${CODENAME} -M -m "Automated Incus daily build" -v 1:0~$(echo ${PKGOS} | sed "s/-//g")~$(date -u +%Y%m%d%H%M) --force-distribution
