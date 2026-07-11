@@ -12,6 +12,7 @@ Architecture: linux-any
 Depends: ${misc:Depends},
   incus-base (= ${source:Version}),
   genisoimage,
+  LIBVIRGL,
   libnuma1,
   libpixman-1-0,
   LIBPNG16,
