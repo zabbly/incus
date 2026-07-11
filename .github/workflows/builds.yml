@@ -156,6 +156,13 @@ jobs:
             xmlto \
             xorriso
 
+          if [ "${OS_NAME}" = "debian-13" ] || [ "${OS_NAME}" = "ubuntu-26.04" ]; then
+            sudo apt-get install --no-install-recommends --yes \
+                libegl1-mesa-dev \
+                libgbm-dev \
+                libepoxy-dev
+          fi
+
           sudo apt-get install --no-install-recommends --yes systemd-dev || true
 
           pipx install meson
@@ -578,6 +585,12 @@ jobs:
           sed -i "s/^unset target_list$/target_list=\"$(uname -m)-softmmu\"/" configure
 
           sed -i "/subdir('tests')/d" meson.build
+
+          opengl=""
+          if [ "${OS_NAME}" = "debian-13" ] || [ "${OS_NAME}" = "ubuntu-26.04" ]; then
+            opengl="--enable-opengl --enable-virglrenderer"
+          fi
+
           ./configure \
                   --prefix=/opt/incus \
                   --libexecdir=bin \
@@ -616,7 +629,8 @@ jobs:
                   --enable-vhost-kernel \
                   --enable-vhost-net \
                   --enable-vhost-user \
-                  --enable-virtfs
+                  --enable-virtfs \
+                  ${opengl}
           make
 
           mkdir /build/target/qemu/
