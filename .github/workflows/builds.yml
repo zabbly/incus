@@ -63,6 +63,7 @@ jobs:
       SKOPEO_TAG: "v1.24.0"
       SWTPM_TAG: "v0.10.1"
       TRUENAS_INCUS_CTL_TAG: "v0.7.7"
+      VIRGLRENDERER_TAG: "1.3.0"
       VIRTIOFSD_TAG: "v1.14.0"
     steps:
       - name: Checkout code

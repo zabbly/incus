@@ -19,7 +19,7 @@ while read line; do
     grep -v '{}' |
     grep -v \\.99 |
     grep -Ev 'rc|beta|alpha' |
-    grep "${pattern}" |
+    grep "/tags/${pattern}" |
     tail -1 |
     sed "s#.*refs/tags/##g")"
 
