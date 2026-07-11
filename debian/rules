@@ -20,6 +20,7 @@ override_dh_install:
 	rm debian/incus-base/opt/incus/bin/qemu-nbd
 	rm debian/incus-base/opt/incus/bin/qemu-system-*
 	rm debian/incus-base/opt/incus/bin/virtiofsd
+	rm -f debian/incus-base/opt/incus/lib/libvirglrenderer.so*
 
 	# Handle incus-client
 	rm debian/incus-base/usr/bin/incus
