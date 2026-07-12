@@ -583,6 +583,26 @@ jobs:
           ln -s OVMF_CODE.4MB.fd /opt/incus/share/qemu/OVMF_CODE.fd
           ln -s OVMF_VARS.4MB.fd /opt/incus/share/qemu/OVMF_VARS.fd
 
+          # Unified (embedded variable store) firmware for AMD SEV.
+          if [ "${EDK2_ARCH}" = "X64" ]; then
+              touch OvmfPkg/AmdSev/Grub/grub.efi
+
+              (
+              cat << EOF
+                  . ./edksetup.sh
+                  build -a X64 -t GCC -b RELEASE -p OvmfPkg/AmdSev/AmdSevX64.dsc \
+                    -DCC_MEASUREMENT_ENABLE=TRUE \
+                    -DNETWORK_IP4_ENABLE=TRUE \
+                    -DNETWORK_IP6_ENABLE=TRUE \
+                    -DNETWORK_TLS_ENABLE=TRUE \
+                    -DNETWORK_HTTP_BOOT_ENABLE=TRUE \
+                    -DTPM2_ENABLE=TRUE
+          EOF
+              ) | bash -e
+
+              cp Build/AmdSev/*/FV/OVMF.fd /opt/incus/share/qemu/OVMF.amdsev.fd
+          fi
+
       - name: Build libtpms
         run: |
           REPO="${PWD}"
