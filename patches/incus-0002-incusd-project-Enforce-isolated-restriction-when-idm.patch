@@ -1,0 +1,56 @@
+From 267285e0b264e108e63b1758f921f11b01e7afc4 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Fri, 24 Jul 2026 11:56:00 -0400
+Subject: [PATCH 2/2] incusd/project: Enforce isolated restriction when idmap
+ key omitted
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+restricted.containers.privilege=isolated only rejected an explicit
+security.idmap.isolated=false, but the key defaults to non-isolated when
+omitted. Require containers to explicitly enable isolation.
+
+This addresses CVE-2026-62313
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+---
+ internal/server/project/permissions.go | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/internal/server/project/permissions.go b/internal/server/project/permissions.go
+index 9b045899b..0012efc6a 100644
+--- a/internal/server/project/permissions.go
++++ b/internal/server/project/permissions.go
+@@ -597,6 +597,7 @@ func checkRestrictions(project api.Project, instances []api.Instance, profiles [
+ 
+ 	allowContainerLowLevel := false
+ 	allowVMLowLevel := false
++	requireIsolated := false
+ 	var allowedIDMapHostUIDs, allowedIDMapHostGIDs []idmap.Entry
+ 
+ 	for i := range allRestrictions {
+@@ -645,6 +646,8 @@ func checkRestrictions(project api.Project, instances []api.Instance, profiles [
+ 				return nil
+ 			}
+ 
++			requireIsolated = restrictionValue == "isolated"
++
+ 			containerConfigChecks["security.idmap.isolated"] = func(instanceValue string) error {
+ 				if restrictionValue == "isolated" && util.IsFalseOrEmpty(instanceValue) {
+ 					return errors.New("Non-isolated containers are forbidden")
+@@ -829,6 +832,11 @@ func checkRestrictions(project api.Project, instances []api.Instance, profiles [
+ 		isContainerOrProfile := instType == instancetype.Container || instType == instancetype.Any
+ 		isVMOrProfile := instType == instancetype.VM || instType == instancetype.Any
+ 
++		// Non-isolation is the default, so when isolation is required, the container must explicitly enable it.
++		if requireIsolated && instType == instancetype.Container && util.IsFalseOrEmpty(config["security.idmap.isolated"]) {
++			return fmt.Errorf(`Non-isolated containers are forbidden on %s %q of project %q ("security.idmap.isolated" must be set to "true")`, entityTypeLabel, entityName, project.Name)
++		}
++
+ 		for key, value := range config {
+ 			if ((isContainerOrProfile && !allowContainerLowLevel) || (isVMOrProfile && !allowVMLowLevel)) && key == "raw.idmap" {
+ 				// If the low-level raw.idmap is used check whether the raw.idmap host IDs
+-- 
+2.47.3
+

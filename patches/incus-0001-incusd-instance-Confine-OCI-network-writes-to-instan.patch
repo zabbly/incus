@@ -1,0 +1,120 @@
+From 36015d0bcbcc75b15ae4d8f15bd274404c4384ab Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Fri, 24 Jul 2026 11:42:32 -0400
+Subject: [PATCH 1/2] incusd/instance: Confine OCI network writes to instance
+ root
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Also rejects line breaks in the oci.dns.domain and oci.dns.search values
+which are written to the generated resolv.conf.
+
+This addresses GHSA-7fj9-65v4-rp7h (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+---
+ internal/instance/config.go                    | 13 +++++++++++--
+ internal/server/instance/drivers/driver_lxc.go | 18 +++++++++++++-----
+ 2 files changed, 24 insertions(+), 7 deletions(-)
+
+diff --git a/internal/instance/config.go b/internal/instance/config.go
+index 733824849..bc17f259f 100644
+--- a/internal/instance/config.go
++++ b/internal/instance/config.go
+@@ -27,6 +27,15 @@ func isNvidiaConfigValue(value string) error {
+ 	return nil
+ }
+ 
++// isResolvConfValue rejects line breaks that would allow injecting arbitrary lines into the generated resolv.conf.
++func isResolvConfValue(value string) error {
++	if strings.ContainsAny(value, "\r\n") {
++		return errors.New("Value cannot contain line breaks")
++	}
++
++	return nil
++}
++
+ // ConfigVolatilePrefix indicates the prefix used for volatile config keys.
+ const ConfigVolatilePrefix = "volatile."
+ 
+@@ -826,7 +835,7 @@ var InstanceConfigKeysContainer = map[string]func(value string) error{
+ 	//  liveupdate: no
+ 	//  condition: OCI container
+ 	//  shortdesc: DNS domain
+-	"oci.dns.domain": validate.IsAny,
++	"oci.dns.domain": validate.Optional(isResolvConfValue),
+ 
+ 	// gendoc:generate(entity=instance, group=oci, key=oci.dns.search)
+ 	// Comma-separated list of search domains for the initial `resolv.conf`.
+@@ -835,7 +844,7 @@ var InstanceConfigKeysContainer = map[string]func(value string) error{
+ 	//  liveupdate: no
+ 	//  condition: OCI container
+ 	//  shortdesc: DNS search domains
+-	"oci.dns.search": validate.IsAny,
++	"oci.dns.search": validate.Optional(validate.IsListOf(isResolvConfValue)),
+ 
+ 	// Caller is responsible for full validation of any raw.* value.
+ 
+diff --git a/internal/server/instance/drivers/driver_lxc.go b/internal/server/instance/drivers/driver_lxc.go
+index b26f0b231..e5cb3c53f 100644
+--- a/internal/server/instance/drivers/driver_lxc.go
++++ b/internal/server/instance/drivers/driver_lxc.go
+@@ -2580,17 +2580,25 @@ func (d *lxc) startCommon() (string, []func() error, error) {
+ 		}
+ 
+ 		// Configure network handling.
+-		err = os.MkdirAll(filepath.Join(d.Path(), "network"), 0o711)
++		// Confine all writes to the instance directory to avoid following image-planted symlinks.
++		instRoot, err := os.OpenRoot(d.Path())
+ 		if err != nil {
+ 			return "", nil, err
+ 		}
+ 
++		defer logger.WarnOnError(instRoot.Close, "Failed to close instance root")
++
++		err = instRoot.Mkdir("network", 0o711)
++		if err != nil && !errors.Is(err, fs.ErrExist) {
++			return "", nil, err
++		}
++
+ 		err = os.MkdirAll(filepath.Join(d.RootfsPath(), "etc"), 0o755)
+ 		if err != nil && !os.IsExist(err) {
+ 			return "", nil, err
+ 		}
+ 
+-		err = os.WriteFile(filepath.Join(d.Path(), "network", "hosts"), fmt.Appendf(nil, `127.0.0.1   localhost
++		err = instRoot.WriteFile("network/hosts", fmt.Appendf(nil, `127.0.0.1   localhost
+ 127.0.1.1   %s
+ 
+ ::1     localhost ip6-localhost ip6-loopback
+@@ -2608,7 +2616,7 @@ ff02::2 ip6-allrouters
+ 			return "", nil, err
+ 		}
+ 
+-		err = os.WriteFile(filepath.Join(d.Path(), "network", "hostname"), fmt.Appendf(nil, "%s\n", d.name), 0o644)
++		err = instRoot.WriteFile("network/hostname", fmt.Appendf(nil, "%s\n", d.name), 0o644)
+ 		if err != nil {
+ 			return "", nil, err
+ 		}
+@@ -2632,7 +2640,7 @@ ff02::2 ip6-allrouters
+ 			fmt.Fprintf(&resolvConf, "domain %s\n", d.expandedConfig["oci.dns.domain"])
+ 		}
+ 
+-		err = os.WriteFile(filepath.Join(d.Path(), "network", "resolv.conf"), []byte(resolvConf.String()), 0o644)
++		err = instRoot.WriteFile("network/resolv.conf", []byte(resolvConf.String()), 0o644)
+ 		if err != nil {
+ 			return "", nil, err
+ 		}
+@@ -2658,7 +2666,7 @@ ff02::2 ip6-allrouters
+ 			}
+ 		}
+ 
+-		err = os.WriteFile(filepath.Join(d.Path(), "network", "dhcp.skip"), []byte(dhcpSkip.String()), 0o644)
++		err = instRoot.WriteFile("network/dhcp.skip", []byte(dhcpSkip.String()), 0o644)
+ 		if err != nil {
+ 			return "", nil, err
+ 		}
+-- 
+2.47.3
+
