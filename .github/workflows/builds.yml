@@ -49,7 +49,7 @@ jobs:
 
       # External dependencies
       COWSQL_TAG: "v1.15.9"
-      CRIU_TAG: "v4.2"
+      CRIU_TAG: "v4.2.1"
       EDK2_TAG: "edk2-stable202605"
       GOLANG_TAG: "go1.26.5"
       LEGO_TAG: "v4.35.2"
@@ -57,10 +57,10 @@ jobs:
       LIBURING_TAG: "liburing-2.15"
       NASM_TAG: "nasm-2.16.03"
       NVIDIA_CONTAINER_TAG: "v1.19.1"
-      QEMU_TAG: "v11.0.2"
+      QEMU_TAG: "v11.0.3"
       RAFT_TAG: "v0.22.1"
       SEABIOS_TAG: "rel-1.17.0"
-      SKOPEO_TAG: "v1.23.0"
+      SKOPEO_TAG: "v1.24.0"
       SWTPM_TAG: "v0.10.1"
       TRUENAS_INCUS_CTL_TAG: "v0.7.7"
       VIRTIOFSD_TAG: "v1.14.0"
