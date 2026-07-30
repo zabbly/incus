@@ -308,6 +308,27 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick 136444d9b65d17a55519f1a86809f030d58c9c79  # incusd/storage: Strip unsafe symlinks in externally-supplied instance data
+          git cherry-pick 4dc6e1f7935ac13bcff98f6aa213e02815d0dcc8  # incusd/storage/s3: Reject symlinks in bucket backups
+          git cherry-pick 001bd0657f9ea6d73368118a01c5248080f2bbef  # incusd/storage: Allow expected symlinks in instance metadata
+          git cherry-pick dbc1e36173f8cac74ef276a88ba1e0bc9964002c  # incusd/project: Restrict volume creation options in restricted projects
+          git cherry-pick 4f847ad5ab34716efb723e3f46e3d72e472035de  # internal/instance: Prevent line breaks in NVIDIA config values
+          git cherry-pick 7135f0183d9dc0661d2e3eb36779bc2273545266  # incusd/storage: Confine backup.yaml write to instance root
+          git cherry-pick 1bb869273c69cd5d17558a021028c5dee45d82d4  # incusd/instance: Confine metadata.yaml access to instance root
+          git cherry-pick 181ae5c746c718767e8ca6f3edbe3df4a6fc9fbe  # incusd/instance/qemu: Confine template access to instance root
+          git cherry-pick 3d7246efe5ec4dba476f95ec163eb4a165717863  # incusd/images: Validate image fingerprint for all protocols
+          git cherry-pick c7cf33d46a83fd39b59843f0bd406a2c88d2e899  # incusd/storage: Validate volume name on ISO and backup import
+          git cherry-pick 0d21c84dbff03e1a676a94ecbfaafca8b48695ba  # incusd/instances: Validate instance name on backup import
+          git cherry-pick 9bc9f9ba5ab61fd5e6c9fa0f5e2440d4ce8495e5  # incusd/instances: Re-check restrictions after copy config merge
+          git cherry-pick 57c415871256445efa758086e6ef8111464b1c26  # incusd/instance: Enforce project restrictions on migration overrides
+          git cherry-pick f86f08bfcd36aae7e8f29e83e71e6767ddb3e077  # incusd: Expand network address set project for authorization
+          git cherry-pick 038fd13e82c107ed40cad7697eabe45f3395a0cf  # incusd/instance: Fix NVIDIA require.cuda and require.driver handling
+          git cherry-pick 1e09276c318107c21091b9811643ef13e8692824  # incusd/instance: Confine exec-output access to its directory
+          git cherry-pick 8cdc50343707525e01178b04f11350340b67eaa1  # incusd: Fail closed on unknown authorization project expansion
+          git cherry-pick a89084e2de1548513d349c5305f509ed80d43240  # incusd/instance/qemu: Use os.Root for template output
+          patch -p1 < "${REPO}/patches/incus-0001-incusd-instance-Confine-OCI-network-writes-to-instan.patch"
+          patch -p1 < "${REPO}/patches/incus-0002-incusd-project-Enforce-isolated-restriction-when-idm.patch"
+
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v7/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v7/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" github.com/lxc/incus/v7/cmd/incus-benchmark
