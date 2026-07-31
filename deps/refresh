@@ -23,6 +23,11 @@ while read line; do
     tail -1 |
     sed "s#.*refs/tags/##g")"
 
+  if [ "${version}" = "" ]; then
+    echo "${tag} => no stable tag, skipping"
+    continue
+  fi
+
   sed -i "s#${tag}: .*#${tag}: \"${version}\"#g" ../.github/workflows/builds.yml
   echo "${tag} => ${version}"
 done < dependencies
