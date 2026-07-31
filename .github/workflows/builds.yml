@@ -42,6 +42,7 @@ jobs:
 
       # Linux Containers projects
       DISTROBUILDER_TAG: "distrobuilder-3.2"
+      INCUS_COMPOSE_TAG: "v1.0.0"
       INCUS_TAG: "v7.3.0"
       INCUS_UI_CANONICAL_TAG: "incus-0.21.5"
       LXCFS_TAG: "v7.0.0"
@@ -202,6 +203,7 @@ jobs:
           git clone https://github.com/lxc/lxc /build/lxc -b "${LXC_TAG}"
           git clone https://github.com/lxc/lxcfs /build/lxcfs --depth 1 -b "${LXCFS_TAG}"
           git clone https://github.com/lxc/incus /build/incus -b "${INCUS_TAG}"
+          git clone https://github.com/lxc/incus-compose /build/incus-compose --depth 1 -b "${INCUS_COMPOSE_TAG}"
           git clone https://github.com/zabbly/incus-ui-canonical /build/incus-ui-canonical --depth 1 -b "${INCUS_UI_CANONICAL_TAG}"
 
           git clone https://github.com/axboe/liburing /build/liburing --depth 1 -b "${LIBURING_TAG}"
@@ -381,6 +383,11 @@ jobs:
         run: |
           cd /build/distrobuilder
           go build -o "/opt/incus/bin/distrobuilder" github.com/lxc/distrobuilder/distrobuilder
+
+      - name: Build Incus Compose
+        run: |
+          cd /build/incus-compose
+          go build -o "/opt/incus/bin/incus-compose" github.com/lxc/incus-compose/cmd/incus-compose
 
       - name: Build CRIU
         run: |

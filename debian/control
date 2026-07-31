@@ -141,6 +141,7 @@ Description: Incus - Extra tools
   - distrobuilder
   - fuidshift
   - incus-benchmark
+  - incus-compose
   - incus-migrate
   - incus-simplestreams
   - lxc-to-incus
