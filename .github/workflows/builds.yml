@@ -387,7 +387,7 @@ jobs:
       - name: Build Incus Compose
         run: |
           cd /build/incus-compose
-          go build -o "/opt/incus/bin/incus-compose" github.com/lxc/incus-compose/cmd/incus-compose
+          go build -ldflags="-w -s -X github.com/lxc/incus-compose/cmd/incus-compose/version.Version=${INCUS_COMPOSE_TAG}" -o "/opt/incus/bin/incus-compose" github.com/lxc/incus-compose/cmd/incus-compose
 
       - name: Build CRIU
         run: |
