@@ -323,6 +323,23 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick b406a0397cc3a7778c79dbf863e3559b38d34353  # incus/low-level: Fix naming inconsistency
+          git cherry-pick a2aa861daec6d4539bdfd5c519416b9b08bc87ec  # i18n: Update translation templates
+          git cherry-pick 19269185635ab4470de60ef1c828a43a13ed0fe4  # shared/api: Hide additional sensitive config keys
+          git cherry-pick 66e092f0fff264066b2754f3f16b1bcb2c7c7cba  # incusd/instance/qmp: Bump query-migrate timeout
+          git cherry-pick 54d230183cde6f5d7e996e1b1b488ddcf6929bfc  # incusd/db: Have NetworkNodeConfigs only consider the requested network
+          git cherry-pick 066ef03eb91f2a2450d256aa70b3857dbfa6b69c  # incusd/network/ovn: Skip empty transactions in SetChassisGroupPriority
+          git cherry-pick 28c287796fce2e5488873a633ae8bb1b3ef5e97a  # docs: Clarify the sentence about Incus owning the ZFS pool/dataset
+          git cherry-pick 11a82f81ce9f2b5a8ea74c668a33b8eb82f7f90e  # incusd/daemon: Drop else branches in project expansion
+          git cherry-pick 59a71850fbce8df07bff8057138e2f9e690ee2b0  # incusd/bgp: Resolve neighbor address for unnumbered peers
+          git cherry-pick 6c9ac20100b3b5da3926f544c2577ba5ef9c2edc  # incus/remote: Restrict proxy /1.0 cache to GET and invalidate on changes
+          git cherry-pick 69b0915fdd9e8ea5fe27fc69b3e21c1e61438d4b  # incusd/endpoints: Fix proxy protocol handling
+          git cherry-pick 07f8dae5fd83b9496579b3bcbb9c07d77155a911  # incusd/storage: Unmount leftover mounts in CleanupInstancePaths
+          git cherry-pick cf1cf59f5b0b6fcf16261892825d1a211c18b30c  # incusd/device: Check interface isn't in use by host before passthrough
+          git cherry-pick 14f676ab8851f457d7c840f2774b62d33e97ef70  # incusd/instance/lxc: Fix mount options of OCI /run tmpfs
+          git cherry-pick 3a7ddebe4f2c4558d880f815f85c282ad192593f  # incusd/instance/lxc: Skip OCI /run tmpfs when image populates /run
+          git cherry-pick d8fecc63932678d06cbf6d0bba765492bd920755  # incusd/cluster: Stop instances in place when evacuation has no target
+
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v7/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v7/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" github.com/lxc/incus/v7/cmd/incus-benchmark
