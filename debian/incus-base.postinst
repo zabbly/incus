@@ -78,7 +78,8 @@ if [ "$1" = "configure" ]; then
         done
 
         # Restart or reload anything that's currently running.
-        if systemctl is-active incus.service -q; then
+        INCUS_SERVICE_STATE="$(systemctl is-enabled incus.service 2>/dev/null || true)"
+        if [ "${INCUS_SERVICE_STATE}" != "masked" ] && systemctl is-active incus.service -q; then
             systemctl restart incus.service
         fi
 
