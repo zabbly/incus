@@ -43,7 +43,7 @@ jobs:
       # Linux Containers projects
       DISTROBUILDER_TAG: "distrobuilder-3.2"
       INCUS_COMPOSE_TAG: "v1.3.1"
-      INCUS_TAG: "v7.3.0"
+      INCUS_TAG: "v7.4.0"
       INCUS_UI_CANONICAL_TAG: "incus-0.21.6"
       LXCFS_TAG: "v7.0.0"
       LXC_TAG: "v7.0.0"
@@ -322,138 +322,6 @@ jobs:
           REPO="${PWD}"
 
           cd /build/incus
-
-          git cherry-pick b406a0397cc3a7778c79dbf863e3559b38d34353  # incus/low-level: Fix naming inconsistency
-          git cherry-pick a2aa861daec6d4539bdfd5c519416b9b08bc87ec  # i18n: Update translation templates
-          git cherry-pick 19269185635ab4470de60ef1c828a43a13ed0fe4  # shared/api: Hide additional sensitive config keys
-          git cherry-pick 66e092f0fff264066b2754f3f16b1bcb2c7c7cba  # incusd/instance/qmp: Bump query-migrate timeout
-          git cherry-pick 54d230183cde6f5d7e996e1b1b488ddcf6929bfc  # incusd/db: Have NetworkNodeConfigs only consider the requested network
-          git cherry-pick 066ef03eb91f2a2450d256aa70b3857dbfa6b69c  # incusd/network/ovn: Skip empty transactions in SetChassisGroupPriority
-          git cherry-pick 28c287796fce2e5488873a633ae8bb1b3ef5e97a  # docs: Clarify the sentence about Incus owning the ZFS pool/dataset
-          git cherry-pick 11a82f81ce9f2b5a8ea74c668a33b8eb82f7f90e  # incusd/daemon: Drop else branches in project expansion
-          git cherry-pick 59a71850fbce8df07bff8057138e2f9e690ee2b0  # incusd/bgp: Resolve neighbor address for unnumbered peers
-          git cherry-pick 6c9ac20100b3b5da3926f544c2577ba5ef9c2edc  # incus/remote: Restrict proxy /1.0 cache to GET and invalidate on changes
-          git cherry-pick 69b0915fdd9e8ea5fe27fc69b3e21c1e61438d4b  # incusd/endpoints: Fix proxy protocol handling
-          git cherry-pick 07f8dae5fd83b9496579b3bcbb9c07d77155a911  # incusd/storage: Unmount leftover mounts in CleanupInstancePaths
-          git cherry-pick cf1cf59f5b0b6fcf16261892825d1a211c18b30c  # incusd/device: Check interface isn't in use by host before passthrough
-          git cherry-pick 14f676ab8851f457d7c840f2774b62d33e97ef70  # incusd/instance/lxc: Fix mount options of OCI /run tmpfs
-          git cherry-pick 3a7ddebe4f2c4558d880f815f85c282ad192593f  # incusd/instance/lxc: Skip OCI /run tmpfs when image populates /run
-          git cherry-pick d8fecc63932678d06cbf6d0bba765492bd920755  # incusd/cluster: Stop instances in place when evacuation has no target
-          git cherry-pick 25f04611b258785c285134818573252bf184ded4  # incusd/forknet: Fix concurrent DHCP resolv.conf handling
-          git cherry-pick bc57bb2385562d71bf3c77c9a8d6b16b12e3d908  # incusd/instance: Update oci.dns.* descriptions
-          git cherry-pick 00779baa2bfaef57fcd84477bf5f08d58607ad3a  # doc: Update config
-          git cherry-pick 72fe048beda95dc3d4a982be4c09321eb392aa18  # incusd/instance/lxc: Enable edns0 in OCI resolv.conf
-          git cherry-pick 69f1bc89f502f7a7f3670b32027478915bb6df4e  # incusd/forknet: Enable edns0 in resolv.conf
-          git cherry-pick 8fb121b80f5e6127ee31814d576726a0c85e133b  # shared/uefi: Various device path fixes
-          git cherry-pick a80638e0dad73e8f0c426c200eba26e57dd1db5e  # client: use a copy of ProtocolIncus for WithContext
-          git cherry-pick b7518d67e16083576a96bfed9ef238032277cb83  # client: Preserve tempPath in UseProject and UseTarget
-          git cherry-pick afa4ace07c6ced8faa34d81823b31cd9dd299bd9  # incusd/network/ovn: Replace stale SNAT rule on external address change
-          git cherry-pick c12e33b3920fcc43dc411f93d0abd1d4f9a33acf  # incusd/device/nic_ovn: Allow live update of ipv4/ipv6.address.external
-          git cherry-pick a7413d3683fdf376420b552c255e8cd936167493  # incusd/db: Add generated network, network_config and network_node entities
-          git cherry-pick 4d88b649c8e265308fd13a4e6c64f5f4c54ecd4d  # incusd/db: Add GetCreatedNetworksInfo
-          git cherry-pick b9432175eee9d98d9ef6d54bd44b42db65e105b4  # incusd/network: Add LoadAllCreated
-          git cherry-pick 8bec5dccbac60e71dd1a5e7b2b05b110fa5870b0  # incusd/network: Reduce database queries in OVN network startup
-          git cherry-pick a07c9691b1034a01768d7a22f954c21c75861e88  # incusd/networks: Reduce database queries during network startup
-          git cherry-pick b7d9906444711c78009558c01f8d63e551c87e61  # incusd: Use cached server name for warning operations
-          git cherry-pick abd0a91dbe165e33536c1171a288bef7848a3ce6  # incusd/cluster: Add ConnectIfBucketIsRemote
-          git cherry-pick d75bfe188b91f16dfc6ba7bd8cf02018d952d925  # incusd: Add forwardedResponseIfBucketIsRemote
-          git cherry-pick 461065f4c4a04ad29299b7cd82be49b4c8142635  # incusd: Forward storage bucket requests to the cluster member holding the bucket
-          git cherry-pick f586fb3bf9e0236b9510efcb6750fca24d1968d1  # doc: Document storage bucket handling in clusters
-          git cherry-pick d54cc569933aaa1f8580c5a349b35d31757b37fb  # internal/migration: Don't double close websocket writer
-          git cherry-pick 6afcb63368432afd33899ecd020c2363fff353e7  # incusd/instance/qmp: Ignore timeouts during migration
-          git cherry-pick 012947c0b3f1fbb233bf29d57d5dfe7ebe9b1be1  # incusd/network/ovn: Don't replace DNAT rules sharing a logical IP
-          git cherry-pick 47cbc0b34fdd7d6b60a40a76d73b493269a8a881  # incusd/network/ovn: Use tag_request on nested switch ports
-          git cherry-pick 640c238d9ca7b24ddb4920084a1b6ce2bdae263c  # client: Handle unmanaged networks in preseed
-          git cherry-pick c85d5bf2133bb94aa5764d254a032f5a157ccfa8  # incusd/storage/lvm: Wipe source device rather than VG name
-          git cherry-pick 6ad6b511d195b307fa2da3168d69de72313ca92c  # client: Detect dead event connections
-          git cherry-pick 5ffcc4da289f76a38e619008bb034b108a4ab7ee  # incusd/events: Deliver events in order
-          git cherry-pick 325f06901d57d24845811bb8530e4f7a0e430e1d  # incusd/projects: Send project-updated after the update
-          git cherry-pick e108b7bae9b3741b625e1b0157b33e062437de37  # doc: Document event ordering
-          git cherry-pick f133589810388252226ee53202500534788e04d1  # client: Fix Disconnect not disconnecting
-          git cherry-pick d39077c5f8df9520aad6d7fae5e7be3e4fa3af7c  # incusd/storage/lvm: Detect block type in ListVolumes
-          git cherry-pick efae9443acbc29d79d118cd740eb23e221dcf020  # incusd/storage: Tolerate missing snapshot record on delete
-          git cherry-pick b3515a114c11d1f148d3cee932293e1f86ec8abb  # incusd/storage: Repair snapshot records on refresh
-          git cherry-pick 84fa06c36981d34cd2b585b171a9ddc5a64c7113  # incus/admin_sql: Fix integer rendering
-          git cherry-pick be668c751664d69f20e8358ba9cd7f04ebec5a4c  # incusd/instance/qemu: Use temporary data-file when growing metadata image
-          git cherry-pick 895f8838d0c67317c0e6e7efcb06ed5a2c6bb905  # incusd/storage/linstor: Fix snapshot resource definition races
-          git cherry-pick ba3f9e3850688b71f8968ac45425a58e1346f158  # incusd/storage/cephfs: Sync filesystem before snapshot creation
-          git cherry-pick f8fafcdced6a908c32aa5745e7c78bec72e2688c  # incusd: Retry transient database errors in the admin SQL endpoint
-          git cherry-pick 48356a4ce82713c99f3a0ab3bdf172723167aa20  # incusd/db: Make AddImageToLocalNode idempotent
-          git cherry-pick 042e73076b9e6ee983dc35adb74580b32d1a5ad1  # incusd: Retry cluster role handover while another change is in progress
-          git cherry-pick 220f87518cfc20eb7e47c2bd88cf49494fa412c8  # instance: Derive process start time from proc stat
-          git cherry-pick 6ce6528b0e1c49c33a321c7e162c4be533455435  # incusd/storage/linstor: Mount snapshot volumes read-only
-          git cherry-pick c3e0aa6e5020b66c53ae5522afade90a4d59d47e  # shared/simplestreams: Include variant in image description
-          git cherry-pick 7e520507c6c196b9dd83ae364ac71107e6ed7dca  # client: Fix crash on listener disconnect without error
-          git cherry-pick 2647624d2c9bc81c08a811f85cd4aa62f29d5674  # incusd/network/zone: Allow underscore-prefixed names
-          git cherry-pick 0432535a668b359f5df829b7a4eff73e048c38cc  # incusd: Fix storage volume project expansion
-          git cherry-pick 1197ffef7a67b07328f8abae02c3b19786db63ed  # incusd/storage/linstor: Retry resource definition deletion
-          git cherry-pick fcaf8fcc7da0f3d29159e8b527254785e5c54881  # incusd: Make cluster role handover resilient to leader changes
-          git cherry-pick 0fe786f8badbacf2d3ae89a3ea2495dc9e46aa41  # shared/tls: Renew certificates at 80% of validity period
-          git cherry-pick c36b1d48a3673a053795c134fd23615b401a4397  # incusd/acme: Update for CertificateNeedsUpdate change
-          git cherry-pick e19186f3e7bbe4c9309b1e33afa2cd24c2cf3bee  # incusd/acme: Run renewal check hourly
-          git cherry-pick 65f41701460463362d2f651d28a51a3751b366d0  # incusd: Give up on cluster database after failed role handover
-          git cherry-pick 0fc771ad7362b793f1316793590a71ff0e84479e  # incusd/images: Propagate old image deletion errors during refresh
-          git cherry-pick 4678bc689c11e7f6244215cbd74b176f68212733  # incusd/storage/btrfs: Wait for quota rescan after enabling quotas
-          git cherry-pick 42f0d26595db66f73709356d812bdb6f73d864bb  # incusd: Bound global database close during shutdown
-          git cherry-pick cc2ff56144ab1e3748abac1b470a13903b636415  # incusd/instance/qemu: Record maxcpus in boot state
-          git cherry-pick 5e7fc39f3a6d507f41870959d5a578802ca29d63  # incusd/db/cluster: Make node_cluster_group deletion a DeleteMany
-          git cherry-pick eb894e6d0578449a5afb9182ef5de7afe8badd9e  # incusd: Fix PATCH of cluster group with multiple members
-          git cherry-pick 08107c1e2fcc76392063a62195831653856cc56e  # global: Fix warnings on double file close
-          git cherry-pick 3c5b28356502ff59f20508331d2f04110ca79165  # incusd: Simplify global database shutdown
-          git cherry-pick 1c8686262ba88ce2d4991c42d8bf5647ea27a897  # incusd/events: Send events outside of the lock
-          git cherry-pick e06dd28bd4b01add6b434bebd8db50ae6455f18f  # gomod: Update go-cowsql
-          git cherry-pick f0f796c9fca763c9209f277571ca47663b8ca9e0  # incusd/storage/linstor: Enforce minimum DRBD volume size
-          git cherry-pick 00b0c50d8b3302779254f8af553ae35108f941e0  # incusd/storage/linstor: Enforce exact DRBD volume sizes
-          git cherry-pick 0562d854e96e338a6ba80d436849d794befcbb04  # incusd/storage/lvm: Only grow snapshot CoW capacity when needed
-          git cherry-pick c7215d3a19b37ee272f5a2739867f2b7524c7244  # incusd/qemu: Make generated configuration deterministic
-          git cherry-pick 4902aa92db803c9cc935a4f985b200ac7c1f513a  # shared/uefi: Diverse fixes
-          git cherry-pick 067c11015b2d93b01ed1dccae778052d13c0eecd  # shared/uefi: Refactor dissection primitives
-          git cherry-pick 3776a8f95fc553492501fa104175bd92fa4031cd  # shared/uefi: Add missing writers
-          git cherry-pick e788caf9f27489911acf89d3201f8940cb5a54a5  # shared/uefi: Add formatting primitives
-          git cherry-pick 12bbf7521a63d46ffa6f89abab1f464b3fb56448  # shared/uefi: Add device path string representation lexer
-          git cherry-pick 43d66503bbd9152af0de644b3d225402fc9228c8  # shared/uefi: Add device path formatting
-          git cherry-pick b2c1133ae25679d95122a87f8c52abcc84c79355  # shared/uefi: Add device path tests
-          git cherry-pick a10ba3c82647126e4be6aefdb17f06622423dd46  # shared/uefi: Implement Boot#### formatting
-          git cherry-pick 06fde5f638de605071e094c8c5f1ada7a4bda1d3  # doc/storage: Add TrueNAS to data storage location table
-          git cherry-pick 14d28790ccdaea26261c3364d59cb47c35680cfb  # lxc: Start live migration action operation before pre-dumps
-          git cherry-pick d1af110f7e50bf9afc2059f8801139df52d8dfa0  # incusd/network/ovn: Handle dynamic addresses and removal for ipv4/ipv6.address.external
-          git cherry-pick 4d0f4a84783ae4003fe338d6982c1e3afcf07cf3  # incusd/device/nic_ovn: Remove stale SNAT rules on external address update
-          git cherry-pick 4e3f163e2d79f02240174e3071929fc0fda49b60  # incusd/firewall: Restrict wildcard proxy NAT to local addresses
-          git cherry-pick e54ea8de5a559bf4504f64160f1833de3bd9ea4f  # incusd/images: Split pruneExpiredImage into its own function
-          git cherry-pick e2fd746f137c5556aa7e5bc3a1b8345e2294a1a1  # incusd/images: Hold image lock when pruning and auto-updating images
-          git cherry-pick ad977c7781d197ce5a0844cd3e3d933c5f258e8b  # doc: Fix events table alignment
-          git cherry-pick 0b11b7ccb9635c8b6c52a6e1f52c6ef84aba2392  # incus/remote: Move client certificates on rename
-          git cherry-pick 0c89352b192bd04681bf64f15d1da87504dc9642  # incus/remote: Delete client certificates on removal
-          git cherry-pick 8c74cad12855af1f17826ee561afbdf0aa624e5f  # incusd/cluster: Apply cluster configuration before member init
-          git cherry-pick 68d6f58bf79c1f84fd6fb21c6c066794c78d3ec8  # incusd/project: Require OVN for features.networks
-          git cherry-pick 1f327a0e1ec697f2d41aafca448e05584a0642c7  # doc: Update configs
-          git cherry-pick 5533678f74fd2964e59b242b71dd875931bd8df4  # tests: Handle OVN requirement for features.networks
-          git cherry-pick 5b529d26e7632f32424964e08f7c129f908e16b6  # incusd/instance/qmp: Use job-complete instead of block-job-complete
-          git cherry-pick 20bcada100f9aec26876c43ecdd29282710391f4  # incusd/instance/qemu: Use -qmp chardev instead of mon config section
-          git cherry-pick f600636e2d653f023aa68b38ff498c8a1319796d  # incusd/instance/qemu: Use confidential-guest-support instead of memory-encryption
-          git cherry-pick bf4beeddfcce8de195268630614fc48664339190  # incusd/instance/qemu: Remove -mem-path and -mem-prealloc
-          git cherry-pick 227b9dd96a3d1817293fcee4abee0582489afae5  # incusd/instance/qemu: Move sandbox configuration to qemu.conf
-          git cherry-pick d311ff37c8a12076c1102affcd0f3d7c3246067a  # incusd/instance/qemu: Move RTC configuration to qemu.conf
-          git cherry-pick a0c468301ad4bd16756c1b2fe084c58c2f9e4b77  # incusd/instance/qemu: Move SPICE configuration to qemu.conf
-          git cherry-pick 2e2f45ad60da240c89baafdbd6c1638d69a36fe6  # lxc: Make incremental memory migration opt-in
-          git cherry-pick 49cae0a7565c779ec6191741bf92efedcac9131d  # storage/ceph: Ignore detached devices during RBD sysfs scan
-          git cherry-pick c07937ac0f3b956795d7e118f6e37f68b2ea36dd  # lxc: Normalize received CRIU state ownership
-          git cherry-pick 7b386535bf0ac24e686d85da2e3af95e25d4e8cf  # incusd/networks: Fix panic when a network fails to start
-          git cherry-pick fd4993575b9a5b645e309cd32b89485c19c442a2  # incusd/networks: Notify cluster members before local deletion
-          git cherry-pick 48a3ce46795931a46ffe92c12c773437590d5733  # incusd/cluster: Fail fast when target member is offline
-          git cherry-pick 44e69c46644652850f72422c205a2749019ab454  # incusd/cluster: Mark offline members as unavailable for event connections
-          git cherry-pick 89c6e1ed6ac25e27aa3e64e92aaeda367afb37af  # incusd/cluster: Avoid expensive connectivity probes in NewNotifier
-          git cherry-pick f414dea02899e1fc5af72e070f213fa4addf9c46  # incusd/cluster: Add connection timeouts to intra-cluster TLS dialer
-          git cherry-pick 299c6e3d1b494ac7695d967d0a28bdd1a6c854f4  # incusd/images: Surface write errors from compression pipeline
-          git cherry-pick d28da8ae1bd331927620cdc4c559e04804f9db57  # incusd/instance/qemu: Cancel incoming state transfer on source failure
-          git cherry-pick 98f37ffd1ddf65256277a370eb2d3cef14af6abc  # doc: explain how to resize virtual-machine/* volumes
-          git cherry-pick 44856475dca1fe46b3c3429d974b174b161226c1  # doc: storage_volumes: prefer `key=value` over `key value`
-          git cherry-pick 6f0d135e73100a57175a8c10f85867d635b89e17  # shared/subprocess: Make TryRunCommand always use C as locale
-          git cherry-pick 8d85ccba34a9a51f37e600e0dbeee6c495d2a8a3  # incusd/storage/lvm: Force use of C locale everywhere isLVMNotFoundExitError is used
-          git cherry-pick d2c1709543c7fca7064d70fb8b7c3190d6b345c3  # incusd/storage/lvm: Check error output in isLVMNotFoundExitError
-          git cherry-pick b53eea21d3d509d545b3a29aa8f748e78d273ea8  # incusd/storage/lvm: Preserve sanlock global lock on clustered pool deletion
-          git cherry-pick f8be84f009f29946e3e77d299e47f63df6b3f021  # incusd/images: Skip offline members during image distribution
-          git cherry-pick aeff19ca4fd22abd1334c4ec5bcd64aacc061ba4  # incusd/storage: Don't query offline members in volume listing
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v7/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v7/cmd/incus
