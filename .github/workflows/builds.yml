@@ -323,6 +323,13 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick b20b1f41a951112e66e3f41cbeadd9aa209c6048  # incusd/instance/edk2: Add FirmwarePair.HasNVRAM
+          git cherry-pick ed7687a133233e2d55d1dac6219906cf6b6e4079  # incusd/scriptlet/qemu: Handle firmwares without NVRAM
+          git cherry-pick 8e5a787e539dfe459fd3e67c8728c0c1a1bdfd89  # incusd/instance/qemu: Skip NVRAM handling with SeaBIOS firmware
+          git cherry-pick 2ac55baeedda9ca495f1ad92573c1cf41f4e5fc9  # doc: Note NVRAM scriptlet functions need EDK2 firmware
+          git cherry-pick 0f8bf8bdee149ba68c6c0e48fafd45407625d880  # incusd: Validate OCI config.json before use
+          git cherry-pick 20480b373eb90644f53710123658529fc1e267bf  # incusd: Consistently say 'an NVRAM'
+
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v7/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v7/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" github.com/lxc/incus/v7/cmd/incus-benchmark
