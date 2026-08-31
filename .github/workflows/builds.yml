@@ -328,6 +328,8 @@ jobs:
           git cherry-pick a89084e2de1548513d349c5305f509ed80d43240  # incusd/instance/qemu: Use os.Root for template output
           patch -p1 < "${REPO}/patches/incus-0001-incusd-instance-Confine-OCI-network-writes-to-instan.patch"
           patch -p1 < "${REPO}/patches/incus-0002-incusd-project-Enforce-isolated-restriction-when-idm.patch"
+          git cherry-pick 8723e980417255462f5123b2aff30973673b2076  # client/images: Prevent path traversal in downloaded image name
+          git cherry-pick 2521bf480af23765ea25754fd9a0a2ca146945c6  # incusd/images: Check access before reusing cross-project image
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v7/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v7/cmd/incus
