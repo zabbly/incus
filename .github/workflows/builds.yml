@@ -42,7 +42,7 @@ jobs:
 
       # Linux Containers projects
       DISTROBUILDER_TAG: "distrobuilder-3.2"
-      INCUS_COMPOSE_TAG: "v1.3.1"
+      INCUS_COMPOSE_TAG: "v1.3.2"
       INCUS_TAG: "v7.4.0"
       INCUS_UI_CANONICAL_TAG: "incus-0.21.6"
       LXCFS_TAG: "v7.0.0"
@@ -52,7 +52,7 @@ jobs:
       COWSQL_TAG: "v1.15.9"
       CRIU_TAG: "v4.2.1"
       EDK2_TAG: "edk2-stable202605"
-      GOLANG_TAG: "go1.27.0"
+      GOLANG_TAG: "go1.27.1"
       LEGO_TAG: "v4.35.2"
       LIBTPMS_TAG: "v0.10.2"
       LIBURING_TAG: "liburing-2.15"
