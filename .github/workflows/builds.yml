@@ -323,12 +323,47 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick e4d6ecf27baf820141ec3a895e7791a1561250ff  # incus-agent: Abstract exec process handling
+          git cherry-pick 0b1458ba9f05b4eed3cd869373c308e6977e92e4  # incus-agent: Report exit status of Windows exec sessions
+          git cherry-pick 220c5fcaeb0e8c36971332935d21d78dff5871db  # incus-agent: Fix PATHEXT for Windows exec sessions
+          git cherry-pick d8359cb4b9f3302c5eed918b45140746ea95c722  # incus-agent: Forward exec signals on Windows
+          git cherry-pick 53b0ffedd9c10e73599a100b128a48e375e24942  # incus-agent: Support interactive exec sessions on Windows
           git cherry-pick b20b1f41a951112e66e3f41cbeadd9aa209c6048  # incusd/instance/edk2: Add FirmwarePair.HasNVRAM
           git cherry-pick ed7687a133233e2d55d1dac6219906cf6b6e4079  # incusd/scriptlet/qemu: Handle firmwares without NVRAM
           git cherry-pick 8e5a787e539dfe459fd3e67c8728c0c1a1bdfd89  # incusd/instance/qemu: Skip NVRAM handling with SeaBIOS firmware
           git cherry-pick 2ac55baeedda9ca495f1ad92573c1cf41f4e5fc9  # doc: Note NVRAM scriptlet functions need EDK2 firmware
           git cherry-pick 0f8bf8bdee149ba68c6c0e48fafd45407625d880  # incusd: Validate OCI config.json before use
           git cherry-pick 20480b373eb90644f53710123658529fc1e267bf  # incusd: Consistently say 'an NVRAM'
+          git cherry-pick 83da057752e3a7f271c2cf8f4c3db68a2056344f  # incusd/instance/qemu: Close NVRAM file after writing
+          git cherry-pick aa51b27a566ddfe00216028bcb7bb2c77a5d6eda  # incusd/instance/qemu: Never drop runtime state while QEMU is alive
+          git cherry-pick 7ef8811b1c7fd1fd001ee1167fc1db8631c8d1f2  # incusd/instance/qemu/qmp: Raise default command timeout to 2s
+          git cherry-pick f9fcd4732c19d02291b062c0db3efa8953e0ba61  # client/oidc: Route provider requests through a dedicated transport
+          git cherry-pick d9141d00f74563b425a43e9599710589e0a323f6  # client/oidc: Drop empty form parameters sent to the provider
+          git cherry-pick 96bf16f69a42e0fd4a3428bfa04d20c106798c42  # incusd/device: Allow importing dependent volumes with snapshots
+          git cherry-pick 04b248cc8def5cfb47c001a6e6f22096d5f08795  # tests: Check dependent volume snapshots survive export/import
+          git cherry-pick 9c46aa2300d9c016c675b25798b68d34f33d0c84  # incusd/storage/drivers: Add cluster size to qcow2 ImageInfo
+          git cherry-pick 255bf043a0ceae762d0f364fb8fc89de8637cdf6  # incusd/instance/qemu: Advertise qcow2 cluster size as discard granularity
+          git cherry-pick 90d12822e398db152c0510e78cf2a33724b24905  # internal/io: Add GetUmask and Lchtimes helpers
+          git cherry-pick 2cc22b17eccc1cfeab4a592cb7300ab2fbfcc801  # incus/cluster: Don't use unix socket URL as the join address
+          git cherry-pick 5934efecb96ac6b590f94b0e83126622b9a18955  # incus-agent: Basic signal handling on Windows
+          git cherry-pick 2a28eca9f8ac6994df87fbbce978e43879f2a336  # incusd/instance: Mention images available for other instance types
+          git cherry-pick 308d48a21d4d43be20d80161d4012e41d075fe6c  # incusd/images: Check source instance access on publish
+          git cherry-pick 18d89a15531845b76204d7a5f7085c06813d8ffd  # incusd/cluster: Wait for all blocking instance operations before evacuating
+          git cherry-pick 5b6931afc3676867420b6e5920c46ecc4f44d741  # incusd/instance: Apply evacuation guard to forwarded state changes
+          git cherry-pick f154a9dc43cdab84eedf9e295fd1aa5c5739e57f  # incusd/instance/lxc: Check liblxc state when tolerating stop failures
+          git cherry-pick 3d814fb9c71732069d90789639ad6861c8c4bef0  # incusd/instance: Balance NUMA nodes on committed memory
+          git cherry-pick c67e864b1a171fbe4a5e34544156b71ec4897131  # incusd/cluster: Stop Ready and Frozen instances before a restore migration
+          git cherry-pick d9a5307955817758bfd6c3b77cb18ee7d7de06ac  # incusd/instance: Reject stateless cluster moves of running instances
+          git cherry-pick fde892f25ae080d8a89cda642951a41477b12ee0  # incusd/device/tpm: Mount the instance volume when removing state
+          git cherry-pick 00e92deaae278f409baeffc75a4649cc30f6d141  # incusd/instances: Prefer images.default_architecture for multi-arch sources
+          git cherry-pick 47561277d78026b6ee2c35cd869c0398a455abb2  # incusd/instance/qmp: Split query and operational command timeouts
+          git cherry-pick 2de7ef35e6a5db6898a2901cd394700cf9ab74d0  # incusd/instance/qmp: Tolerate monitor timeouts in blockJobWait
+          git cherry-pick ef21412169d9fcc6e2fb8b637d6c6b38b677ff6f  # incusd/instance/qemu: Report busy monitor as running
+          git cherry-pick 3c9567c924aa08bcdbbde31bc9c88705120fed33  # incusd/instance/qemu: Log failure to resume after failed migration
+          git cherry-pick 1b64e3b711739a523f1691d7ddc64ecc54a494f5  # incusd/instance/qemu: Wait for the NBD server before blockdev-add
+          git cherry-pick ad24faccffd1efc71a5aae2b8dd54d0e4ec71fb6  # incusd/instance/qemu: Accept qemu-kvm binary name in PID validation
+          git cherry-pick 9d31724071c9d16719a740c6110f14a6a58e8638  # incus/image: Don't warn on already closed files during import
+          git cherry-pick 6452c6a059c43d4ca65fcd988a7710b50bc932d9  # Set PKCE challenge and verifier values
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v7/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v7/cmd/incus
