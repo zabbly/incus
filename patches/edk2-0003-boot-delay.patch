@@ -1,4 +1,4 @@
-From ee3d02a41cdad0c2dac00a2f8114d8d24d022e33 Mon Sep 17 00:00:00 2001
+From 868feab959bcc844b1b979718869fda2589cb55a Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@ubuntu.com>
 Date: Thu, 20 Aug 2020 16:40:47 -0400
 Subject: [PATCH] X64: Bump boot delay to 3s
@@ -12,10 +12,10 @@ Signed-off-by: Stéphane Graber <stgraber@ubuntu.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/OvmfPkg/OvmfPkgX64.dsc b/OvmfPkg/OvmfPkgX64.dsc
-index 556984bdaa..efd19d0d48 100644
+index a12ea98..9afb8b2 100644
 --- a/OvmfPkg/OvmfPkgX64.dsc
 +++ b/OvmfPkg/OvmfPkgX64.dsc
-@@ -650,7 +650,7 @@
+@@ -722,7 +722,7 @@
    gUefiOvmfPkgTokenSpaceGuid.PcdPciMmio64Base|0x0
    gUefiOvmfPkgTokenSpaceGuid.PcdPciMmio64Size|0x800000000
  

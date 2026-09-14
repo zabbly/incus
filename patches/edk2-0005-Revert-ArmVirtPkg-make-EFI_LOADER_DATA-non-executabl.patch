@@ -1,4 +1,4 @@
-From c2df6203da5df1ab015e51f6d6c3049ce7867d69 Mon Sep 17 00:00:00 2001
+From 85db698f4c46a7542264abd95bb453909e01ed06 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
 Date: Fri, 15 Sep 2023 11:13:23 -0400
 Subject: [PATCH] Revert "ArmVirtPkg: make EFI_LOADER_DATA non-executable"
@@ -14,10 +14,10 @@ Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/ArmVirtPkg/ArmVirt.dsc.inc b/ArmVirtPkg/ArmVirt.dsc.inc
-index 5384a41818..fe1ae25a93 100644
+index 2bc99de..476d93c 100644
 --- a/ArmVirtPkg/ArmVirt.dsc.inc
 +++ b/ArmVirtPkg/ArmVirt.dsc.inc
-@@ -383,7 +383,7 @@
+@@ -412,7 +412,7 @@ DEFINE FD_SIZE_IN_MB    = 3
    # build command line you can allow code execution in EfiLoaderData. This is
    # required when using some outdated GRUB versions.
    #
