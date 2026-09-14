@@ -1,4 +1,4 @@
-From a27ea9e98aefe5e49de1bd92b4c56f6141c3217c Mon Sep 17 00:00:00 2001
+From f8d7cf0ba61520167c66c93f444f29160449d13d Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@ubuntu.com>
 Date: Thu, 4 Jun 2020 15:02:27 -0400
 Subject: [PATCH] dhcp6: Force DUID-LLT
@@ -17,7 +17,7 @@ Signed-off-by: Stéphane Graber <stgraber@ubuntu.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/NetworkPkg/Dhcp6Dxe/Dhcp6Utility.c b/NetworkPkg/Dhcp6Dxe/Dhcp6Utility.c
-index f72bc93a68..7876527892 100644
+index 9eb1bdd..5352193 100644
 --- a/NetworkPkg/Dhcp6Dxe/Dhcp6Utility.c
 +++ b/NetworkPkg/Dhcp6Dxe/Dhcp6Utility.c
 @@ -66,7 +66,7 @@ Dhcp6GenerateClientId (

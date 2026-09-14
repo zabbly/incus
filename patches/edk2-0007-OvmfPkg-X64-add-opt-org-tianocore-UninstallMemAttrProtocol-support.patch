@@ -1,4 +1,4 @@
-From aa7f29a9e92b9e6f8b2e56bacaef6c96b8dc80ed Mon Sep 17 00:00:00 2001
+From 4dc812d1c64663f53a1fa6dd09829f733359ce7d Mon Sep 17 00:00:00 2001
 From: Gerd Hoffmann <kraxel@redhat.com>
 Date: Thu, 16 Jan 2025 17:20:38 +0100
 Subject: [PATCH] OvmfPkg/X64: add opt/org.tianocore/UninstallMemAttrProtocol
@@ -14,10 +14,10 @@ Signed-off-by: Gerd Hoffmann <kraxel@redhat.com>
  2 files changed, 65 insertions(+)
 
 diff --git a/OvmfPkg/Library/PlatformBootManagerLib/BdsPlatform.c b/OvmfPkg/Library/PlatformBootManagerLib/BdsPlatform.c
-index e66693879d34..f4ae8dc41df3 100644
+index 3edb92f..6c7a2ae 100644
 --- a/OvmfPkg/Library/PlatformBootManagerLib/BdsPlatform.c
 +++ b/OvmfPkg/Library/PlatformBootManagerLib/BdsPlatform.c
-@@ -1836,6 +1836,49 @@ SaveS3BootScript (
+@@ -1596,6 +1596,49 @@ SaveS3BootScript (
    ASSERT_EFI_ERROR (Status);
  }
  
@@ -67,7 +67,7 @@ index e66693879d34..f4ae8dc41df3 100644
  /**
    Do the platform specific action after the console is ready
  
-@@ -1856,6 +1899,7 @@ PlatformBootManagerAfterConsole (
+@@ -1616,6 +1659,7 @@ PlatformBootManagerAfterConsole (
    )
  {
    EFI_BOOT_MODE  BootMode;
@@ -75,7 +75,7 @@ index e66693879d34..f4ae8dc41df3 100644
  
    DEBUG ((DEBUG_INFO, "PlatformBootManagerAfterConsole\n"));
  
-@@ -1900,6 +1944,25 @@ PlatformBootManagerAfterConsole (
+@@ -1660,6 +1704,25 @@ PlatformBootManagerAfterConsole (
    //
    StoreQemuBootOrder ();
  
@@ -102,10 +102,10 @@ index e66693879d34..f4ae8dc41df3 100644
    // Process QEMU's -kernel command line option
    //
 diff --git a/OvmfPkg/Library/PlatformBootManagerLib/PlatformBootManagerLib.inf b/OvmfPkg/Library/PlatformBootManagerLib/PlatformBootManagerLib.inf
-index 1a422ebb0edd..73190a35c4b2 100644
+index 9675eb0..15657b4 100644
 --- a/OvmfPkg/Library/PlatformBootManagerLib/PlatformBootManagerLib.inf
 +++ b/OvmfPkg/Library/PlatformBootManagerLib/PlatformBootManagerLib.inf
-@@ -63,6 +63,7 @@
+@@ -64,6 +64,7 @@
    gUefiOvmfPkgTokenSpaceGuid.PcdOvmfFlashVariablesEnable
    gUefiOvmfPkgTokenSpaceGuid.PcdOvmfHostBridgePciDevId
    gUefiOvmfPkgTokenSpaceGuid.PcdBootRestrictToFirmware
@@ -113,7 +113,7 @@ index 1a422ebb0edd..73190a35c4b2 100644
    gEfiMdeModulePkgTokenSpaceGuid.PcdAcpiS3Enable
    gEfiMdePkgTokenSpaceGuid.PcdPlatformBootTimeOut
    gEfiMdePkgTokenSpaceGuid.PcdUartDefaultBaudRate         ## CONSUMES
-@@ -81,6 +82,7 @@
+@@ -82,6 +83,7 @@
    gEfiDxeSmmReadyToLockProtocolGuid             # PROTOCOL SOMETIMES_PRODUCED
    gEfiLoadedImageProtocolGuid                   # PROTOCOL SOMETIMES_PRODUCED
    gEfiFirmwareVolume2ProtocolGuid               # PROTOCOL SOMETIMES_CONSUMED
