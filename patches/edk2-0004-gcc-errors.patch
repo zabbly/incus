@@ -1,4 +1,4 @@
-From 64d00c06e8b66402c109f6a251876256915f2049 Mon Sep 17 00:00:00 2001
+From 110a4d5351bc6d2dc7fbe342687dda58b118d28a Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@ubuntu.com>
 Date: Thu, 4 Mar 2021 19:38:13 -0500
 Subject: [PATCH] GCC: Disable maybe-uninitialized errors
@@ -12,15 +12,15 @@ Signed-off-by: Stéphane Graber <stgraber@ubuntu.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/BaseTools/Conf/tools_def.template b/BaseTools/Conf/tools_def.template
-index 07e80e7223..d52c1b6102 100644
+index 72ca0df..b501ff9 100644
 --- a/BaseTools/Conf/tools_def.template
 +++ b/BaseTools/Conf/tools_def.template
-@@ -925,7 +925,7 @@ NOOPT_*_*_OBJCOPY_ADDDEBUGFLAG     = --add-gnu-debuglink="$(DEBUG_DIR)/$(MODULE_
+@@ -587,7 +587,7 @@ NOOPT_*_*_OBJCOPY_ADDDEBUGFLAG     = --add-gnu-debuglink="$(DEBUG_DIR)/$(MODULE_
  *_*_*_DTC_PATH                     = DEF(DTC_BIN)
  
- # All supported GCC archs except LOONGARCH64 support -mstack-protector-guard=global, so set that on everything except LOONGARCH64
+ # Because LOONGARCH64 supports global stack protector guard by default, it does not support the parameter -mstack-protector-guard=global, and this parameter will be supported in GCC17. So set that on every thing except LOONGARCH64.
 -DEFINE GCC_ALL_CC_COMMON               = -g -Os -fshort-wchar -fno-builtin -fno-strict-aliasing -Wall -Werror -Wno-array-bounds -include AutoGen.h -fno-common -fstack-protector
 +DEFINE GCC_ALL_CC_COMMON               = -g -Os -fshort-wchar -fno-builtin -fno-strict-aliasing -Wall -Werror -Wno-array-bounds -include AutoGen.h -fno-common -fstack-protector -Wno-maybe-uninitialized
  DEFINE GCC_IA32_X64_CC_FLAGS           = -mstack-protector-guard=global
- DEFINE GCC_LOONGARCH64_CC_FLAGS        = DEF(GCC_ALL_CC_COMMON) -mabi=lp64d -fno-asynchronous-unwind-tables -Wno-address -fno-short-enums -fsigned-char -ffunction-sections -fdata-sections -march=loongarch64 -mno-memcpy -Werror -Wno-maybe-uninitialized -Wno-stringop-overflow -Wno-pointer-to-int-cast -no-pie -fno-stack-protector -mno-explicit-relocs -mno-relax
+ DEFINE GCC_LOONGARCH64_CC_FLAGS        = DEF(GCC_ALL_CC_COMMON) -mabi=lp64d -fno-asynchronous-unwind-tables -Wno-address -fno-short-enums -fsigned-char -ffunction-sections -fdata-sections -march=loongarch64 -mno-memcpy -Werror -Wno-maybe-uninitialized -Wno-stringop-overflow -Wno-pointer-to-int-cast -no-pie -mno-explicit-relocs -mno-relax
  DEFINE GCC_AARCH64_CC_COMMON           = DEF(GCC_ALL_CC_COMMON) -mlittle-endian -fno-short-enums -fverbose-asm -funsigned-char  -ffunction-sections -fdata-sections -Wno-address -fno-asynchronous-unwind-tables -fno-unwind-tables -fno-pic -fno-pie -ffixed-x18 -mstack-protector-guard=global
