@@ -1,0 +1,148 @@
+From ecac479e1382ad13b236b474178f906b511d79e6 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 9 Sep 2026 08:38:00 -0400
+Subject: [PATCH] incusd/storage/s3: Require x-amz-* headers to be signed
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Headers such as X-Amz-Copy-Source change how a request is handled, so
+any x-amz-* header present on the request must be covered by the
+signature, as AWS S3 does. SigV2 now includes them in the string to sign.
+
+This addresses GHSA-mmj7-8rgf-mx2h (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+---
+ internal/server/storage/s3/local/auth.go | 66 +++++++++++++++++++++++-
+ internal/server/storage/s3/types.go      |  4 ++
+ 2 files changed, 68 insertions(+), 2 deletions(-)
+
+diff --git a/internal/server/storage/s3/local/auth.go b/internal/server/storage/s3/local/auth.go
+index db29735d05..99f206e3d5 100644
+--- a/internal/server/storage/s3/local/auth.go
++++ b/internal/server/storage/s3/local/auth.go
+@@ -106,6 +106,11 @@ func (s *Server) authenticate(r *http.Request) (Role, *s3.Error) {
+ 		bodyHash = unsignedPayload
+ 	}
+ 
++	s3Err := checkSignedAmzHeaders(r, parsed.signedHeaders)
++	if s3Err != nil {
++		return "", s3Err
++	}
++
+ 	canonical := canonicalRequest(r, r.URL.Query(), parsed.signedHeaders, bodyHash)
+ 
+ 	stringToSign := strings.Join([]string{
+@@ -210,6 +215,11 @@ func (s *Server) authenticatePresignedV4(r *http.Request) (Role, *s3.Error) {
+ 
+ 	sort.Strings(signedHeaders)
+ 
++	s3Err := checkSignedAmzHeaders(r, signedHeaders)
++	if s3Err != nil {
++		return "", s3Err
++	}
++
+ 	// The canonical query string covers every query parameter except the
+ 	// signature itself.
+ 	canonicalQuery := make(url.Values, len(q))
+@@ -294,13 +304,14 @@ func (s *Server) authenticatePresignedV2(r *http.Request) (Role, *s3.Error) {
+ 	}
+ 
+ 	// SigV2 string-to-sign for a query-string authenticated request:
+-	// VERB \n Content-MD5 \n Content-Type \n Expires \n CanonicalizedResource.
++	// VERB \n Content-MD5 \n Content-Type \n Expires \n
++	// CanonicalizedAmzHeaders CanonicalizedResource.
+ 	stringToSign := strings.Join([]string{
+ 		r.Method,
+ 		r.Header.Get("Content-MD5"),
+ 		r.Header.Get("Content-Type"),
+ 		expiresStr,
+-		resource,
++		canonicalizedAmzHeaders(r.Header) + resource,
+ 	}, "\n")
+ 
+ 	mac := hmac.New(sha1.New, []byte(secret))
+@@ -462,6 +473,57 @@ func parseAuthorizationHeader(h string) (*parsedAuthorization, error) {
+ 	return out, nil
+ }
+ 
++// amzHeaderNames returns the lower-cased names of all x-amz-* headers on h.
++func amzHeaderNames(h http.Header) []string {
++	names := make([]string, 0)
++	for name := range h {
++		lower := strings.ToLower(name)
++		if strings.HasPrefix(lower, "x-amz-") {
++			names = append(names, lower)
++		}
++	}
++
++	sort.Strings(names)
++
++	return names
++}
++
++// checkSignedAmzHeaders rejects requests carrying x-amz-* headers that aren't
++// covered by the signature, as those headers alter how the request is handled.
++func checkSignedAmzHeaders(r *http.Request, signedHeaders []string) *s3.Error {
++	signed := make(map[string]struct{}, len(signedHeaders))
++	for _, name := range signedHeaders {
++		signed[strings.ToLower(name)] = struct{}{}
++	}
++
++	for _, name := range amzHeaderNames(r.Header) {
++		_, ok := signed[name]
++		if !ok {
++			return &s3.Error{Code: s3.ErrorCodeAccessDenied, Message: fmt.Sprintf("Header %q must be signed.", name)}
++		}
++	}
++
++	return nil
++}
++
++// canonicalizedAmzHeaders builds the SigV2 CanonicalizedAmzHeaders string.
++func canonicalizedAmzHeaders(h http.Header) string {
++	var sb strings.Builder
++	for _, name := range amzHeaderNames(h) {
++		values := h.Values(name)
++		for i, v := range values {
++			values[i] = strings.TrimSpace(v)
++		}
++
++		sb.WriteString(name)
++		sb.WriteByte(':')
++		sb.WriteString(strings.Join(values, ","))
++		sb.WriteByte('\n')
++	}
++
++	return sb.String()
++}
++
+ // canonicalRequest builds the canonical request string defined by SigV4.
+ func canonicalRequest(r *http.Request, query url.Values, signedHeaders []string, bodyHash string) string {
+ 	var sb strings.Builder
+diff --git a/internal/server/storage/s3/types.go b/internal/server/storage/s3/types.go
+index 4a038974cb..fcfb790d81 100644
+--- a/internal/server/storage/s3/types.go
++++ b/internal/server/storage/s3/types.go
+@@ -15,6 +15,9 @@ const ErrorCodeInternalError = "InternalError"
+ // ErrorCodeInvalidAccessKeyID means there was an invalid access key provided.
+ const ErrorCodeInvalidAccessKeyID = "InvalidAccessKeyId"
+ 
++// ErrorCodeAccessDenied means the request isn't permitted.
++const ErrorCodeAccessDenied = "AccessDenied"
++
+ // ErrorInvalidRequest means there was an invalid request.
+ const ErrorInvalidRequest = "InvalidRequest"
+ 
+@@ -22,6 +25,7 @@ var errorHTTPStatusCodes = map[string]int{
+ 	ErrorCodeNoSuchBucket:       http.StatusNotFound,
+ 	ErrorCodeInternalError:      http.StatusInternalServerError,
+ 	ErrorCodeInvalidAccessKeyID: http.StatusForbidden,
++	ErrorCodeAccessDenied:       http.StatusForbidden,
+ 	ErrorInvalidRequest:         http.StatusBadRequest,
+ }
+ 
+-- 
+2.47.3
+

@@ -326,10 +326,24 @@ jobs:
           git cherry-pick 1e09276c318107c21091b9811643ef13e8692824  # incusd/instance: Confine exec-output access to its directory
           git cherry-pick 8cdc50343707525e01178b04f11350340b67eaa1  # incusd: Fail closed on unknown authorization project expansion
           git cherry-pick a89084e2de1548513d349c5305f509ed80d43240  # incusd/instance/qemu: Use os.Root for template output
-          patch -p1 < "${REPO}/patches/incus-0001-incusd-instance-Confine-OCI-network-writes-to-instan.patch"
-          patch -p1 < "${REPO}/patches/incus-0002-incusd-project-Enforce-isolated-restriction-when-idm.patch"
+          git am "${REPO}/patches/incus-0001-incusd-instance-Confine-OCI-network-writes-to-instan.patch"
+          git am "${REPO}/patches/incus-0002-incusd-project-Enforce-isolated-restriction-when-idm.patch"
           git cherry-pick 8723e980417255462f5123b2aff30973673b2076  # client/images: Prevent path traversal in downloaded image name
           git cherry-pick 2521bf480af23765ea25754fd9a0a2ca146945c6  # incusd/images: Check access before reusing cross-project image
+          git am "${REPO}/patches/incus-0003-incus-file-Contain-recursive-pull-symlinks.patch"
+          git cherry-pick 9afa3d58ef9ffae40eb1980bd33592d00fe1feba  # incusd: Don't follow symlinks when receiving migration data
+          git cherry-pick e59d35263a0e027b4a0344ab8d05c80c622a21e2  # incusd/storage: Treat volume creation with a source as a copy
+          git cherry-pick 99a8ba3101e91be6cd7013e80ff916f32d495b71  # incusd/storage/drivers: Confine btrfs subvolume paths
+          git cherry-pick 2ef78c71a5f3c9db4a6ad438563ec99497686d83  # incusd/storage: Validate dependent volume names on backup import
+          git cherry-pick 10d6ea9a7163c2a7b16f9e9ccf0bd45981c3355e  # incusd/storage: Ignore backup project for dependent volumes
+          git am "${REPO}/patches/incus-0004-incusd-storage-s3-Require-x-amz-headers-to-be-signed.patch"
+          git cherry-pick 8a88a98872281d1f1921094599d562822c08d519  # incusd/operations: Check project access on operation get and wait
+          git cherry-pick 6c956f238ca70e420a489065dd6d8caf4e3df51d  # incusd/operations: Hide access token operations from non-admins
+          git cherry-pick 1eaf9b8bfed2b8cf09182c88fd81b10327605ade  # incusd/storage/buckets: Require can_edit to read bucket keys
+          git cherry-pick da36896aa8af65080a79fd1a4b8abcf75d46cbd1  # incusd/project: Restrict volume options on update and copy
+          git cherry-pick 8bc2a22f2147a98d5b4bea25013738adf2d73f3d  # incusd/project: Re-check limits when recording instances and volumes
+          git cherry-pick d81c57239b08f512701fbd0243411cc57ca9b372  # incusd/profiles: Check project restrictions on profile creation
+          git cherry-pick f22d8a92dff8e4cf01260ab85405db754bcfc026  # incusd/instances: Check project restrictions on clustered refresh
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v7/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v7/cmd/incus
