@@ -363,7 +363,6 @@ jobs:
               GOARCH=386 GOOS=freebsd CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.freebsd.i686" -tags=agent,netgo github.com/lxc/incus/v7/cmd/incus-agent
 
               GOARCH=amd64 GOOS=netbsd CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.netbsd.x86_64" -tags=agent,netgo github.com/lxc/incus/v7/cmd/incus-agent
-              GOARCH=386 GOOS=netbsd CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.netbsd.i686" -tags=agent,netgo github.com/lxc/incus/v7/cmd/incus-agent
 
               GOARCH=amd64 CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.linux.x86_64" -tags=agent,netgo github.com/lxc/incus/v7/cmd/incus-agent
               GOARCH=386 CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.linux.i686" -tags=agent,netgo github.com/lxc/incus/v7/cmd/incus-agent
