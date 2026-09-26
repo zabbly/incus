@@ -44,7 +44,7 @@ jobs:
       DISTROBUILDER_TAG: "distrobuilder-3.2"
       INCUS_COMPOSE_TAG: "v1.3.4"
       INCUS_TAG: "v7.5.1"
-      INCUS_UI_CANONICAL_TAG: "incus-0.21.6"
+      INCUS_UI_CANONICAL_TAG: "incus-0.21.7"
       LXCFS_TAG: "v7.0.0"
       LXC_TAG: "v7.0.0"
 
