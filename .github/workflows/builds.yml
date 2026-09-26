@@ -339,6 +339,9 @@ jobs:
               GOARCH=amd64 GOOS=freebsd CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.freebsd.x86_64" -tags=agent,netgo github.com/lxc/incus/v7/cmd/incus-agent
               GOARCH=386 GOOS=freebsd CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.freebsd.i686" -tags=agent,netgo github.com/lxc/incus/v7/cmd/incus-agent
 
+              GOARCH=amd64 GOOS=netbsd CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.netbsd.x86_64" -tags=agent,netgo github.com/lxc/incus/v7/cmd/incus-agent
+              GOARCH=386 GOOS=netbsd CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.netbsd.i686" -tags=agent,netgo github.com/lxc/incus/v7/cmd/incus-agent
+
               GOARCH=amd64 CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.linux.x86_64" -tags=agent,netgo github.com/lxc/incus/v7/cmd/incus-agent
               GOARCH=386 CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.linux.i686" -tags=agent,netgo github.com/lxc/incus/v7/cmd/incus-agent
 
@@ -346,7 +349,8 @@ jobs:
               GOARCH=386 GOOS=windows CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.windows.i686" -tags=agent,netgo github.com/lxc/incus/v7/cmd/incus-agent
           elif [ "$(uname -m)" = "aarch64" ]; then
               GOARCH=arm64 GOOS=darwin CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.macos.aarch64" -tags=agent,netgo github.com/lxc/incus/v7/cmd/incus-agent
-              GOARCH=amd64 GOOS=freebsd CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.freebsd.aarch64" -tags=agent,netgo github.com/lxc/incus/v7/cmd/incus-agent
+              GOARCH=arm64 GOOS=freebsd CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.freebsd.aarch64" -tags=agent,netgo github.com/lxc/incus/v7/cmd/incus-agent
+              GOARCH=arm64 GOOS=netbsd CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.netbsd.aarch64" -tags=agent,netgo github.com/lxc/incus/v7/cmd/incus-agent
               GOARCH=arm64 CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.linux.aarch64" -tags=agent,netgo github.com/lxc/incus/v7/cmd/incus-agent
               GOARCH=arm64 GOOS=windows CGO_ENABLED=0 go build -o "/opt/incus/agent/incus-agent.windows.aarch64" -tags=agent,netgo github.com/lxc/incus/v7/cmd/incus-agent
           fi
