@@ -323,6 +323,29 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick 10c2c1f460b8fbf82d31b295cf775612aa690a2e  # incus/server/instance/drivers/qemu: dont interpret ErrNonReusuableSucceeded as error
+          git cherry-pick 2fd03fac717783fd57ad81f0a14a723b96ef20ff  # incus/server/instance/drivers/lxc: dont interpret ErrNonReusuableSucceeded as error
+          git cherry-pick 8f8d84d8190b100571d6efb666451f9770e64d5e  # doc: Move warning for macOS in howto/insntances_create
+          git cherry-pick e8d26c575383e456097862e426df3d27dbcfcc79  # incusd/instance/lxc: Use IsRootDiskDevice in diskState
+          git cherry-pick a217ce2ce2068f29db6a91202ac2f991cf51edee  # incusd/instance/qemu: Report disk usage for all disk devices in state
+          git cherry-pick 4acef387fff774c1ea8403bb7ce920c673a0c9de  # incusd/instance: Resolve the custom volume project in diskState
+          git cherry-pick fdbad000e78bd98e1a77f4fad420302c0b4feacc  # shared/tls: Add PublicKeyChain
+          git cherry-pick daf9728b6331547f75d78631a4bef448bb86dc41  # shared/tls: Add GetRemoteCertificates
+          git cherry-pick 183c1d195920130e2063e0d318bec626c9b7ae9b  # incusd/endpoints: Return the full certificate chain from NetworkPublicKey
+          git cherry-pick 870a2963d9a138a22a3f13077a3e1a43b4913dda  # incusd: Sync the full cluster certificate chain from the leader
+          git cherry-pick 8bb2ecac4bd018e211f1ccf10397c3ddd8ee5713  # tests: Cover joining with a cluster certificate chain
+          git cherry-pick 6801fbf9e98c149385ca91dc84484425df31b3c1  # incusd/mirror: Never follow symlinks in mirrored directories
+          git cherry-pick 175121c0d584d6d63dc2cf66ebbab7a6f70a9ba9  # incusd/instance/qemu: Seed NVRAM from the real file rather than its symlink
+          git cherry-pick 1b2d7aa8216749632f9b8a5f3d20d3ca402ed241  # incusd/device/tpm: Refuse a state path that isn't a real directory
+          git cherry-pick 3ee36eda4afd0f9940bae1c1ca7c6774ca887a15  # incus/image: Sort properties in image info
+          git cherry-pick 2cb2549252b0551561f6e7e7afdb153947a3d290  # incusd/endpoints: Don't block the local accept loop on the STARTTLS peek
+          git cherry-pick f0a17a33bb28075848faa917591501a5a351a38d  # incusd/networks: Fix start priority of networks with a parent
+          git cherry-pick 29a4e8667b087fdddf46c827b2182d2c0de9ae76  # tests: Make the sparse file test independent of the page size
+          git cherry-pick 659042d438b06cee4596e846835776176b178e66  # incusd/instance/qemu: Allow live-update of security.tags
+          git cherry-pick 9f256ccf76e5a30190cb423992ebfe1821d00ac1  # incus: Allow building for NetBSD
+          git cherry-pick 009cd6ec2663a8e2c58b8ade2205db8a1c945e56  # Revert "goreleaser: Temporarily disable netbsd artifacts"
+          git cherry-pick 20e62adfc8d670d180c298b517151159fcacc50e  # Update gomod
+
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v7/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v7/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" github.com/lxc/incus/v7/cmd/incus-benchmark
