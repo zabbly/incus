@@ -345,6 +345,17 @@ jobs:
           git cherry-pick 9f256ccf76e5a30190cb423992ebfe1821d00ac1  # incus: Allow building for NetBSD
           git cherry-pick 009cd6ec2663a8e2c58b8ade2205db8a1c945e56  # Revert "goreleaser: Temporarily disable netbsd artifacts"
           git cherry-pick 20e62adfc8d670d180c298b517151159fcacc50e  # Update gomod
+          git cherry-pick 75ff144dc9a095944a33688e053ecc31b4fff740  # incusd: Allow the server certificate update over HTTPS
+          git cherry-pick 81e2ded4f88d7b29c0edf50481a89f1623535853  # incus/admin: Support remotes in update-certificate
+          git cherry-pick a1c7dee7ee130744fd50be7b0ed39e03736bdb73  # incusd/instance: Fix nil dereference in canMigrate on device load error
+          git cherry-pick bf964be1544b671cde63dc572c731b4f0332d8b4  # incusd/instance: Only let a migration inherit its own lock when stopping
+          git cherry-pick cb6efa761abb7e61bb9714c2b86785c4e023a701  # incusd/instance: Wait for state changes before migrating
+          git cherry-pick 28ffc69fb721c1729967a2f6712f232c22553eef  # incusd/instance: Don't fail a move on source cleanup errors
+          git cherry-pick aa7b47e27649ab147ce6a163f261b3db8809bd06  # incusd/instance/qmp: Add agent TEMPLATED status
+          git cherry-pick a1fb42b459385975149940f452738e022cd19769  # incusd/instance/qemu: Clear template state when the agent reports applying them
+          git cherry-pick 4e799f72871b11c6c168659930b866476a8b5121  # incus-agent: Report template application before rebooting for cloud-init
+          git cherry-pick b0e3e24dcf0c849f54bfecec2b8ac404168ec4d4  # tests: Add VM cloud-init test
+          git cherry-pick c1cd34cc68a5d1e98a96f8ebefa120839bcf0660  # github: Run the VM cloud-init test
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v7/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v7/cmd/incus
