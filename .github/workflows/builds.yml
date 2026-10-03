@@ -57,8 +57,8 @@ jobs:
       LIBTPMS_TAG: "v0.10.2"
       LIBURING_TAG: "liburing-2.15"
       NASM_TAG: "nasm-2.16.03"
-      NVIDIA_CONTAINER_TAG: "v1.20.0"
-      QEMU_TAG: "v11.1.1"
+      NVIDIA_CONTAINER_TAG: "v1.20.1"
+      QEMU_TAG: "v11.1.2"
       RAFT_TAG: "v0.22.1"
       SEABIOS_TAG: "rel-1.17.0"
       SKOPEO_TAG: "v1.24.1"
@@ -386,6 +386,14 @@ jobs:
           git cherry-pick d6af65474ec6a3c7a4d279d0f78036626073e91a  # tests: Cover clustered OVN network creation retries
           git cherry-pick c311b7a7f5fe2fa493dcde411f6bc4cd5d975cd1  # github: Run the OVN cluster retry test
           git cherry-pick 1b27ad53adddbecb47f2a72696c2a1e5b62ca737  # internal/server/instance/driver/qemu: use hashed block node name when resizing
+          git cherry-pick 76b37df3e17c1e8f4af96c2a9d4921b228544cfb  # shared/subprocess: Write pid files atomically
+          git cherry-pick 5472f997327b4c991a821f37ebaf004bc32e6850  # shared/subprocess: Only signal the process that was recorded
+          git cherry-pick 80774bd96b31737acf35b1bf6d1bb8592ba33a67  # incusd/dnsmasq: Remove pid file after killing dnsmasq
+          git cherry-pick 4928a7876638137df0714ea0e7ebba69673e4019  # incusd/network: Use network config to detect dnsmasq use
+          git cherry-pick 8904b9f479fe5459d536a392f7ced209dad528d8  # tests: Check stale dnsmasq.pid never signals other processes
+          git cherry-pick 4d8ada58924e08a890041942c2786a4d5c4b7f82  # incusd/instance: Add HashName
+          git cherry-pick dc1529d1cbd1c51f036bc6d924889a26233fdb68  # incusd/instance/qemu: Use instance.HashName
+          git cherry-pick 893028ae3f2e38d176e1102bbe641ce89433d8c0  # incus-agent: Hash long virtiofs mount tags on hotplug
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v7/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v7/cmd/incus
