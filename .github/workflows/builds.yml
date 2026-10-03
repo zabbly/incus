@@ -356,6 +356,36 @@ jobs:
           git cherry-pick 4e799f72871b11c6c168659930b866476a8b5121  # incus-agent: Report template application before rebooting for cloud-init
           git cherry-pick b0e3e24dcf0c849f54bfecec2b8ac404168ec4d4  # tests: Add VM cloud-init test
           git cherry-pick c1cd34cc68a5d1e98a96f8ebefa120839bcf0660  # github: Run the VM cloud-init test
+          git cherry-pick aca18709cf49ce701937be6b8b12bed31b2b678e  # incusd/network/ovn: Allow changing a networks parent
+          git cherry-pick dfb46a74a11d1a0718ec1f4cd4a7c3e9943ef5ad  # doc: Update OVN network parent documentation
+          git cherry-pick 86da81c205a7a336ff9daa46c3bbe1684b11cbd4  # tests: Add OVN network reparenting tests
+          git cherry-pick be068b08705554ccc758f3f6e1acc670d9230de9  # shared/logger: Add WarnOnErrorExcept to the Logger interface
+          git cherry-pick 424c368c9df435d68a093ae94f1460e1c8b99235  # shared/resources: Fix double close of ethtool socket
+          git cherry-pick 3d95f35e2d2723e8bbbb20d468a816da19e2257c  # shared/resources: Base memory usage on MemAvailable
+          git cherry-pick 4d84a749fe9c4b362a1992c5dfdb6db7bc9df8a9  # client: Drop the context-free VM agent connection debug line
+          git cherry-pick 83a756379d973046d8c477c3358ced411f769a76  # incusd/cluster: Fix swapped CPU and memory usage in rebalance scoring
+          git cherry-pick 5e1a776838f8a80d86c1da6d1508da7b4b4797cf  # incusd/cluster: Use the instance's project when rebalancing
+          git cherry-pick 733e81c782636a9dcfc48f46ca254e294e47a4c9  # incusd/instance: Log placement scriptlet refusals
+          git cherry-pick 7cabd630269ce4398ccfc30555a881751aab37d3  # incusd/instance: Only warn on unexpected metrics and state query errors
+          git cherry-pick 68ea53ac37042813a16efdbfbb3a951b0858470a  # incusd/instance: Remove devices before deleting the instance volume
+          git cherry-pick f7ddb60fc4f720722bb098057a264413ca96de6a  # incusd/instance: Fix error messages altered by variable rename
+          git cherry-pick 8c4b20d382e350de767068da25c14037007a5065  # incusd/device/nic: Only warn on MTU lookup failures for existing host interfaces
+          git cherry-pick 9df03594c580599af581a28dcd844739a6548daa  # incusd/storage: Don't fail UnmountInstance on a volume still in use
+          git cherry-pick 0c75111f151a9993cf624575db7c51d212e94400  # incusd/storage/zfs: Tolerate deleted datasets when filling the property cache
+          git cherry-pick 3c92fe9c10d2d38018d9b1db46af97d411c8c54a  # incusd/images: Don't ignore move errors when importing a split image from a member
+          git cherry-pick 7e8e810e9973e6cdba7829beed284d59e1b9bf56  # incusd/images: Keep expired cached image files still used by other projects
+          git cherry-pick 0507ea02e59cda53de73747929b283c4b1b46718  # incusd/images: Return not found when exporting an image whose file is missing
+          git cherry-pick 1a83c0637db95dfa655049b10a2bb4265060e635  # incusd/auth/openfga: Tolerate tuple conflicts during resource sync
+          git cherry-pick 253f39a7b625b0e76e65f375a5a6a6203af9a06f  # incusd/auth/openfga: Read tuples page by page when syncing resources
+          git cherry-pick 8f5150e66770bbc7e876a48e38a23432508f0160  # doc/clustering: Document member count, latency and clock requirements
+          git cherry-pick 14923203246d2a7659c32927802a5f38437d957c  # incusd/network/ovn: Restrict the IC southbound monitor to used tables
+          git cherry-pick 6f410f7ed4369180ee1aff6c0ba0e8e8435494cf  # incusd/storage/zfs: Only list snapshots when a snapshot is queried
+          git cherry-pick dc6983f4a0255fecf0dbbce05525f23912c7f72b  # incusd/storage/zfs: Wait for snapshot device removal on unmount
+          git cherry-pick 2e77303e4893f1323b2e17d06b3d2891c5c95eeb  # incusd/apparmor: Don't allow reading everything when LD_LIBRARY_PATH is unset
+          git cherry-pick 51357bbf44d62a3a1da7c783b8c9f936d2626ec0  # incusd/network: Fix OVN network creation retries
+          git cherry-pick d6af65474ec6a3c7a4d279d0f78036626073e91a  # tests: Cover clustered OVN network creation retries
+          git cherry-pick c311b7a7f5fe2fa493dcde411f6bc4cd5d975cd1  # github: Run the OVN cluster retry test
+          git cherry-pick 1b27ad53adddbecb47f2a72696c2a1e5b62ca737  # internal/server/instance/driver/qemu: use hashed block node name when resizing
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v7/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v7/cmd/incus
