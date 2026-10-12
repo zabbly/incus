@@ -394,6 +394,93 @@ jobs:
           git cherry-pick 4d8ada58924e08a890041942c2786a4d5c4b7f82  # incusd/instance: Add HashName
           git cherry-pick dc1529d1cbd1c51f036bc6d924889a26233fdb68  # incusd/instance/qemu: Use instance.HashName
           git cherry-pick 893028ae3f2e38d176e1102bbe641ce89433d8c0  # incus-agent: Hash long virtiofs mount tags on hotplug
+          git cherry-pick e82bfc8a435fbf3e35e6bf28dde34f24ad8dde07  # incusd/auth/openfga: Don't hold online lock during requests
+          git cherry-pick 4917c599b91143a534d10596dc1dcc346f1675e0  # incusd/auth/openfga: Return offline error from GetPermissionChecker
+          git cherry-pick acce045e6fe6dd5bd92a362941dc2fdfc11e3dfb  # incusd/instance/agent-loader: Make macOS agent drive non-browsable
+          git cherry-pick b5995fcb33eab55ef1ebb4653b8f8b0a9243f4d9  # tests: Fix race in OVN reparenting test
+          git cherry-pick bdc2855505d79d07cce692520b0f6faa178b8a18  # incusd/device: Add DiskVMVirtiofsSupported
+          git cherry-pick a0edce929fd25f952ad65606d0f49a33d0d9b996  # incusd/instance/qemu: Use non-shared memory when virtiofs isn't wanted
+          git cherry-pick 5ded9cf688a7e48a58a4497d627a51a9032292ff  # incusd/instance: Document the memory allocation of nested virtual machines
+          git cherry-pick 850d51dce775974f9240f6e849d1bb4174f2c6e8  # doc: Update configs
+          git cherry-pick 53d3331079e177fb827ccd7e589d2a7fd92a9d77  # doc: Explain virtual machine memory allocation
+          git cherry-pick b3ec7baf9c95facddf8b8dedaee2609c441b871f  # tests: Check virtual machine memory allocation
+          git cherry-pick da900f54288ae6277d952dbc37603fa5c7310aea  # incusd/storage: Copy dependent volumes from snapshot when copying an instance snapshot
+          git cherry-pick d2b5c52ed9a08732c3f1ae54205dd283a1600679  # tests: Check dependent volumes on copy from instance snapshot
+          git cherry-pick 30609847dd98aae8c619bc97bb66fad33ecc4501  # shared: Move ESLGUIDVar from util to uefi
+          git cherry-pick 130390f2919cb8405a8fc2ca17fdabde8b14bfe9  # incus/low-level: Update ESLGUIDVar
+          git cherry-pick 5944a69cbaec724f468441b111706e624035f611  # incusd/instance/qemu: Update ESLGUIDVar
+          git cherry-pick 6c227c1fa71d0c5d55890e982bf2e19c3f39718f  # shared/util: Add Unix to Go mode converter
+          git cherry-pick 32f67b987c42ca2360576e137694996e1f8671a5  # shared/tls: Read the ACME certificate under the name lego writes
+          git cherry-pick e2e557301654d453e81cbebf1e2cadd04229c3c3  # incusd/cluster/config: Validate acme.domain
+          git cherry-pick cc5410ce757a06708fd4a7791d1e21eeee3a76bc  # doc: Update configs
+          git cherry-pick 7742515e80b0eb86f326f24d358b5cd19aca8340  # incusd/storage/s3: Return NoSuchKey for missing objects
+          git cherry-pick e20e50f153cf6384170e75195249b5d94a9b5671  # tests: Check missing bucket objects report NoSuchKey
+          git cherry-pick 5a5dbc8d66e0b1d54212f986fd2afed5efc0dc4d  # incusd/storage: Map dependent volumes to devices for snapshot sources
+          git cherry-pick 91fa30c08b7b23378fe15be78394541c8af9b5a0  # incusd/storage: Copy dependent volumes from the instance snapshot
+          git cherry-pick 3e86df392181335521d74e7071d956d516bce09a  # tests: Check copying from a snapshot uses the dependent volume snapshots
+          git cherry-pick 0f9cac8b32168dc36c2cac794ae7fca0a907eec7  # incusd/storage: Refresh dependent volumes from the instance snapshot
+          git cherry-pick f82f1aa56356e989585d63ee068315c621b9a6d3  # incusd: Keep the target's dependent volumes when refreshing
+          git cherry-pick 5eb3be1cdec36e477f0a4d78562b313f5d3ec8c3  # incusd: Point copied snapshots at the new dependent volumes
+          git cherry-pick 3b24212c0c2de58531fc67ac101620dddd746366  # incus/copy: Keep the target's dependent volumes and root disk on refresh
+          git cherry-pick 801724dae42e86e01e2cbb4bc945f8bd51b960bc  # incusd/network/ovs: Fix removing one of several OVN bridge mappings
+          git cherry-pick eaa3d991700d2e01e16553a0e4ea93e5fff735b8  # tests: Check OVN bridge mapping removal
+          git cherry-pick c3767a6c75448d87b35a86bbdd90eaec3409c4ba  # incusd/network: Report OVN child networks as users of their parent
+          git cherry-pick 3f9792f5cc791f1f0302fc886e71e0a9f0f00436  # tests: Check a refused OVN parent delete keeps the gateway
+          git cherry-pick 6a20aa312a5340876e78cc972747a3fdcb355375  # incusd/network/acl: Skip IP addresses when collecting referenced ACLs
+          git cherry-pick 01bfb4a058c8d30535075e81bed044d086ab15d1  # incusd/project: Strip restricted volatile keys from backup imports
+          git cherry-pick 99cdfb1381ab88a15ef9577a80bd286a4522f0fb  # incusd: Allow backup imports into restricted projects
+          git cherry-pick a923520b1b4a9dd06c45709d113f901f1108c4d7  # tests: Check backup import into a restricted project
+          git cherry-pick 731268fe0ba0ba63d7f4d105b4963e028a802336  # incus-agent: Wait 10s for exec websockets to connect
+          git cherry-pick d0d00d428a2399d2a0fc3bd80e1b141d6a754e07  # client: Connect exec websockets concurrently
+          git cherry-pick b90fe92efa207768e20178147acd5eec7358c142  # incusd/storage/s3: Parse xl.meta structurally when detecting inline data
+          git cherry-pick 8aa8eb6f7ea48e5a1e29d2517d0e670fb14654d5  # incusd/storage/s3: Log minio bucket migrations
+          git cherry-pick 694d2c33f37cf0db75d14b075f98b8581c633cf6  # incusd/storage/s3: Skip already migrated objects
+          git cherry-pick 8aa5df271f992cc22237a8c3f95b7508669df2c2  # incusd/storage/lvm: Run report commands in silent mode
+          git cherry-pick 1996174c53b245e106863860fd944b724e6a4849  # shared/api: Support 4-character permissions in ParseFileHeaders
+          git cherry-pick aa267048253e80d90104618167274e9daf77fd33  # incus/utils: Implement chmod-style mode parser
+          git cherry-pick f2e2128590fd2c59544bd572edb0f4a65f949906  # incus/utils: Prevent masking sticky and setXid bits
+          git cherry-pick 366a2d2391fe4bfcdcad66d9d39a46188c8a4719  # incus/file: Use new mode parser
+          git cherry-pick d517466a15d5cfdc49ee848cdc2058c8e62b249c  # incus/storage_volume_file: Use new mode parser
+          git cherry-pick 01225a48f102b382eda332ee5b3b0ec870af3b0b  # incus/image: Make unset-property accept a list of properties
+          git cherry-pick 9594d5e8149fb94196de00dc6725c00b1a834137  # incus/usage: Enforce non-emptiness of placeholders
+          git cherry-pick 0ee4700e8a30486f5f7c8e674e9458568efcfa5f  # incus/utils_sftp: Fix non-UNIX fingerprinting
+          git cherry-pick 77d761e2f684f20d2c25f41b4c2d7f0fa2a83eff  # incusd/network/ovn: Only update other_config on logical switch changes
+          git cherry-pick 9a978148741b3c3bd4fe5e5f15f496817ac24b21  # incusd/network/ovn: Tolerate a missing transit switch on remote peer delete
+          git cherry-pick ebe2ad1dad79e1b76661f3a808d9aec037122ae3  # incusd/network/ovn: Clean up external interfaces on delete
+          git cherry-pick 6521bd9c65ee701cce104bea65ca86072c33830e  # tests: Check OVN external interface cleanup
+          git cherry-pick db3e3adad20d32f3ac43bdef63e3bcab17406e78  # incusd/storage/lvm: Refuse logical volume names too long for device-mapper
+          git cherry-pick be0face09405ace2f4a8112e032773d84fbe86ad  # incusd/storage/lvm: Only remove the config repair directory once unmounted
+          git cherry-pick b151f04d34d0fa02856a339501be8d5f72090230  # incusd/storage/lvm: Fix the backing chain of copied qcow2 volumes
+          git cherry-pick 99741e969c5c64b81afb6c71c5f3644ce94b364d  # incusd/instance/qemu: Skip the disk size probe on remote cluster moves
+          git cherry-pick f9626f9ff06f03853caa51b48b108eb106675974  # incusd/instance/qemu: Size backed overlays from their backing node
+          git cherry-pick ad8a585e792ead0dfaf8b99822b972d423273582  # incusd/auth/oidc: Verify the ID token when the access token is opaque
+          git cherry-pick 5d406447e2ea4e24f54daa04dd04a3a69e95e8fa  # client: Send the ID token alongside opaque access tokens
+          git cherry-pick 7d3e33613ebddc1ff8c45ebefa2e8153f6682be6  # incusd: Revert interrupted evacuation states at startup
+          git cherry-pick 4730be0b01cf8560c572efa205f3369982c94e84  # incusd: Wait for backup uploads to complete
+          git cherry-pick 11569f1a621468ad8e6c36233927c30b386906db  # incusd/storage_volumes_snapshot: Block direct rename of dependent volume snapshots
+          git cherry-pick 2602def2580b3a2d7236cedbcedaa170d119a930  # incusd/storage: Rename dependent volume snapshots on instance snapshot rename
+          git cherry-pick d23fe112a1daaea04cd5e29c441dafc45f24a98c  # tests: Check dependent volume snapshot rename
+          git cherry-pick 484b7a5b05dfae5251802a57dee5369af4d16a87  # Fix comment for defaultConsoleSpiceCommand
+          git cherry-pick c0bb550d74de31400073ea25274bc5e5de66edde  # cmd/incus: Fix recursive keepalive proxy startup
+          git cherry-pick ff74747b9a62e6f993ec01d345c25c8be456aff3  # shared/scriptlet: Don't panic on marshaling uuid.UUID and other non-addressable arrays
+          git cherry-pick e85ee65e77c687cde5643f4bb5072c72f48d18ec  # incusd/network/acl: Skip address sets when collecting referenced ACLs
+          git cherry-pick b6050c789563a1009337a3387e3c07250d917d2c  # tests: Check address set subjects in OVN ACL rules
+          git cherry-pick d8dd9dfa41a3ca8cdfbea9826e87418a20f3aef0  # incusd/network/ovn: Restore the health check when reverting a load balancer update
+          git cherry-pick 86fb07be0ada561bf7a5a021b07711a6c708bbdc  # incusd/storage/lvm: Don't move the GPT alt header on qcow2 volumes
+          git cherry-pick 612dc57154294e196f777eb318720da0ca388022  # incusd/storage: Move the GPT alt header inside qcow2 volumes on resize
+          git cherry-pick b38463352dda7dfe41ed0a5b1842768d34489384  # incusd/instance/qemu: Resize the active node of a qcow2 chain
+          git cherry-pick 574fefc152b6f97e8b054319b070ff8aa8794a8f  # incusd: Don't leak the backup tarball writer on failure
+          git cherry-pick 3f72fafcc17a323cf06577ce3fdacfe2ff8a2106  # incusd/storage/zfs: Unmount stale snapshot mounts before deletion
+          git cherry-pick 36e651812276eb512cc815f2dc22cd276374c7e8  # incusd/storage/zfs: Consider the filesystem dataset in HasVolume
+          git cherry-pick 49ee73439870fd0505cfc1fa6af09c5f741c37f7  # incusd/instance/qemu: Unmount snapshots through the snapshot path
+          git cherry-pick 5e41d6e351be3ecaa9ef90ff8a83d70e11f75156  # incusd: Clear stale snapshot mounts at startup
+          git cherry-pick d1418bbc8b00bd86ccaa811a07bee22161c6812f  # incusd/storage: Get snapshot sizes without mounting on ZFS
+          git cherry-pick 3455d65debf5dccef43935f7be65d6ae59dda1f4  # internal/server/storage: Avoid nested snapshot repair transactions
+          git cherry-pick e7465ba6f29244f73ed02a5ca48253d45ebadaab  # internal/server/bgp: Preserve shared peer counts
+          git cherry-pick dedaf45779d2cfe3658ac0273f313c35e0a68ec3  # cmd/incus: Enable persistent hook traversal
+          git cherry-pick af559839dbcb174d23fab2502a4b2db2a1d03cae  # incusd/storage: Fix qcow2 volume size after live snapshot
+          git cherry-pick 8348b8e0d1c268a59596e28987f971a59303b221  # internal/server/db/query: Report canceled transactions
+          git cherry-pick d3a8c4310310c6085354725d0877a67e14605b14  # test/clustering: Wait for returning member readiness
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v7/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v7/cmd/incus
