@@ -467,6 +467,8 @@ jobs:
           git cherry-pick f9626f9ff06f03853caa51b48b108eb106675974  # incusd/instance/qemu: Size backed overlays from their backing node
           git cherry-pick ad8a585e792ead0dfaf8b99822b972d423273582  # incusd/auth/oidc: Verify the ID token when the access token is opaque
           git cherry-pick 5d406447e2ea4e24f54daa04dd04a3a69e95e8fa  # client: Send the ID token alongside opaque access tokens
+          git cherry-pick 92aae81a67b5a864956c949807021fc814a035da  # mini-oidc: Add a device client issuing opaque access tokens
+          git cherry-pick 9d4e5841428165439d5c751b67edff0ee1a2c2c9  # tests: Check OIDC login with opaque access tokens
           git cherry-pick 7d3e33613ebddc1ff8c45ebefa2e8153f6682be6  # incusd: Revert interrupted evacuation states at startup
           git cherry-pick 4730be0b01cf8560c572efa205f3369982c94e84  # incusd: Wait for backup uploads to complete
           git cherry-pick 11569f1a621468ad8e6c36233927c30b386906db  # incusd/storage_volumes_snapshot: Block direct rename of dependent volume snapshots
@@ -497,6 +499,19 @@ jobs:
           git cherry-pick af559839dbcb174d23fab2502a4b2db2a1d03cae  # incusd/storage: Fix qcow2 volume size after live snapshot
           git cherry-pick 8348b8e0d1c268a59596e28987f971a59303b221  # internal/server/db/query: Report canceled transactions
           git cherry-pick d3a8c4310310c6085354725d0877a67e14605b14  # test/clustering: Wait for returning member readiness
+          git cherry-pick 8408bd128407c99046cbf07d50bcfcfc43de94ed  # incusd/acme: Forward HTTP-01 challenges from all cluster members
+          git cherry-pick ffc836613c2c41bb4a33e9fada0debf3d0ebbff0  # doc/authentication: Mention HTTP-01 handling in clusters
+          git cherry-pick 5b414921e5e34dc2dab4b6f79df861389157876d  # incusd/storage: Compare snapshot creation dates at second precision
+          git cherry-pick 27704c2665fa9323a38a5de1dce981a50ed0e8fc  # tests: Check that a refresh back to the source is incremental
+          git cherry-pick e56f288099a85b0356eef738f1a291289a0daffa  # incusd/storage: Use the virtual size of qcow2 volumes on copy and migration
+          git cherry-pick cd2716b4d02f609d2f0952854d6e6115f0467051  # incusd: Use the virtual size of qcow2 volumes on storage volume migration
+          git cherry-pick bd070a190a371d537aa20011d42de124b25b9a4e  # test/mini-oidc: Fix port selection race
+          git cherry-pick b57e6db4a6e4d8a5d04191801366d03f9f5478b6  # incusd/storage/drivers: Delete conflicting subvolume on btrfs refresh
+          git cherry-pick a32f7f90c89f51a9e2e9dcfc7199279f2c1716bc  # incusd/storage/drivers: Use a target-held snapshot as refresh parent
+          git cherry-pick bd8b5ecc6d10bd425cddd9d0e542eb67f7b0f021  # tests: Wait for firmware state instead of fixed sleeps in nvram_vm
+          git cherry-pick 42c1ee6380f74f77c39402d497fa0367e9627995  # tests: Wait for role to propagate on cluster rebalance
+          git cherry-pick f6b9d949c93ac3de6b4690c5c76c57ccc3d2c819  # incusd/firewall/nftables: Skip UDP checksum rules in user namespaces
+          git cherry-pick c71304b6ea7dca1ad80e70ad715e9abdd2279bda  # incusd/instance/qemu: Use the custom volume content type on live move
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v7/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v7/cmd/incus
