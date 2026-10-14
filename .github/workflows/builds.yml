@@ -334,6 +334,7 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick 40bf41895abbdccfbad12b57e114e1a46a944716  # devcontainer: bump Go to 1.26
           git cherry-pick 10c2c1f460b8fbf82d31b295cf775612aa690a2e  # incus/server/instance/drivers/qemu: dont interpret ErrNonReusuableSucceeded as error
           git cherry-pick 2fd03fac717783fd57ad81f0a14a723b96ef20ff  # incus/server/instance/drivers/lxc: dont interpret ErrNonReusuableSucceeded as error
           git cherry-pick 8f8d84d8190b100571d6efb666451f9770e64d5e  # doc: Move warning for macOS in howto/insntances_create
@@ -487,6 +488,10 @@ jobs:
           git cherry-pick 5e41d6e351be3ecaa9ef90ff8a83d70e11f75156  # incusd: Clear stale snapshot mounts at startup
           git cherry-pick d1418bbc8b00bd86ccaa811a07bee22161c6812f  # incusd/storage: Get snapshot sizes without mounting on ZFS
           git cherry-pick 3455d65debf5dccef43935f7be65d6ae59dda1f4  # internal/server/storage: Avoid nested snapshot repair transactions
+          git cherry-pick bb2af84c1ea2b0af36ce4579ed13305608acb49e  # incusd/auth/tls: Only grant metrics access to metrics certificates
+          git cherry-pick 89ac65c933eb4067096be621bfd7fb9345813d19  # incusd/cluster/config: Document core.trust_ca_certificates behavior
+          git cherry-pick 5b338b80ea90b166601ebdece3db3d2662be4086  # doc: Update configs
+          git cherry-pick 0360ef6f860fa38cea991d7f56bf1ddc8b519424  # doc/authentication: Document core.trust_ca_certificates
           git cherry-pick e7465ba6f29244f73ed02a5ca48253d45ebadaab  # internal/server/bgp: Preserve shared peer counts
           git cherry-pick dedaf45779d2cfe3658ac0273f313c35e0a68ec3  # cmd/incus: Enable persistent hook traversal
           git cherry-pick af559839dbcb174d23fab2502a4b2db2a1d03cae  # incusd/storage: Fix qcow2 volume size after live snapshot
