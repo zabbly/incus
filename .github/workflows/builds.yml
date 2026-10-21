@@ -620,6 +620,9 @@ jobs:
                   --enable-vhost-net \
                   --enable-vhost-user \
                   --enable-virtfs
+
+          # The dtc subproject is only fetched by configure.
+          patch -p1 < "${REPO}/patches/qemu-0002-dtc-discarded-qualifiers.patch"
           make -j"$(nproc)"
 
           mkdir /build/target/qemu/

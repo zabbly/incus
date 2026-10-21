@@ -1,0 +1,17 @@
+Backport of dtc commit 9a1c801a1a3c ("Fix discarded const qualifiers").
+
+Needed with the C23 const-correct memchr in newer glibc, which otherwise
+fails the -Werror build of QEMU's bundled libfdt.
+
+--- a/subprojects/dtc/libfdt/fdt_overlay.c
++++ b/subprojects/dtc/libfdt/fdt_overlay.c
+@@ -446,7 +446,8 @@
+ 		const char *fixup_str = value;
+ 		uint32_t path_len, name_len;
+ 		uint32_t fixup_len;
+-		char *sep, *endptr;
++		const char *sep;
++		char *endptr;
+ 		int poffset, ret;
+ 
+ 		fixup_end = memchr(value, '\0', len);
