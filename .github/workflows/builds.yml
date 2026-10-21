@@ -529,6 +529,45 @@ jobs:
           git cherry-pick dfdbc456e003a950621333bf2662159da5fbf336  # tests: Check persistent bitmaps on dependent volumes
           git cherry-pick 3e5480eaf6257f303b287ce7bd612d91c7938151  # incusd/project: Allow local images with restricted.images.servers
           git cherry-pick d6887f7d5398683009477eb81050ba49f1961bb4  # tests: Cover local images with restricted.images.servers
+          git cherry-pick 091c3bff592db263b76af959b5aa9fae8ce787b7  # internal/server/network/driver/ovn: Fix routerExtPortIPs outside of transaction
+          git cherry-pick ef02578355025b6744fe02b6425f30b682dacac7  # incus/admin: Use a plain signal channel in waitready (errcheck)
+          git cherry-pick e2496cc6baa46fa26cf52d9cff2eb186ef7e8811  # incusd: Use a plain signal channel in waitready (errcheck)
+          git cherry-pick 5e83b64d5586db72ecbcf2824bde4e1d76ad71a0  # incusd/images: Use a plain signal channel for image sync (errcheck)
+          git cherry-pick ef2f595e49f3a5877c234630f45c740cad102773  # incusd/instance/operationlock: Use a plain signal channel (errcheck)
+          git cherry-pick cdcd4ea0d3539e9f5eb882c5acdd75b7519bfd9f  # incusd/instance: Use a plain signal channel for console disconnection (errcheck)
+          git cherry-pick a6c419c2438669b9a5bd4254ea37a994d92b2d0d  # incusd/console: Log websocket mirror errors (errcheck)
+          git cherry-pick 3007834f3ae34db693ccef4b07b86346f152e776  # incus-agent: Log websocket mirror errors (errcheck)
+          git cherry-pick edd366c8dd2953660fa996499535967c69686299  # shared/ws: Add a helper to wait for a mirror to finish
+          git cherry-pick 8ae6e44941f80d7227dcd26cbafbeb83f2a43bea  # client: Wait for websocket mirrors through their done channel (errcheck)
+          git cherry-pick 79e68cfc9bc959053cfb86600ceab21bc4c24d3e  # incus-migrate: Wait for websocket mirrors through their done channel (errcheck)
+          git cherry-pick c9afafa5a290d47b28f42b9bcf79812ccd08e247  # lxc-to-incus: Wait for websocket mirrors through their done channel (errcheck)
+          git cherry-pick 9c020af1cf8bacac9591ee9552f5bded0367022b  # incusd/forkproxy: Report relay errors from both directions (errcheck)
+          git cherry-pick 9981ae3a71d6a01a799d71ef604efb180d381165  # incusd/forkproxy: Close the unix relay channel on exit
+          git cherry-pick 64d03124f7f2b6b944a44fb565a05b75d06a4e37  # incusd/instances: Log the timeout when forcefully stopping at shutdown
+          git cherry-pick e4ea528b7c0ccddbcaf4e9f81900ecca52f66209  # incusd/instances: Fall back to a regular shutdown when a stateful stop fails
+          git cherry-pick 15c142fe0b0b77739b079f27aae8afa22cd2c918  # incusd/db: Move instance warnings with the instance on cluster move
+          git cherry-pick e1546000cfb187e0bf69bb40f946bd24a6c73bc5  # incusd/db/warnings: Add InstanceForcedStop
+          git cherry-pick 6952c5322252786462da519c517d0c17dbf77876  # incusd/warnings: Keep restart-surviving warnings on startup
+          git cherry-pick 34d3aeaf18cf8358409e1e2e8f9ad4d9a30ce144  # incusd: Record a warning when an instance is forcefully stopped
+          git cherry-pick 19eef92bd6b46e1f9ac530757ab8bcf5effef48d  # tests: Check the forced stop warning
+          git cherry-pick dd454492c23af4464e9438ebaaa4d1de097d20f2  # incusd/storage/s3: Don't skip keys when following a continuation token
+          git cherry-pick 4377a873257af6f5dfac1132cece5567b0eec082  # incusd/storage/s3: Support marker in ListObjects
+          git cherry-pick d3d1637c8d3b414f972b727d9abdcdc0f246548a  # incusd/storage/s3: Return the bucket name in object listings
+          git cherry-pick 9e00b4766bbd9207be3fbba94dec449c055e6e6b  # tests: Add storage bucket listing pagination test
+          git cherry-pick 2d8496e6225d30ab2022dab5f0c52e5d619436b4  # incusd/networks: Report networks whose driver fails to load as unavailable
+          git cherry-pick 2de0a3adc0a675bdfd50d163d662e8c5f8331251  # incusd: Clearer error when the OVN southbound address isn't set
+          git cherry-pick c18c6217243c55a618707d546ce836d3129ca241  # tests: Check OVN networks are listed when OVN is unreachable
+          git cherry-pick 70ebe288947a5f41df3c7abca933ec969e1a302c  # incusd/instance/lxc: Don't crash starting an OCI container without an ID map
+          git cherry-pick 5519e07d87fc3b20999b2b692d747a3d3cd1a4fd  # tests: Check starting a rebuilt OCI container that was never started
+          git cherry-pick 5d128122877b2b801c493bf3e27611a68ff50520  # incusd/storage: Support migrating a QCOW2 volume snapshot
+          git cherry-pick c926fe8bdcae3799970f5070050e73f913914cdb  # incusd/instance/drivers: Send dependent volume snapshots when migrating a snapshot
+          git cherry-pick 5d511f2e0ac8e43750dc6dc356f8409fb50dd4f7  # tests: Check copying snapshots with a dependent volume across servers
+          git cherry-pick c777530c7c8fbd9b6885066397fe96bf0702d4e0  # incus/remote: Share event streams in the keepalive proxy
+          git cherry-pick e73f3a392d16a3223a755672100e4349406485a1  # incus/remote: Keep spare TLS connections in the keepalive proxy
+          git cherry-pick 15e66a9ee25a0f34aa773d2bd6aec4ccccbd1355  # client: Tolerate a late control websocket on finished exec operations
+          git cherry-pick 3db4f31197155c30dd57d8d264fa724ffc821ce6  # shared/cliconfig: Serialize keepalive proxy startup
+          git cherry-pick 368009a5b96ff3e7d88eb4fabbdfd2aa6cbd24cf  # incus/remote: Don't start a proxy over a live socket
+          git cherry-pick f1b4ed1ba14668d6913eb421d04544d8d6498073  # tests: Add keepalive proxy test
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v7/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v7/cmd/incus
