@@ -1,0 +1,131 @@
+diff --git a/backends/tpm/tpm_passthrough.c b/backends/tpm/tpm_passthrough.c
+index 179697a..5e0f726 100644
+--- a/backends/tpm/tpm_passthrough.c
++++ b/backends/tpm/tpm_passthrough.c
+@@ -211,7 +211,7 @@ static size_t tpm_passthrough_get_buffer_size(TPMBackend *tb)
+ static int tpm_passthrough_open_sysfs_cancel(TPMPassthruState *tpm_pt)
+ {
+     int fd = -1;
+-    char *dev;
++    const char *dev;
+     char path[PATH_MAX];
+ 
+     if (tpm_pt->options->cancel_path) {
+diff --git a/block/vmdk.c b/block/vmdk.c
+index 3b82979..f575313 100644
+--- a/block/vmdk.c
++++ b/block/vmdk.c
+@@ -1090,7 +1090,7 @@ vmdk_open_vmdk4(BlockDriverState *bs, BdrvChild *file, int flags,
+ static int vmdk_parse_description(const char *desc, const char *opt_name,
+         char *buf, int buf_size)
+ {
+-    char *opt_pos, *opt_end;
++    const char *opt_pos, *opt_end;
+     const char *end = desc + strlen(desc);
+ 
+     opt_pos = strstr(desc, opt_name);
+diff --git a/block/vvfat.c b/block/vvfat.c
+index 213d798..d8587e6 100644
+--- a/block/vvfat.c
++++ b/block/vvfat.c
+@@ -1827,7 +1827,7 @@ cluster_was_modified(BDRVVVFATState *s, uint32_t cluster_num)
+ 
+ static const char* get_basename(const char* path)
+ {
+-    char* basename = strrchr(path, '/');
++    const char *basename = strrchr(path, '/');
+     if (basename == NULL)
+         return path;
+     else
+diff --git a/gdbstub/gdbstub.c b/gdbstub/gdbstub.c
+index 9c23d44..ac0c830 100644
+--- a/gdbstub/gdbstub.c
++++ b/gdbstub/gdbstub.c
+@@ -359,7 +359,7 @@ static const char *get_feature_xml(const char *p, const char **newp,
+      * qXfer:features:read:ANNEX:OFFSET,LENGTH'
+      *                     ^p    ^newp
+      */
+-    char *term = strchr(p, ':');
++    const char *term = strchr(p, ':');
+     *newp = term + 1;
+     len = term - p;
+ 
+diff --git a/hw/i386/x86.c b/hw/i386/x86.c
+index ffbda48..2ba3820 100644
+--- a/hw/i386/x86.c
++++ b/hw/i386/x86.c
+@@ -804,7 +804,7 @@ void x86_load_linux(X86MachineState *x86ms,
+     uint8_t header[8192], *setup, *kernel;
+     hwaddr real_addr, prot_addr, cmdline_addr, initrd_addr = 0;
+     FILE *f;
+-    char *vmode;
++    const char *vmode;
+     MachineState *machine = MACHINE(x86ms);
+     struct setup_data *setup_data;
+     const char *kernel_filename = machine->kernel_filename;
+diff --git a/monitor/hmp.c b/monitor/hmp.c
+index 69c1b7e..64b1e6a 100644
+--- a/monitor/hmp.c
++++ b/monitor/hmp.c
+@@ -577,10 +577,11 @@ static const char *get_command_name(const char *cmdline,
+  * Read key of 'type' into 'key' and return the current
+  * 'type' pointer.
+  */
+-static char *key_get_info(const char *type, char **key)
++static const char *key_get_info(const char *type, char **key)
+ {
+     size_t len;
+-    char *p, *str;
++    const char *p;
++    char *str;
+ 
+     if (*type == ',') {
+         type++;
+diff --git a/ui/ui-hmp-cmds.c b/ui/ui-hmp-cmds.c
+index 26c8ced..b0c68c3 100644
+--- a/ui/ui-hmp-cmds.c
++++ b/ui/ui-hmp-cmds.c
+@@ -418,7 +418,7 @@ err_out:
+ void sendkey_completion(ReadLineState *rs, int nb_args, const char *str)
+ {
+     int i;
+-    char *sep;
++    const char *sep;
+     size_t len;
+ 
+     if (nb_args != 2) {
+diff --git a/util/log.c b/util/log.c
+index d36c98d..54169c3 100644
+--- a/util/log.c
++++ b/util/log.c
+@@ -185,7 +185,7 @@ static ValidFilenameTemplateResult
+ valid_filename_template(const char *filename, bool per_thread, Error **errp)
+ {
+     if (filename) {
+-        char *pidstr = strstr(filename, "%");
++        const char *pidstr = strstr(filename, "%");
+ 
+         if (pidstr) {
+             /* We only accept one %d, no other format strings */
+diff --git a/util/qemu-sockets.c b/util/qemu-sockets.c
+index 60c44b2..0e755d1 100644
+--- a/util/qemu-sockets.c
++++ b/util/qemu-sockets.c
+@@ -596,7 +596,7 @@ err:
+ static int inet_parse_flag(const char *flagname, const char *optstr, bool *val,
+                            Error **errp)
+ {
+-    char *end;
++    const char *end;
+     size_t len;
+ 
+     end = strstr(optstr, ",");
+@@ -627,7 +627,7 @@ int inet_parse(InetSocketAddress *addr, const char *str, Error **errp)
+     char port[33];
+     int to;
+     int pos;
+-    char *begin;
++    const char *begin;
+ 
+     memset(addr, 0, sizeof(*addr));
+ 
