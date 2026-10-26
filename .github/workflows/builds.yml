@@ -568,6 +568,49 @@ jobs:
           git cherry-pick 3db4f31197155c30dd57d8d264fa724ffc821ce6  # shared/cliconfig: Serialize keepalive proxy startup
           git cherry-pick 368009a5b96ff3e7d88eb4fabbdfd2aa6cbd24cf  # incus/remote: Don't start a proxy over a live socket
           git cherry-pick f1b4ed1ba14668d6913eb421d04544d8d6498073  # tests: Add keepalive proxy test
+          git cherry-pick 9aee14779bc468515a42767ef86a27965ef1a0c6  # incusd/storage/qcow2: Create images with lazy refcounts
+          git cherry-pick 17bad2c10de6d2884e3d6d7ecfbe95c3137a7cb5  # incusd/storage/qcow2: Add Qcow2EnableLazyRefcounts
+          git cherry-pick 57f2baab14132011636fe166846819d60d5cb696  # incusd/instance/qemu: Keep discarded qcow2 clusters allocated on block devices
+          git cherry-pick 6657fa80ec5c30230a20368fe781ca80c40e11f3  # incusd/instance/qemu: Enable lazy refcounts on existing qcow2 volumes
+          git cherry-pick f8207284463dd77d2965e8086ca90412e989c61f  # incusd/instance/qemu: Keep helper block node names apart from devices
+          git cherry-pick b2c9d1fd0fd80d92089fd38629092ba9818a80ca  # incusd/instance/qemu: Encode device names in PCI, GPU and 9p identifiers
+          git cherry-pick ef5c40c0def6e6550a02445d475af602621a145e  # incusd/device/usb: Encode the device name in the QEMU identifier
+          git cherry-pick 19ca27cb5c56b0858e1b1efc3c57bf778fbd7228  # incusd/instance: Scope device volatile keys to their device
+          git cherry-pick 4134a4e219767d62ce22dee27168bc612724130f  # shared/validate: Add IsDeviceName
+          git cherry-pick 349bf5f500a0e8dc4675e7e22ea64216164f409c  # incusd/instance: Restrict device names to QEMU identifier characters
+          git cherry-pick 99bf2b35e84f29c67ccca57494baa20d76239819  # incusd/instance: Track device volatile keys in a map
+          git cherry-pick 22864e481a92c33cacfea11e1d42f154682600b1  # incusd/instance: Reject device names taking over another device's volatile keys
+          git cherry-pick 540f467832671dbb1ed7e6de665af379c8292034  # doc: Document device name restrictions
+          git cherry-pick 433fd6aaec5242a2d7d6bca973aa8e750a66d08e  # tests: Check device name handling
+          git cherry-pick 10ac91117fb9bb2c74f4f39cb91641e31ebbe012  # internal/server/device/disk: don't block migration for emulated NVMe disks
+          git cherry-pick b26da34a02c61927858fd555db65f09242486666  # incusd/instance/qemu: Keep disk caching on qcow2 snapshot overlays
+          git cherry-pick d08fa5c073f55f3a15667567dd07addd4f843ff4  # incusd/instance/qemu: Write out the commit base when deleting a running qcow2 snapshot
+          git cherry-pick b90a546d6973ba81dc8a7331d69ce2d96b9d0155  # tests: Add lvmcluster snapshot and copy tests to clustering-vm
+          git cherry-pick a783d9087f197751eead287ee5afaf8cf069fca3  # incus-agent: Stop the Windows service when the HTTP server fails
+          git cherry-pick 2d69af66a8012604e92ae9a3f2d73d4f47afc61a  # client: Fall back to verification_uri for OIDC device login
+          git cherry-pick 7bea5bd7b7ffb112b22e0ba1b52ec5828d4dace4  # incusd/acme: Only forward genuine HTTP-01 challenge paths
+          git cherry-pick 81262b4167b175a70a04822f381bd113db647a75  # incusd/images: Keep replaced image files while another project uses them
+          git cherry-pick 0949423d3015401679b9f0cdcc1b8604423625dc  # incusd/images: Remove old image files from members after a refresh
+          git cherry-pick 6ce6fad8ed0dced4e421cc6d4271b92667a01ce5  # tests: Check image files after a cluster image refresh
+          git cherry-pick 3901e2987449c093bb792ddd1200265c16011cfd  # incusd/netutils: Resolve veth peers with a targeted netlink lookup
+          git cherry-pick ff96b3a9a533f98dc14a70d7bef189e90e5043ed  # incusd/instance: Stop dumping the host links when rendering state
+          git cherry-pick f3a4c92ff095264466309c76fc75a316d7557e62  # incusd/networks: Stop dumping the host links for each network
+          git cherry-pick e184c26f43555b6255ebed9785035a6a5b4b2a87  # incusd/netutils: Only check the link dump for netns id awareness
+          git cherry-pick 93b109ba10b5f3108e85f41fc307349654cf0b9d  # incus/console: Prevent splitting on socket path
+          git cherry-pick 1c234da02c5b67e7c805af2f40e858582bcd2c86  # client: Expose ResolveUnixSocket with fallback to /var/lib/incus
+          git cherry-pick 23da4726c0eabc072b7aaa0353365b678deb9376  # incusd/callhook: Use central socket resolution
+          git cherry-pick 35695d7245c07f961f36be9abb8d78741ac96707  # incusd/instance: Refresh the OCI entry point keys on rebuild
+          git cherry-pick 55d22f32d3e7b94a0a653e142c33cad145a25112  # tests: Check the OCI entry point follows the image across rebuilds
+          git cherry-pick 8ad0b694013a14ab04f0abde63e0ce0f500f9331  # incusd/events: Don't log while holding the listener lock
+          git cherry-pick 2243e07d0355009813e1e48876a8f8981fe08b6c  # incusd/certificates: Accept a certificate along with a trust token
+          git cherry-pick 8f7fcd92c3adc6e3d152494727647bb14c97dbbe  # tests: Fix and wire the remote token test
+          git cherry-pick 53737daa64d3d7c46e28bcfbdaf20403d1df9e47  # tests: Cover trust token enrollment with a supplied certificate
+          git cherry-pick 41d9f9831d04ab98034c535eb1aaca60193b0fbb  # incusd/storage/cephfs: Export volumes from a temporary snapshot
+          git cherry-pick cef19c514485d1a6b9db09e061d6d4a6c917df45  # tests: Cover cephfs volume export and import
+          git cherry-pick 543a53950d24edf0ca857a0520d9f46446e322e3  # incusd/instance: Add IsVMBootStateKey
+          git cherry-pick 4b4ce8a771cf8b24e88f0678e30e218677295df9  # incusd/instance/qemu: Check received boot states against the limits
+          git cherry-pick fe74a36a5876d685e3cf9ea829919291b31e76f4  # incusd/project: Keep the VM boot state of stateful transfers
+          git cherry-pick 35375a5566f04502c1e32ad4cc2f813cc269b543  # incusd/instance: Keep the VM boot state when copying with state
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v7/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v7/cmd/incus
