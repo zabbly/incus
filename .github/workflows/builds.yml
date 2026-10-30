@@ -58,7 +58,7 @@ jobs:
       LIBURING_TAG: "liburing-2.15"
       NASM_TAG: "nasm-2.16.03"
       NVIDIA_CONTAINER_TAG: "v1.20.1"
-      QEMU_TAG: "v11.1.2"
+      QEMU_TAG: "v11.1.3"
       RAFT_TAG: "v0.22.1"
       SEABIOS_TAG: "rel-1.17.0"
       SKOPEO_TAG: "v1.24.1"
