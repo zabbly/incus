@@ -334,6 +334,27 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick 1bd01df82ea19ec7dba87041a4e3d8f8b42a47f2  # incusd/instance/lxc: Reject line breaks in LXC config values
+          git cherry-pick e298fc7880b718398d2d8b4efd8b23bffc6d317d  # incusd/instance/lxc: Only parse config.json for OCI containers
+          git cherry-pick 7c998495cf7f3f8f658492a116c7e15288ac9993  # incusd/instance/lxc: Keep loader variables out of the forklxc environment
+          git cherry-pick cf2d213bb64f11c024aa5624c15bd239f3f5ec89  # incusd/dev_incus: Anchor the cgroup based monitor detection
+          git cherry-pick 3c717818be57e21f7b782444a23404044426efd4  # incusd: Check resource creation against the effective project
+          git cherry-pick 1f75f3da6bec34d62cc05a0b6b1e9065cb8d2cd9  # incusd/auth/tls: Restrict inherited reads to the certificate's projects
+          git cherry-pick fce499bc012083af1301d641b0d045acd5900d6c  # incusd/operations: Protect token operations from events and cancellation
+          git cherry-pick 43e6bdeb7530768c3bc2ae0feb2541e48fa365c3  # incusd/storage/s3: Verify signed payloads without buffering
+          git am "${REPO}/patches/incus-0001-incusd-storage-Validate-dependent-volumes-received-t.patch"
+          git cherry-pick f002fdb887845bc6fc7679cd63c06603a49c3bb5  # incusd/storage: Validate snapshot names from the backup index on import
+          git am "${REPO}/patches/incus-0002-incusd-Only-trust-the-key-proven-client-certificate.patch"
+          git cherry-pick 2876803d02651cc9b5efc95483411878047b3748  # incusd/dev_incus: Pin image export to the instance's project
+          git cherry-pick dc2d0c836c57b69e65625e48db3a28c3dd76cd66  # incusd/events: Restrict network-acl events to privileged viewers
+          git cherry-pick 0df451f531b57d18090988340a906ed49d310024  # incusd/instance/lxc: Allocate an idmap when none is set at start
+          git cherry-pick 6af74594a80a048f8e2354f4a56f77e63e74ac92  # incusd: Authorize effective project on resource creation
+          git cherry-pick aca14711ed4c6b8c24aa00e46c632b456e09200c  # incusd: Fix cross-project disclosure in recursive and all-projects listings
+          git cherry-pick a8b2c791e0821b4cee872766cdca5df87e0ad6dc  # incusd/storage: Strip non-regular files from instance metadata
+          git am "${REPO}/patches/incus-0003-incusd-instance-qemu-Confine-NBD-migration-sockets-t.patch"
+          git cherry-pick dd00e2b2e929bd03c190445e7d991e1ffd03788f  # incusd: Reject null snapshot entries on backup import
+          git cherry-pick b6c832ba41e0eb92442e0c7491bb2c329134f2b2  # incusd/operations: Keep websocket secrets out of events and queries
+
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v7/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v7/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" github.com/lxc/incus/v7/cmd/incus-benchmark

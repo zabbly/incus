@@ -1,0 +1,211 @@
+From 9fad6f52b23d4c44121e84eb650a7e9a61468de3 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Sat, 3 Oct 2026 19:44:23 -0400
+Subject: [PATCH] incusd/storage: Validate dependent volumes received through
+ migration
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The names of dependent volumes received through migration were used as
+path segments without validation, letting a malicious source create
+volumes outside of the storage pool.
+
+The index header sent by the source was also indexed by the position of
+the volume in the offer header, with no check that the lists match, and
+optional protobuf fields were dereferenced unconditionally, letting a
+malicious source crash the daemon.
+
+Validate the names as is done for backups, check the index header
+before using it and use the nil-safe protobuf getters.
+
+This addresses GHSA-q9fc-p923-6vp7 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+---
+ .../server/instance/drivers/driver_lxc.go     |  9 +++++-
+ .../server/instance/drivers/driver_qemu.go    |  9 +++++-
+ .../server/migration/migration_volumes.go     | 10 +++----
+ internal/server/storage/backend.go            | 20 +++++++++++--
+ internal/server/storage/utils.go              | 30 ++++++++++++++++---
+ 5 files changed, 65 insertions(+), 13 deletions(-)
+
+diff --git a/internal/server/instance/drivers/driver_lxc.go b/internal/server/instance/drivers/driver_lxc.go
+index 9245e96642..db40bc6281 100644
+--- a/internal/server/instance/drivers/driver_lxc.go
++++ b/internal/server/instance/drivers/driver_lxc.go
+@@ -6424,6 +6424,13 @@ func (d *lxc) MigrateSend(args instance.MigrateSendArgs) error {
+ 		return err
+ 	}
+ 
++	// The target can only negotiate types for the volumes we offered, not redefine them.
++	err = storagePools.ValidateDependentVolumesAgainstOffer(offerHeader.DependentVolumes, respHeader.DependentVolumes)
++	if err != nil {
++		op.Done(err)
++		return err
++	}
++
+ 	volumesWithTypes, err := storagePools.DependentVolumesMatchMigrationType(d.state, respHeader.DependentVolumes, args.Snapshots, nil, true, clusterMove)
+ 	if err != nil {
+ 		err := fmt.Errorf("Failed to negotiate migration types for dependent volumes: %w", err)
+@@ -7024,7 +7031,7 @@ func (d *lxc) MigrateReceive(args instance.MigrateReceiveArgs) error {
+ 	dependentVolumes := []localMigration.DependentVolumeArgs{}
+ 	for _, volWithType := range volumesWithTypes {
+ 		respHeader.DependentVolumes = append(respHeader.DependentVolumes, volWithType.Volume)
+-		vol := localMigration.ProtobufToDependentVolume(volWithType.Volume, volWithType.VolumeTypes[0], localDevices[*volWithType.Volume.DeviceName])
++		vol := localMigration.ProtobufToDependentVolume(volWithType.Volume, volWithType.VolumeTypes[0], localDevices[volWithType.Volume.GetDeviceName()])
+ 		dependentVolumes = append(dependentVolumes, vol)
+ 	}
+ 
+diff --git a/internal/server/instance/drivers/driver_qemu.go b/internal/server/instance/drivers/driver_qemu.go
+index 4370f474ca..e2f9a8c6ef 100644
+--- a/internal/server/instance/drivers/driver_qemu.go
++++ b/internal/server/instance/drivers/driver_qemu.go
+@@ -8994,6 +8994,13 @@ func (d *qemu) MigrateSend(args instance.MigrateSendArgs) error {
+ 		return err
+ 	}
+ 
++	// The target can only negotiate types for the volumes we offered, not redefine them.
++	err = storagePools.ValidateDependentVolumesAgainstOffer(offerHeader.DependentVolumes, respHeader.DependentVolumes)
++	if err != nil {
++		op.Done(err)
++		return err
++	}
++
+ 	volumesWithTypes, err := storagePools.DependentVolumesMatchMigrationType(d.state, respHeader.DependentVolumes, args.Snapshots, nil, true, clusterMove)
+ 	if err != nil {
+ 		err := fmt.Errorf("Failed to negotiate migration types for dependent volumes: %w", err)
+@@ -9991,7 +9998,7 @@ func (d *qemu) MigrateReceive(args instance.MigrateReceiveArgs) error {
+ 	dependentVolumes := []localMigration.DependentVolumeArgs{}
+ 	for _, volWithType := range volumesWithTypes {
+ 		respHeader.DependentVolumes = append(respHeader.DependentVolumes, volWithType.Volume)
+-		vol := localMigration.ProtobufToDependentVolume(volWithType.Volume, volWithType.VolumeTypes[0], localDevices[*volWithType.Volume.DeviceName])
++		vol := localMigration.ProtobufToDependentVolume(volWithType.Volume, volWithType.VolumeTypes[0], localDevices[volWithType.Volume.GetDeviceName()])
+ 		dependentVolumes = append(dependentVolumes, vol)
+ 	}
+ 
+diff --git a/internal/server/migration/migration_volumes.go b/internal/server/migration/migration_volumes.go
+index 2518c680c5..5fc41eb0f1 100644
+--- a/internal/server/migration/migration_volumes.go
++++ b/internal/server/migration/migration_volumes.go
+@@ -304,8 +304,8 @@ func HeaderFromDependentVolume(volume *migration.DependentVolume) *migration.Mig
+ 
+ // ProtobufToDependentVolume converts a migration.DependentVolume into DependentVolumeArgs.
+ func ProtobufToDependentVolume(volume *migration.DependentVolume, migrationType Type, overrides map[string]string) DependentVolumeArgs {
+-	volName := *volume.Name
+-	poolName := *volume.Pool
++	volName := volume.GetName()
++	poolName := volume.GetPool()
+ 	if overrides != nil {
+ 		if overrides["pool"] != "" {
+ 			poolName = overrides["pool"]
+@@ -319,11 +319,11 @@ func ProtobufToDependentVolume(volume *migration.DependentVolume, migrationType
+ 	return DependentVolumeArgs{
+ 		Name:          volName,
+ 		Pool:          poolName,
+-		DeviceName:    *volume.DeviceName,
+-		ContentType:   *volume.ContentType,
++		DeviceName:    volume.GetDeviceName(),
++		ContentType:   volume.GetContentType(),
+ 		MigrationType: migrationType,
+ 		Snapshots:     volume.Snapshots,
+-		VolumeSize:    *volume.VolumeSize,
++		VolumeSize:    volume.GetVolumeSize(),
+ 	}
+ }
+ 
+diff --git a/internal/server/storage/backend.go b/internal/server/storage/backend.go
+index 5ee091a102..1550e8da07 100644
+--- a/internal/server/storage/backend.go
++++ b/internal/server/storage/backend.go
+@@ -1369,7 +1369,7 @@ func (b *backend) CreateInstanceFromCopy(inst instance.Instance, src instance.In
+ 
+ 			srcDependentVolumes = append(srcDependentVolumes, srcVol)
+ 
+-			vol := localMigration.ProtobufToDependentVolume(volWithType.Volume, volWithType.VolumeTypes[0], newDevices[*volWithType.Volume.DeviceName])
++			vol := localMigration.ProtobufToDependentVolume(volWithType.Volume, volWithType.VolumeTypes[0], newDevices[volWithType.Volume.GetDeviceName()])
+ 			dstDependentVolumes = append(dstDependentVolumes, vol)
+ 		}
+ 
+@@ -1966,7 +1966,7 @@ func (b *backend) RefreshInstance(inst instance.Instance, src instance.Instance,
+ 
+ 			srcDependentVolumes = append(srcDependentVolumes, srcVol)
+ 
+-			vol := localMigration.ProtobufToDependentVolume(volWithType.Volume, volWithType.VolumeTypes[0], newDevices[*volWithType.Volume.DeviceName])
++			vol := localMigration.ProtobufToDependentVolume(volWithType.Volume, volWithType.VolumeTypes[0], newDevices[volWithType.Volume.GetDeviceName()])
+ 			dstDependentVolumes = append(dstDependentVolumes, vol)
+ 		}
+ 
+@@ -10307,6 +10307,22 @@ func (b *backend) createDependentVolumesFromMigration(inst instance.Instance, co
+ 
+ 		b.logger.Debug("Creating dependent volume from migration", logger.Ctx{"name": dependentVol.Name, "type": dependentVol.MigrationType, "size": dependentVol.VolumeSize})
+ 
++		// Validate the volume name as it's used as a path segment.
++		err = validate.IsAPIName(dependentVol.Name, false)
++		if err != nil {
++			return nil, fmt.Errorf("Invalid dependent volume name: %w", err)
++		}
++
++		// Enforce the target project's storage pool restrictions.
++		if !project.StoragePoolAllowed(inst.Project().Config, dependentVol.Pool) {
++			return nil, fmt.Errorf("Storage pool %q not allowed for project %q", dependentVol.Pool, inst.Project().Name)
++		}
++
++		// The offer and index headers both come from the source, don't assume they match.
++		if info == nil || info.Config == nil || len(info.Config.DependentVolumes) <= idx || info.Config.DependentVolumes[idx] == nil || info.Config.DependentVolumes[idx].Volume == nil {
++			return nil, errors.New("Bad dependent volume definition found in index header")
++		}
++
+ 		// During a refresh only the new snapshots should be received. The root volume's
+ 		// args.Snapshots list has already been reduced to the snapshots the target is
+ 		// missing, and dependent volume snapshots share the same names, so use it as the
+diff --git a/internal/server/storage/utils.go b/internal/server/storage/utils.go
+index d55b7c5bf9..fc2c882194 100644
+--- a/internal/server/storage/utils.go
++++ b/internal/server/storage/utils.go
+@@ -1453,16 +1453,38 @@ type DependentVolumeWithType struct {
+ 	VolumeTypes []localMigration.Type
+ }
+ 
++// ValidateDependentVolumesAgainstOffer rejects a migration response whose dependent volumes don't
++// match the ones the source offered, so a malicious target can't redefine their identity.
++func ValidateDependentVolumesAgainstOffer(offer []*migration.DependentVolume, resp []*migration.DependentVolume) error {
++	offered := make(map[string]*migration.DependentVolume, len(offer))
++	for _, vol := range offer {
++		offered[vol.GetDeviceName()] = vol
++	}
++
++	for _, vol := range resp {
++		match, ok := offered[vol.GetDeviceName()]
++		if !ok {
++			return fmt.Errorf("Dependent volume %q was not offered", vol.GetDeviceName())
++		}
++
++		if vol.GetName() != match.GetName() || vol.GetPool() != match.GetPool() || vol.GetContentType() != match.GetContentType() {
++			return fmt.Errorf("Dependent volume %q doesn't match the offer", vol.GetDeviceName())
++		}
++	}
++
++	return nil
++}
++
+ // DependentVolumesMatchMigrationType returns the transport type matching the dependent volumes.
+ func DependentVolumesMatchMigrationType(s *state.State, migrationDependentVolumes []*migration.DependentVolume, snapshots bool, overrides api.DevicesMap, source bool, clusterMove bool) ([]DependentVolumeWithType, error) {
+ 	dependentVolumes := []DependentVolumeWithType{}
+ 	for _, vol := range migrationDependentVolumes {
+-		contentType := drivers.ContentType(*vol.ContentType)
+-		poolName := *vol.Pool
++		contentType := drivers.ContentType(vol.GetContentType())
++		poolName := vol.GetPool()
+ 		storageMove := false
+ 
+-		if overrides != nil && overrides[*vol.DeviceName] != nil {
+-			newPoolName, ok := overrides[*vol.DeviceName]["pool"]
++		if overrides != nil && overrides[vol.GetDeviceName()] != nil {
++			newPoolName, ok := overrides[vol.GetDeviceName()]["pool"]
+ 			if ok {
+ 				storageMove = newPoolName != poolName
+ 				poolName = newPoolName
+-- 
+2.47.3
+

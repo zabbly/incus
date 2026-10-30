@@ -1,0 +1,294 @@
+From 78e1ccb04763d9f8b614c5b1cee78c88fd91e35c Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Tue, 13 Oct 2026 18:42:36 -0400
+Subject: [PATCH] incusd: Only trust the key-proven client certificate
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The HTTPS listener uses tls.RequestClientCert, so the TLS handshake only
+proves possession of the first certificate in the client's chain. The
+authentication and certificate ownership checks looped over the whole
+chain and matched each certificate against the trust store, letting a
+client authenticate as, or take over, any trust entry by appending that
+entry's public certificate to its own chain.
+
+Match only the first peer certificate in every trust-store check.
+
+This addresses GHSA-xg75-xf37-cph9 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+---
+ cmd/incus-agent/server.go                | 10 +++---
+ cmd/incusd/api_vsock.go                  |  4 +--
+ cmd/incusd/certificates.go               | 18 +++-------
+ cmd/incusd/daemon.go                     | 31 +++++++++--------
+ internal/server/auth/driver_scriptlet.go | 43 ++++++++++++++----------
+ internal/server/cluster/tls.go           | 35 ++++++++++---------
+ 6 files changed, 73 insertions(+), 68 deletions(-)
+
+diff --git a/cmd/incus-agent/server.go b/cmd/incus-agent/server.go
+index 87cbc7d9c5..2f9eac286f 100644
+--- a/cmd/incus-agent/server.go
++++ b/cmd/incus-agent/server.go
+@@ -109,12 +109,10 @@ func createCmd(restAPI *http.ServeMux, version string, c APIEndpoint, cert *x509
+ func authenticate(r *http.Request, cert *x509.Certificate) bool {
+ 	clientCerts := map[string]x509.Certificate{"0": *cert}
+ 
+-	for _, cert := range r.TLS.PeerCertificates {
+-		trusted, _ := localUtil.CheckTrustState(*cert, clientCerts, nil, false)
+-		if trusted {
+-			return true
+-		}
++	if len(r.TLS.PeerCertificates) == 0 {
++		return false
+ 	}
+ 
+-	return false
++	trusted, _ := localUtil.CheckTrustState(*r.TLS.PeerCertificates[0], clientCerts, nil, false)
++	return trusted
+ }
+diff --git a/cmd/incusd/api_vsock.go b/cmd/incusd/api_vsock.go
+index 3e0948522e..e685a6b9fb 100644
+--- a/cmd/incusd/api_vsock.go
++++ b/cmd/incusd/api_vsock.go
+@@ -45,8 +45,8 @@ func authenticateAgentCert(s *state.State, r *http.Request) (bool, instance.Inst
+ 
+ 	agentCert := inst.(instance.VM).AgentCertificate()
+ 
+-	for _, cert := range r.TLS.PeerCertificates {
+-		trusted, _ = localUtil.CheckTrustState(*cert, map[string]x509.Certificate{"0": *agentCert}, nil, false)
++	if len(r.TLS.PeerCertificates) > 0 {
++		trusted, _ = localUtil.CheckTrustState(*r.TLS.PeerCertificates[0], map[string]x509.Certificate{"0": *agentCert}, nil, false)
+ 		if trusted {
+ 			return true, inst, nil
+ 		}
+diff --git a/cmd/incusd/certificates.go b/cmd/incusd/certificates.go
+index 5cd27bf40c..4854290659 100644
+--- a/cmd/incusd/certificates.go
++++ b/cmd/incusd/certificates.go
+@@ -745,7 +745,7 @@ func certificatesPost(d *Daemon, r *http.Request) response.Response {
+ 			return response.BadRequest(errors.New("No client certificate provided"))
+ 		}
+ 
+-		cert = r.TLS.PeerCertificates[len(r.TLS.PeerCertificates)-1]
++		cert = r.TLS.PeerCertificates[0]
+ 	} else {
+ 		return response.BadRequest(errors.New("Can't use TLS data on non-TLS link"))
+ 	}
+@@ -1139,12 +1139,8 @@ func doCertificateUpdate(d *Daemon, dbInfo api.Certificate, req api.CertificateP
+ 				}
+ 
+ 				trusted := false
+-				for _, i := range r.TLS.PeerCertificates {
+-					trusted, _ = localUtil.CheckTrustState(*i, trustedCerts, s.Endpoints.NetworkCert(), false)
+-
+-					if trusted {
+-						break
+-					}
++				if len(r.TLS.PeerCertificates) > 0 {
++					trusted, _ = localUtil.CheckTrustState(*r.TLS.PeerCertificates[0], trustedCerts, s.Endpoints.NetworkCert(), false)
+ 				}
+ 
+ 				if !trusted {
+@@ -1282,12 +1278,8 @@ func certificateDelete(d *Daemon, r *http.Request) response.Response {
+ 			}
+ 
+ 			trusted := false
+-			for _, i := range r.TLS.PeerCertificates {
+-				trusted, _ = localUtil.CheckTrustState(*i, trustedCerts, s.Endpoints.NetworkCert(), false)
+-
+-				if trusted {
+-					break
+-				}
++			if len(r.TLS.PeerCertificates) > 0 {
++				trusted, _ = localUtil.CheckTrustState(*r.TLS.PeerCertificates[0], trustedCerts, s.Endpoints.NetworkCert(), false)
+ 			}
+ 
+ 			if !trusted {
+diff --git a/cmd/incusd/daemon.go b/cmd/incusd/daemon.go
+index 0f11a99cc4..c8cf7419ec 100644
+--- a/cmd/incusd/daemon.go
++++ b/cmd/incusd/daemon.go
+@@ -610,13 +610,18 @@ func (d *Daemon) Authenticate(w http.ResponseWriter, r *http.Request) (bool, str
+ 		return false, "", "", nil, err
+ 	}
+ 
++	// The TLS listener only proves possession of the first peer certificate's key, so the rest of
++	// the presented chain is attacker-controlled and must never be matched against the trust store.
++	var peerCert *x509.Certificate
++	if r.TLS != nil && len(r.TLS.PeerCertificates) > 0 {
++		peerCert = r.TLS.PeerCertificates[0]
++	}
++
+ 	// Allow internal cluster traffic by checking against the trusted certfificates.
+-	if r.TLS != nil {
+-		for _, i := range r.TLS.PeerCertificates {
+-			trusted, fingerprint := localUtil.CheckTrustState(*i, trustedCerts[certificate.TypeServer], d.endpoints.NetworkCert(), false)
+-			if trusted {
+-				return true, fingerprint, "cluster", nil, nil
+-			}
++	if peerCert != nil {
++		trusted, fingerprint := localUtil.CheckTrustState(*peerCert, trustedCerts[certificate.TypeServer], d.endpoints.NetworkCert(), false)
++		if trusted {
++			return true, fingerprint, "cluster", nil, nil
+ 		}
+ 	}
+ 
+@@ -682,18 +687,16 @@ func (d *Daemon) Authenticate(w http.ResponseWriter, r *http.Request) (bool, str
+ 	}
+ 
+ 	// Validate metrics TLS certificates.
+-	if r.URL.Path == "/1.0/metrics" {
+-		for _, i := range r.TLS.PeerCertificates {
+-			trusted, username := localUtil.CheckTrustState(*i, trustedCerts[certificate.TypeMetrics], d.endpoints.NetworkCert(), trustCACertificates)
+-			if trusted {
+-				return true, username, api.AuthenticationMethodTLS, nil, nil
+-			}
++	if r.URL.Path == "/1.0/metrics" && peerCert != nil {
++		trusted, username := localUtil.CheckTrustState(*peerCert, trustedCerts[certificate.TypeMetrics], d.endpoints.NetworkCert(), trustCACertificates)
++		if trusted {
++			return true, username, api.AuthenticationMethodTLS, nil, nil
+ 		}
+ 	}
+ 
+ 	// Validate regular TLS certificates.
+-	for _, i := range r.TLS.PeerCertificates {
+-		trusted, username := localUtil.CheckTrustState(*i, trustedCerts[certificate.TypeClient], d.endpoints.NetworkCert(), trustCACertificates)
++	if peerCert != nil {
++		trusted, username := localUtil.CheckTrustState(*peerCert, trustedCerts[certificate.TypeClient], d.endpoints.NetworkCert(), trustCACertificates)
+ 		if trusted {
+ 			return true, username, api.AuthenticationMethodTLS, nil, nil
+ 		}
+diff --git a/internal/server/auth/driver_scriptlet.go b/internal/server/auth/driver_scriptlet.go
+index 9506eabce5..75880a6b33 100644
+--- a/internal/server/auth/driver_scriptlet.go
++++ b/internal/server/auth/driver_scriptlet.go
+@@ -5,10 +5,12 @@ import (
+ 	"crypto/x509"
+ 	"net/http"
+ 
++	"github.com/lxc/incus/v7/internal/server/auth/common"
+ 	"github.com/lxc/incus/v7/internal/server/certificate"
+ 	authScriptlet "github.com/lxc/incus/v7/internal/server/scriptlet/auth"
+ 	"github.com/lxc/incus/v7/shared/api"
+ 	"github.com/lxc/incus/v7/shared/logger"
++	localtls "github.com/lxc/incus/v7/shared/tls"
+ )
+ 
+ // Scriptlet represents a scriptlet authorizer.
+@@ -29,15 +31,7 @@ func (s *Scriptlet) CheckPermission(ctx context.Context, r *http.Request, object
+ 	}
+ 
+ 	actualDetails := details.actualDetails()
+-	peerCertificates := []*x509.Certificate{}
+-	var apiCert *api.CertificatePut
+-
+-	if r.TLS != nil {
+-		peerCertificates = r.TLS.PeerCertificates
+-		if s.certificates != nil {
+-			apiCert = s.certificates.GetAPICertificate(actualDetails.Username)
+-		}
+-	}
++	peerCertificates, apiCert := s.clientCertificates(r, actualDetails)
+ 
+ 	authorized, err := authScriptlet.AuthorizationRun(logger.Log, actualDetails, peerCertificates, apiCert, object.String(), string(entitlement))
+ 	if err != nil {
+@@ -56,6 +50,27 @@ func (s *Scriptlet) GetInstanceAccess(ctx context.Context, projectName string, i
+ 	return authScriptlet.GetInstanceAccessRun(logger.Log, projectName, instanceName)
+ }
+ 
++// clientCertificates returns the certificate chain and trust-store entry to expose to the scriptlet.
++// Only a genuinely TLS-authenticated client's own certificate is exposed, so a token, OIDC or
++// cluster-forwarded client can't have the scriptlet judge it by a certificate it merely presented.
++func (s *Scriptlet) clientCertificates(r *http.Request, details *common.RequestDetails) ([]*x509.Certificate, *api.CertificatePut) {
++	if r.TLS == nil || details.Protocol != api.AuthenticationMethodTLS || len(r.TLS.PeerCertificates) == 0 {
++		return nil, nil
++	}
++
++	// Only expose the chain when its leaf is the authenticated certificate.
++	if localtls.CertFingerprint(r.TLS.PeerCertificates[0]) != details.Username {
++		return nil, nil
++	}
++
++	var apiCert *api.CertificatePut
++	if s.certificates != nil {
++		apiCert = s.certificates.GetAPICertificate(details.Username)
++	}
++
++	return r.TLS.PeerCertificates, apiCert
++}
++
+ // GetPermissionChecker returns a function that can be used to check whether a user has the required entitlement on an authorization object.
+ func (s *Scriptlet) GetPermissionChecker(ctx context.Context, r *http.Request, entitlement Entitlement, objectType ObjectType) (PermissionChecker, error) {
+ 	allowFunc := func(b bool) func(Object) bool {
+@@ -74,15 +89,7 @@ func (s *Scriptlet) GetPermissionChecker(ctx context.Context, r *http.Request, e
+ 	}
+ 
+ 	actualDetails := details.actualDetails()
+-	peerCertificates := []*x509.Certificate{}
+-	var apiCert *api.CertificatePut
+-
+-	if r.TLS != nil {
+-		peerCertificates = r.TLS.PeerCertificates
+-		if s.certificates != nil {
+-			apiCert = s.certificates.GetAPICertificate(actualDetails.Username)
+-		}
+-	}
++	peerCertificates, apiCert := s.clientCertificates(r, actualDetails)
+ 
+ 	permissionChecker := func(o Object) bool {
+ 		authorized, err := authScriptlet.AuthorizationRun(logger.Log, actualDetails, peerCertificates, apiCert, o.String(), string(entitlement))
+diff --git a/internal/server/cluster/tls.go b/internal/server/cluster/tls.go
+index 3292825ace..26c3c76b2b 100644
+--- a/internal/server/cluster/tls.go
++++ b/internal/server/cluster/tls.go
+@@ -70,25 +70,30 @@ func tlsCheckCert(r *http.Request, networkCert *localtls.CertInfo, serverCert *l
+ 		return false
+ 	}
+ 
+-	for _, i := range r.TLS.PeerCertificates {
+-		// Trust our own server certificate. This allows Cowsql to start with a connection back to this
+-		// member before the database is available. It also allows us to switch the server certificate to
+-		// the network certificate during cluster upgrade to per-server certificates, and it be trusted.
+-		trustedServerCert, _ := x509.ParseCertificate(serverCert.KeyPair().Certificate[0])
+-		trusted, _ := localUtil.CheckTrustState(*i, map[string]x509.Certificate{serverCert.Fingerprint(): *trustedServerCert}, networkCert, false)
+-		if trusted {
+-			return true
+-		}
++	if len(r.TLS.PeerCertificates) == 0 {
++		return false
++	}
+ 
+-		// Check the trusted server certificates list provided.
+-		trusted, _ = localUtil.CheckTrustState(*i, trustedCerts[certificate.TypeServer], networkCert, false)
+-		if trusted {
+-			return true
+-		}
++	// Only the first peer certificate is proven by the TLS handshake; ignore the rest of the chain.
++	peerCert := r.TLS.PeerCertificates[0]
+ 
+-		logger.Errorf("Invalid client certificate %v (%v) from %v", i.Subject, localtls.CertFingerprint(i), r.RemoteAddr)
++	// Trust our own server certificate. This allows Cowsql to start with a connection back to this
++	// member before the database is available. It also allows us to switch the server certificate to
++	// the network certificate during cluster upgrade to per-server certificates, and it be trusted.
++	trustedServerCert, _ := x509.ParseCertificate(serverCert.KeyPair().Certificate[0])
++	trusted, _ := localUtil.CheckTrustState(*peerCert, map[string]x509.Certificate{serverCert.Fingerprint(): *trustedServerCert}, networkCert, false)
++	if trusted {
++		return true
+ 	}
+ 
++	// Check the trusted server certificates list provided.
++	trusted, _ = localUtil.CheckTrustState(*peerCert, trustedCerts[certificate.TypeServer], networkCert, false)
++	if trusted {
++		return true
++	}
++
++	logger.Errorf("Invalid client certificate %v (%v) from %v", peerCert.Subject, localtls.CertFingerprint(peerCert), r.RemoteAddr)
++
+ 	return false
+ }
+ 
+-- 
+2.47.3
+
