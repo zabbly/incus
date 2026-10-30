@@ -334,6 +334,13 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick e87de0c24f48592f0fa534b26d12180bc9d3736c  # test: Fix NVRAM check
+          git cherry-pick de89fc4068b3afb51a40c0f06600e37a395627ed  # internal/server/device: Ignore already closed DHCP sockets
+          git cherry-pick 43f1d9bac495f56ecb22be43e0761b472ef04476  # cmd/incusd: Ignore missing temporary image files
+          git cherry-pick 8dd8fd55977d5f373487212337cf58076879c346  # doc/rest-api: Refresh swagger YAML
+          git cherry-pick d34562e45efe62c8c31523f7c82a508d13f68219  # client: Only probe Unix sockets when several exist
+          git cherry-pick ef9a103401c19d26a3def929c310eadfa376bfea  # incus-user: Serialize user setup across connections
+
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v7/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v7/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" github.com/lxc/incus/v7/cmd/incus-benchmark
