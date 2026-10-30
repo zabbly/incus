@@ -316,6 +316,22 @@ jobs:
 
           cd /build/incus
 
+          git cherry-pick 7518d5c09212403d871499ef855d244d60162508  # incusd/instance/lxc: Keep loader variables out of the forklxc environment
+          git cherry-pick 8ac34ea2e432f67757c7dd62205c722dff8a629d  # incusd: Check resource creation against the effective project
+          git cherry-pick ecccdd82716b899882e67ec17e7a81b23171ed55  # incusd/auth/tls: Restrict inherited reads to the certificate's projects
+          git cherry-pick c3d99b1cb96c76b809a18bd9f8ac7b7ab268d6de  # incusd/operations: Protect token operations from events and cancellation
+          git cherry-pick 18de390da967f4d928b6a7dea67aa8179a379067  # incusd/storage: Validate snapshot names from the backup index on import
+          git cherry-pick 1031796be7728d36ce9b59bdb3312e48c2cb4aed  # incusd: Only trust the key-proven client certificate
+          git cherry-pick 50cb73e17e22a51f0f1517285795638c29cf9923  # incusd/dev_incus: Pin image export to the instance's project
+          git cherry-pick f02ae798d9aa07bfdbc0dbbb4f1169a72d1764dc  # incusd/events: Restrict network-acl events to privileged viewers
+          git cherry-pick f713b5d57b6857c662371f398f9450f2c8f6f64d  # incusd/operations: Keep websocket secrets out of events and queries
+          git cherry-pick 1319c047bab4ddc4710c9a8ccbf2e834bc1bb2c7  # incusd/instance/lxc: Allocate an idmap when none is set at start
+          git cherry-pick 0f0611363876fcfb99ce0483d46f9b9c59660ed3  # incusd: Fix cross-project disclosure in recursive and all-projects listings
+          git cherry-pick 5c95c34fc4cb1f722193ded087adf8682570a8d2  # incusd/storage: Strip non-regular files from instance metadata
+          git cherry-pick 0e8f8635b873e588c3e7a1e6eef88eb18c8bea2e  # incusd: Reject null snapshot entries on backup import
+          git cherry-pick a985b8ec80b4645064cfb099322f6e9a9a0e8199  # incusd: Authorize effective project on resource creation
+          git cherry-pick 0dc65cba78bd9c8da636b418e85d082f76294ad4  # incusd/instance/qemu: Confine NBD migration sockets to the run directory
+
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
           go build -o "/opt/incus/bin/incus-benchmark" github.com/lxc/incus/v6/cmd/incus-benchmark
