@@ -340,6 +340,15 @@ jobs:
           git cherry-pick 8dd8fd55977d5f373487212337cf58076879c346  # doc/rest-api: Refresh swagger YAML
           git cherry-pick d34562e45efe62c8c31523f7c82a508d13f68219  # client: Only probe Unix sockets when several exist
           git cherry-pick ef9a103401c19d26a3def929c310eadfa376bfea  # incus-user: Serialize user setup across connections
+          git cherry-pick 9e38b4e24254d8c853838ec86d0df7b1ee022dbc  # incusd/instance/qemu: Always report host TPM state
+          git cherry-pick 1486ac847898376efe5d0113633c823380fdd010  # incusd/storage: Fix volume used_by across projects
+          git cherry-pick 02125a285b8ad5bd3297c6de7d666169e62523a4  # tests: Check volume used_by across projects
+          git cherry-pick 06686a6a5ccff31945d8f2dd30edd58e56f52596  # incusd/instance/lxc: Keep the instance idmap across snapshots
+          git cherry-pick a4158368f5d1964e373229181b6be29366c92604  # incusd/project: Replace snapshot idmap allocation keys on restore
+          git cherry-pick c491063da74bb783a7dc958e1c56530dc107be4d  # tests: Check isolated snapshot restore in restricted projects
+          git cherry-pick a1edc8d1995e1b12ef3cf56f6ee7f3f012b7f040  # Update gomod
+          git cherry-pick 6f34ec1f07d2bc94f38cc7af9316fe8127f5c36f  # incusd/project: Merge existing config on PATCH
+          git cherry-pick 2487aacfee21834819e5caa46676e6f2e262c93c  # tests: Check project config PATCH
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v7/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v7/cmd/incus
