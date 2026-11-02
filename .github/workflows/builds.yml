@@ -675,6 +675,8 @@ jobs:
 
           cd /build/qemu
 
+          patch -p1 < "${REPO}/patches/qemu-0001-fdmon-io_uring-avoid-idle-event-loop-being-accounted.patch"
+
           sed -i "s/^unset target_list$/target_list=\"$(uname -m)-softmmu\"/" configure
 
           sed -i "/subdir('tests')/d" meson.build
