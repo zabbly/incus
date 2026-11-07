@@ -409,6 +409,7 @@ jobs:
           git cherry-pick 5333e79ab5409350dfb03be73ae762e8ee7681f0  # doc/rest-api: Refresh swagger YAML
           git cherry-pick 92fc8d8d497e2bd3b83e0d8ca9c2952f1d8c216e  # incusd/instance: Check transaction error in instancePost
           git cherry-pick 22d17e0a1eff5e2de1e274e0a1ea6f31fd10ecfb  # incusd/operations: Let the run function finish a cancelled operation
+          git cherry-pick 76e041042fa7bbc21fa9e062767c429b95e1824b  # incusd/instance/qemu: Allow live moves of VMs started by older versions
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v7/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v7/cmd/incus
