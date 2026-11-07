@@ -349,6 +349,66 @@ jobs:
           git cherry-pick a1edc8d1995e1b12ef3cf56f6ee7f3f012b7f040  # Update gomod
           git cherry-pick 6f34ec1f07d2bc94f38cc7af9316fe8127f5c36f  # incusd/project: Merge existing config on PATCH
           git cherry-pick 2487aacfee21834819e5caa46676e6f2e262c93c  # tests: Check project config PATCH
+          git cherry-pick f1b8e20d1b8ffec8066390cd32552bc46fbcd970  # incusd/instance/qmp: Skip error message when already disconnected
+          git cherry-pick 6ec0c834bd4a24d5dde9a0e8662e42d7d52dc1fc  # incusd/storage/linstor: Handle leftover resource definitions on create and delete
+          git cherry-pick 8bdbd128878c4c5615cb8ac5459179576e00b55e  # incus-agent: Catch the clock up with the host's time when it connects
+          git cherry-pick b2368edb5eb0aa1f06c02c4534c487b5459f6a7d  # incusd/instance/qemu: Send the host time to the agent and reconnect after a stateful start
+          git cherry-pick db7ea7d6d840cfeefce792abeedb4e078c924a47  # incusd/storage_volumes: Rename and move dependent volumes before updating users
+          git cherry-pick f4ab362f223bd5f6318af615f17bdf2eee897b48  # tests: Rename and move dependent volumes
+          git cherry-pick c0096076949bff06f747707190fb75544d7377d0  # incusd: Read the USB serial from sysfs on hotplug
+          git cherry-pick 8e12d6d2c184c15c44f6d98013fb678f43fafcf8  # incusd/device/usb: Match serial devices on removal by bus and device number
+          git cherry-pick 8d8cf9c38648afffeecf8aa7046f69faee728a05  # incus/exec: Don't read a terminal from a background process group
+          git cherry-pick 8a1e95150297e36c8c30aedd8b8af5aa1ccaa1b2  # incusd/mirror: Add a way to drop mirrors without a final sync
+          git cherry-pick 01a5439a35e7d842e946678aa129b13d2396afdf  # internal/linux: Add a helper listing the writers on a mount
+          git cherry-pick 7612887ec222162c03459208fa71a9156a517911  # incusd/migration: Add dirtyBitmaps to the migration header
+          git cherry-pick 48f81f2ad804d69509665c1f44797b3737008846  # incusd/migration: Update protobuf
+          git cherry-pick 00a45fe91491a8d165fa9c2ceacf2d481a03ba3d  # incusd/storage/drivers: Fall back to a full e2fsck when preen mode gives up
+          git cherry-pick 42cb585e322a8fa41c95990e01595ecaad51346d  # incusd/instance/qemu: Run the metadata images from a local copy
+          git cherry-pick 7680ee660051d72ed0e769bd9563d3af50f84539  # incusd/instance/qemu: Drop the local state copies once a move is committed
+          git cherry-pick 8657d26b4084560d355b76b480e27cc87ad45724  # incusd/instance/qemu: Refuse live moves when the config volume stays writable
+          git cherry-pick a49be428eadcfaf47adfb26c5ffa3cb43d6b4c88  # incusd/instance/qemu: Migrate persistent bitmaps with the VM state
+          git cherry-pick 65da1e4129b82381c195396e498e257c845127a0  # incus-simplestreams: Avoid a double slash in the default alias
+          git cherry-pick 210b6c932a8c9270af4c7852784495bbd2e10e3a  # Update gomod
+          git cherry-pick 597fc7ae862d60a2ed3f414f10dd11e2112fd9f2  # incusd/storage: Clean up after a failed instance creation
+          git cherry-pick 1fec5721f472f9e0101b4ae65a43af4d98259d68  # incusd/instance/lxc: Wait for the stop hook of an exited instance
+          git cherry-pick 4dcaaab80c68c848cdb8759bf4c6257f0522b84b  # incusd/db/cluster: Add bulk instance profile loader
+          git cherry-pick 69e8df4a7f0a328b16b49476aaae0a558df66d33  # incusd/db/cluster: Accept prefetched instance config and profiles
+          git cherry-pick ca10430366933b03f272fca6e2f2b5e49f0848ce  # incusd/scriptlet: Load instances in bulk
+          git cherry-pick a7dac83d1694ec81b6fb23c24df9ed79268c12cb  # incusd/project: Load instances in bulk for limit checks
+          git cherry-pick 39023763f7a9691eb1bee9db442bf4108b9da7d8  # incusd/cluster: Give the placement scriptlet ten seconds
+          git cherry-pick de47821ea8ebb2c3e1cbd79ad3ea90cefeb6fa4e  # tests: Check instance listing in placement scriptlet
+          git cherry-pick 4b522df5a735761a10e7457d6c240bb0ccef934d  # incusd: Run container hooks without the database
+          git cherry-pick 4cd8d6e5af8e94a596f6eb9bab188e37e1bd0b24  # incusd: Let empty import overrides unset config and device keys
+          git cherry-pick 10aea863304711a2c344ca54d5f2dd908fd16eae  # tests: Check config and device overrides on import
+          git cherry-pick e11b0b075202a2d757d35105c5d49851160cc0bc  # incus/import: Add examples for overriding config and devices
+          git cherry-pick 966d2792d9453851b3fd9ba2393dcd2ba74d5271  # doc: Describe import overrides for instances exported from other servers
+          git cherry-pick 313af7713d9febca9ca9ca5b4df3fc283506fd2e  # incus-agent: Fix the clock step on 32-bit targets
+          git cherry-pick 15ce09940427b334729087324afbb84165444f37  # doc: Update release branch references
+          git cherry-pick bd62cb7d631b49b6da7bd22fbae63eef4fa39cdc  # incusd/storage/lvm: Move the sanlock global lock recovery to a helper
+          git cherry-pick 2fcd9c188e5bd3130767a9d076d5b240ee69e5f2  # incusd/storage/lvm: Clean up stale sanlock lease volumes on pool delete
+          git cherry-pick c75facf4ea7e0e367dc69d098f738e8fe4b086e5  # incusd/storage/lvm: Use PathNameEncode for volume name escaping
+          git cherry-pick 1ff2d215560958aa5529a43001aaba4999794621  # client: Fix data race on skipEvents
+          git cherry-pick 32ffc154a4145656e74f88d66730e742e03ea24b  # incusd/apparmor: Allow QEMU access to the metadata images
+          git cherry-pick f9eff01a905d6a8b1e77e05808903d06b04ec3ea  # incusd/device/nic_routed: Add the host routes once a VM runs and replace existing ones
+          git cherry-pick e3bd565459e0ed9a6790802b73a181d2162f1e37  # incusd/instance/qemu: Restore the volatile config when an incoming move fails
+          git cherry-pick a19db1384097311a10539e5c82a3b0d7f3c8d386  # incusd/instance/qemu: Resync the agent clock whenever the guest is resumed
+          git cherry-pick d61ee0638c8c7723f84479e49e0e33ef5713167a  # incusd/storage/linstor: Don't attach a volume just to check its size
+          git cherry-pick fdbe26396a2ac0b35624e56d028b77e0c500f43d  # incusd/storage/linstor: Grow the volume as part of the clone
+          git cherry-pick 1ce4fa50bf748e257dc6d4bfc8253ed77a30064d  # incusd/storage: Mount the instance once when creating it from an image
+          git cherry-pick c65b7f0954153274e722e60c94917aa3f3a095e5  # incusd/storage/drivers: Expose extended L2 flag in qcow2 info
+          git cherry-pick 59c89548c9a750785ddde5f1cd6ba118b335b66a  # incusd/instance/qmp: Add block node file query
+          git cherry-pick d37221cca975a4d3f3654e31adb3a58c2abf8a15  # incusd/instance/qemu: Size the qcow2 L2 cache from the file size and memory limit
+          git cherry-pick 41050e2ed806e5eb96c3c7aa5412ea0da0911c37  # incusd/cluster: Heal members that died during an evacuation
+          git cherry-pick abc0c0a2013d62adc4450e7e7b9bffc9916b261b  # tests: Cover healing of a member left evacuating
+          git cherry-pick fa054468f5063b1680e4e6b5d8702eeaa0dddc53  # incusd/db: Don't report all members as offline on leader loss
+          git cherry-pick 33f82b856ad8603cc8664639f3638cfc81a0eb7b  # Update gomod
+          git cherry-pick ff7514dadbd77e4a3e7f103abce903c050c292c3  # shared/subprocess: Flush pid files before renaming them
+          git cherry-pick 53d8b313a35165626ac532f32b24c4ed139f3bdf  # incusd/dnsmasq: Treat unusable pid files as stale
+          git cherry-pick 1ae8b9e5fac6a7ce2e2cc63fdbf93902fe69782b  # tests: Cover empty dnsmasq pid files
+          git cherry-pick 507dd2998820c22c0c8e07998bb485bb0f1f4084  # shared/api: Add missing JSON and YAML tags
+          git cherry-pick 5333e79ab5409350dfb03be73ae762e8ee7681f0  # doc/rest-api: Refresh swagger YAML
+          git cherry-pick 92fc8d8d497e2bd3b83e0d8ca9c2952f1d8c216e  # incusd/instance: Check transaction error in instancePost
+          git cherry-pick 22d17e0a1eff5e2de1e274e0a1ea6f31fd10ecfb  # incusd/operations: Let the run function finish a cancelled operation
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v7/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v7/cmd/incus
