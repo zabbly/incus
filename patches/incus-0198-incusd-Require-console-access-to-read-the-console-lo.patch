@@ -1,0 +1,29 @@
+From 3b19b016d30233de76272f03d34eb0cc61af1f7f Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:02:06 -0500
+Subject: [PATCH] incusd: Require console access to read the console log
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This addresses GHSA-8553-6xmq-7g3g (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 1b366dbbc1ef73486c5784584f2ebecca30831f3)
+---
+ cmd/incusd/instances.go | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/cmd/incusd/instances.go b/cmd/incusd/instances.go
+index 8a1492d2f3..9952d55984 100644
+--- a/cmd/incusd/instances.go
++++ b/cmd/incusd/instances.go
+@@ -121,7 +121,7 @@ var instanceConsoleCmd = APIEndpoint{
+ 	Name: "instanceConsole",
+ 	Path: "instances/{name}/console",
+ 
+-	Get:    APIEndpointAction{Handler: instanceConsoleLogGet, AccessHandler: allowPermission(auth.ObjectTypeInstance, auth.EntitlementCanView, "name")},
++	Get:    APIEndpointAction{Handler: instanceConsoleLogGet, AccessHandler: allowPermission(auth.ObjectTypeInstance, auth.EntitlementCanAccessConsole, "name")},
+ 	Post:   APIEndpointAction{Handler: instanceConsolePost, AccessHandler: allowPermission(auth.ObjectTypeInstance, auth.EntitlementCanAccessConsole, "name")},
+ 	Delete: APIEndpointAction{Handler: instanceConsoleLogDelete, AccessHandler: allowPermission(auth.ObjectTypeInstance, auth.EntitlementCanEdit, "name")},
+ }

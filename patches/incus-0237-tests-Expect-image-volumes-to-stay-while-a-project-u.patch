@@ -1,0 +1,34 @@
+From 9f5cc46f002fc3eb1ff345cb5d3487563d01eec6 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Thu, 26 Nov 2026 18:27:47 -0500
+Subject: [PATCH] tests: Expect image volumes to stay while a project uses the
+ image
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+---
+ test/suites/clustering.sh | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/test/suites/clustering.sh b/test/suites/clustering.sh
+index 610d4c5e79..19d7f54004 100644
+--- a/test/suites/clustering.sh
++++ b/test/suites/clustering.sh
+@@ -2887,12 +2887,12 @@ test_clustering_image_refresh() {
+ 
+     if [ "${poolDriver}" != "dir" ]; then
+         incus admin sql global 'select name from storage_volumes'
+-        # Check image storage volume records actually removed from relevant members and replaced with new fingerprint.
++        # The old image volumes stay while project foo still uses the image.
+         if [ "${poolDriver}" = "ceph" ] || [ "${poolDriver}" = "linstor" ]; then
+-            incus admin sql global 'select name from storage_volumes' | grep -Fc "${old_fingerprint}" | grep -Fx 0
++            incus admin sql global 'select name from storage_volumes' | grep -Fc "${old_fingerprint}" | grep -Fx 1
+             incus admin sql global 'select name from storage_volumes' | grep -Fc "${new_fingerprint}" | grep -Fx 1
+         else
+-            incus admin sql global 'select name from storage_volumes' | grep -Fc "${old_fingerprint}" | grep -Fx 1
++            incus admin sql global 'select name from storage_volumes' | grep -Fc "${old_fingerprint}" | grep -Fx 3
+             incus admin sql global 'select name from storage_volumes' | grep -Fc "${new_fingerprint}" | grep -Fx 2
+         fi
+     fi

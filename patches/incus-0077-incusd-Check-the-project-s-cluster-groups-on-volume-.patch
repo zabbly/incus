@@ -1,0 +1,123 @@
+From 0b5934d46c2e8fc89d7482ed53fd95eb1d9e9d97 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:37:48 -0500
+Subject: [PATCH] incusd: Check the project's cluster groups on volume and
+ bucket placement
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Custom volume and bucket creation, and the move of a volume into
+another project, placed member-local storage without consulting
+restricted.cluster.groups.
+
+This addresses GHSA-8m9x-vx2q-7f9q (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit c8dbcac4c3f4eebba0d9a62796e23502fe90e5a0)
+---
+ cmd/incusd/storage_buckets.go       |  6 ++++++
+ cmd/incusd/storage_volumes.go       | 16 ++++++++++++++++
+ cmd/incusd/storage_volumes_utils.go | 28 ++++++++++++++++++++++++++++
+ 3 files changed, 50 insertions(+)
+
+diff --git a/cmd/incusd/storage_buckets.go b/cmd/incusd/storage_buckets.go
+index ddef0d9905..569dfa9091 100644
+--- a/cmd/incusd/storage_buckets.go
++++ b/cmd/incusd/storage_buckets.go
+@@ -743,6 +743,12 @@ func storagePoolBucketsPost(d *Daemon, r *http.Request) response.Response {
+ 		return response.SmartError(err)
+ 	}
+ 
++	// Local buckets live on this member, so the project must be allowed to use it.
++	resp = storagePoolMemberAllowed(s, r, poolName, bucketProjectName)
++	if resp != nil {
++		return resp
++	}
++
+ 	if r.Header.Get("Content-Type") == "application/octet-stream" {
+ 		return createStoragePoolBucketFromBackup(s, r, request.ProjectParam(r), bucketProjectName, r.Body, poolName, r.Header.Get("X-Incus-name"))
+ 	}
+diff --git a/cmd/incusd/storage_volumes.go b/cmd/incusd/storage_volumes.go
+index 366167bfd6..b7c2df34c3 100644
+--- a/cmd/incusd/storage_volumes.go
++++ b/cmd/incusd/storage_volumes.go
+@@ -870,6 +870,12 @@ func storagePoolVolumesPost(d *Daemon, r *http.Request) response.Response {
+ 		return resp
+ 	}
+ 
++	// Local volumes live on this member, so the project must be allowed to use it.
++	resp = storagePoolMemberAllowed(s, r, poolName, projectName)
++	if resp != nil {
++		return resp
++	}
++
+ 	// If we're getting binary content, process separately.
+ 	if r.Header.Get("Content-Type") == "application/octet-stream" {
+ 		if r.Header.Get("X-Incus-type") == "iso" {
+@@ -1915,6 +1921,16 @@ func storagePoolVolumeTypePostMove(s *state.State, r *http.Request, poolName str
+ 		return response.SmartError(err)
+ 	}
+ 
++	// The volume stays on its member, so the target project must be allowed to use it.
++	if s.ServerClustered && vol.Location != "" {
++		err = s.DB.Cluster.Transaction(r.Context(), func(ctx context.Context, tx *db.ClusterTx) error {
++			return project.CheckMemberAllowed(ctx, tx, projectName, vol.Location)
++		})
++		if err != nil {
++			return response.SmartError(err)
++		}
++	}
++
+ 	run := func(op *operations.Operation) error {
+ 		reverter := revert.New()
+ 		defer reverter.Fail()
+diff --git a/cmd/incusd/storage_volumes_utils.go b/cmd/incusd/storage_volumes_utils.go
+index d6bdce50d5..fb7e5e1d5c 100644
+--- a/cmd/incusd/storage_volumes_utils.go
++++ b/cmd/incusd/storage_volumes_utils.go
+@@ -2,12 +2,15 @@ package main
+ 
+ import (
+ 	"context"
++	"net/http"
+ 	"slices"
+ 	"strings"
+ 
+ 	"github.com/lxc/incus/v7/internal/server/backup"
+ 	"github.com/lxc/incus/v7/internal/server/db"
+ 	"github.com/lxc/incus/v7/internal/server/instance"
++	"github.com/lxc/incus/v7/internal/server/project"
++	"github.com/lxc/incus/v7/internal/server/response"
+ 	"github.com/lxc/incus/v7/internal/server/state"
+ 	storagePools "github.com/lxc/incus/v7/internal/server/storage"
+ 	"github.com/lxc/incus/v7/internal/version"
+@@ -185,3 +188,28 @@ func storagePoolVolumeBackupLoadByName(ctx context.Context, s *state.State, proj
+ 
+ 	return volBackup, nil
+ }
++
++// storagePoolMemberAllowed checks that the project may place member-local storage on this cluster member.
++func storagePoolMemberAllowed(s *state.State, r *http.Request, poolName string, projectName string) response.Response {
++	if !s.ServerClustered {
++		return nil
++	}
++
++	pool, err := storagePools.LoadByName(s, poolName)
++	if err != nil {
++		return response.SmartError(err)
++	}
++
++	if pool.Driver().Info().Remote {
++		return nil
++	}
++
++	err = s.DB.Cluster.Transaction(r.Context(), func(ctx context.Context, tx *db.ClusterTx) error {
++		return project.CheckMemberAllowed(ctx, tx, projectName, s.ServerName)
++	})
++	if err != nil {
++		return response.SmartError(err)
++	}
++
++	return nil
++}

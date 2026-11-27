@@ -1,0 +1,92 @@
+From de10a75ed566c5d96533d30ae79d81a3b6c468b5 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:06:38 -0500
+Subject: [PATCH] incusd/auth/oidc: Don't accept an ID token in place of the
+ access token
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+An ID token passes the access token verification, and the one sent next
+to an opaque access token wasn't bound to it, so a client could pick the
+token without the subnet restriction.
+
+This addresses GHSA-cp5w-98j2-x2hv (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 258585d3f5e912c09e5a40520befbde96b65b857)
+---
+ internal/server/auth/oidc/oidc.go | 41 +++++++++++++++++++++++++++++--
+ 1 file changed, 39 insertions(+), 2 deletions(-)
+
+diff --git a/internal/server/auth/oidc/oidc.go b/internal/server/auth/oidc/oidc.go
+index dba314e931..9c5ac327c7 100644
+--- a/internal/server/auth/oidc/oidc.go
++++ b/internal/server/auth/oidc/oidc.go
+@@ -2,6 +2,8 @@ package oidc
+ 
+ import (
+ 	"context"
++	"encoding/base64"
++	"encoding/json"
+ 	"errors"
+ 	"fmt"
+ 	"net/http"
+@@ -326,13 +328,17 @@ func (o *Verifier) verifyTokens(ctx context.Context, r *http.Request, accessToke
+ 			return nil, errors.New("Opaque access tokens can't be used with a configured audience")
+ 		}
+ 
+-		// The ID token is checked for issuer, signature, expiration and the configured client ID as audience.
+-		idClaims, err := rp.VerifyIDToken[*oidc.IDTokenClaims](ctx, idToken, o.idTokenVerifier)
++		// The ID token is checked for issuer, signature, expiration and the configured client ID as
++		// audience, and bound to the access token through at_hash when the provider includes it.
++		idClaims, err := rp.VerifyTokens[*oidc.IDTokenClaims](ctx, accessToken, idToken, o.idTokenVerifier)
+ 		if err != nil {
+ 			return nil, err
+ 		}
+ 
+ 		claims = &oidc.AccessTokenClaims{TokenClaims: idClaims.TokenClaims, Claims: idClaims.Claims}
++	} else if isIDToken(accessToken, claims) {
++		// An ID token passes the access token checks but carries the user's login claims, not the access ones.
++		return nil, errors.New("Provided OIDC token is an ID token, not an access token")
+ 	} else if o.audience != "" {
+ 		// Check that the access token includes the configured audience.
+ 		if !slices.Contains(claims.GetAudience(), o.audience) {
+@@ -358,6 +364,37 @@ func (o *Verifier) verifyTokens(ctx context.Context, r *http.Request, accessToke
+ 	return claims, nil
+ }
+ 
++// isIDToken reports whether a verified JWT is an ID token rather than an access token.
++func isIDToken(token string, claims *oidc.AccessTokenClaims) bool {
++	// Only ID tokens carry the hash of the access token issued with them.
++	_, ok := claims.Claims["at_hash"]
++	if ok {
++		return true
++	}
++
++	// Some providers type the header instead.
++	parts := strings.Split(token, ".")
++	if len(parts) != 3 {
++		return false
++	}
++
++	rawHeader, err := base64.RawURLEncoding.DecodeString(parts[0])
++	if err != nil {
++		return false
++	}
++
++	header := struct {
++		Type string `json:"typ"`
++	}{}
++
++	err = json.Unmarshal(rawHeader, &header)
++	if err != nil {
++		return false
++	}
++
++	return header.Type == "ID"
++}
++
+ func (o *Verifier) validateSubnet(r *http.Request, claim any) error {
+ 	// If the claim is missing, allow access.
+ 	if claim == nil {

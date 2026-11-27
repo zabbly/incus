@@ -1,0 +1,91 @@
+From 97897609adf04e0e3061fe7a15b331347cea2583 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:27:45 -0500
+Subject: [PATCH] incusd/storage: Keep the full name on loaded bucket backups
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The loader passed only the backup part of the name, so delete and
+rename derived their paths from it and acted on the backup directory
+of whichever bucket shared that name.
+
+This addresses GHSA-8m9x-vx2q-7f9q (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit f120e47f531d99b4772f0b8eae7be27bbf2cb843)
+---
+ cmd/incusd/storage_buckets.go           |  3 +--
+ cmd/incusd/storage_buckets_backup.go    |  8 ++++----
+ internal/server/backup/backup_bucket.go | 10 +++++++++-
+ 3 files changed, 14 insertions(+), 7 deletions(-)
+
+diff --git a/cmd/incusd/storage_buckets.go b/cmd/incusd/storage_buckets.go
+index 569dfa9091..5e3ba8e159 100644
+--- a/cmd/incusd/storage_buckets.go
++++ b/cmd/incusd/storage_buckets.go
+@@ -644,8 +644,7 @@ func getBucketFull(ctx context.Context, s *state.State, pool storagePools.Pool,
+ 		}
+ 
+ 		for _, entry := range bucketBackups {
+-			_, backupName, _ := api.GetParentAndSnapshotName(entry.Name)
+-			resp.Backups = append(resp.Backups, *backup.NewBucketBackup(s, bucket.Project, pool.Name(), bucket.Name, entry.ID, backupName, entry.CreationDate, entry.ExpiryDate).Render())
++			resp.Backups = append(resp.Backups, *backup.NewBucketBackup(s, bucket.Project, pool.Name(), bucket.Name, entry.ID, entry.Name, entry.CreationDate, entry.ExpiryDate).Render())
+ 		}
+ 
+ 		return nil
+diff --git a/cmd/incusd/storage_buckets_backup.go b/cmd/incusd/storage_buckets_backup.go
+index e02536b099..7bf83bb10a 100644
+--- a/cmd/incusd/storage_buckets_backup.go
++++ b/cmd/incusd/storage_buckets_backup.go
+@@ -243,8 +243,7 @@ func storagePoolBucketBackupsGet(d *Daemon, r *http.Request) response.Response {
+ 	backups := make([]*backup.BucketBackup, len(bucketBackups))
+ 
+ 	for i, b := range bucketBackups {
+-		_, backupName, _ := api.GetParentAndSnapshotName(b.Name)
+-		backups[i] = backup.NewBucketBackup(s, projectName, poolName, bucketName, b.ID, backupName, b.CreationDate, b.ExpiryDate)
++		backups[i] = backup.NewBucketBackup(s, projectName, poolName, bucketName, b.ID, b.Name, b.CreationDate, b.ExpiryDate)
+ 	}
+ 
+ 	resultString := []string{}
+@@ -1033,8 +1032,9 @@ func storagePoolBucketBackupLoadByName(ctx context.Context, s *state.State, proj
+ 		return nil, err
+ 	}
+ 
+-	bucketName, snapName, _ := api.GetParentAndSnapshotName(b.Name)
+-	entry := backup.NewBucketBackup(s, projectName, poolName, bucketName, b.ID, snapName, b.CreationDate, b.ExpiryDate)
++	// The backup keeps its full <bucket>/<backup> name, its paths derive from it.
++	bucketName, _, _ := api.GetParentAndSnapshotName(b.Name)
++	entry := backup.NewBucketBackup(s, projectName, poolName, bucketName, b.ID, b.Name, b.CreationDate, b.ExpiryDate)
+ 
+ 	return entry, nil
+ }
+diff --git a/internal/server/backup/backup_bucket.go b/internal/server/backup/backup_bucket.go
+index 7a94116a4e..f408a077c5 100644
+--- a/internal/server/backup/backup_bucket.go
++++ b/internal/server/backup/backup_bucket.go
+@@ -3,6 +3,7 @@ package backup
+ import (
+ 	"context"
+ 	"os"
++	"strings"
+ 	"time"
+ 
+ 	"github.com/lxc/incus/v7/internal/server/db"
+@@ -126,8 +127,15 @@ func (b *BucketBackup) Rename(newName string) error {
+ 
+ // Render returns a BucketBackup struct of the backup.
+ func (b *BucketBackup) Render() *api.StorageBucketBackup {
++	// The stored name is <bucket>/<backup>, the API shows the backup part.
++	name := b.name
++	parts := strings.SplitN(name, "/", 2)
++	if len(parts) == 2 {
++		name = parts[1]
++	}
++
+ 	return &api.StorageBucketBackup{
+-		Name:      b.name,
++		Name:      name,
+ 		CreatedAt: b.creationDate,
+ 		ExpiresAt: b.expiryDate,
+ 	}

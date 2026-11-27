@@ -1,0 +1,117 @@
+From b46feb7e17586d8c55a50150d438feea37f5e3b5 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:59:51 -0500
+Subject: [PATCH] incusd: Check trust token expiry for remote operations
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The expiry of a trust token held by another cluster member arrives as a
+string and was skipped, so an expired token was still accepted anywhere
+but on the member that issued it.
+
+This addresses GHSA-9m5m-cr24-m367 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 4e4c5078974d987053391fa0d7556321aeacf4ba)
+---
+ cmd/incusd/certificates.go | 72 ++++++++++++++++++++++----------------
+ 1 file changed, 41 insertions(+), 31 deletions(-)
+
+diff --git a/cmd/incusd/certificates.go b/cmd/incusd/certificates.go
+index e356025e6d..9191cafef6 100644
+--- a/cmd/incusd/certificates.go
++++ b/cmd/incusd/certificates.go
+@@ -326,6 +326,41 @@ func updateCertificateCacheFromLocal(d *Daemon) error {
+ 	return nil
+ }
+ 
++// tokenOperationCheckExpiry fails if a token operation has expired.
++func tokenOperationCheckExpiry(s *state.State, op *api.Operation) error {
++	expiresAt, ok := op.Metadata["expiresAt"]
++	if !ok {
++		return nil
++	}
++
++	var expiry time.Time
++
++	// Depending on whether it's a local operation or not, expiry will either be a time.Time or a string.
++	if s.ServerName == op.Location {
++		expiry, ok = expiresAt.(time.Time)
++		if !ok {
++			return api.StatusErrorf(http.StatusInternalServerError, "Invalid expiry metadata")
++		}
++	} else {
++		expiryStr, ok := expiresAt.(string)
++		if !ok {
++			return api.StatusErrorf(http.StatusInternalServerError, "Invalid expiry metadata")
++		}
++
++		var err error
++		expiry, err = time.Parse(time.RFC3339Nano, expiryStr)
++		if err != nil {
++			return api.StatusErrorf(http.StatusInternalServerError, "Invalid expiry metadata")
++		}
++	}
++
++	if time.Now().After(expiry) {
++		return api.StatusErrorf(http.StatusForbidden, "Token has expired")
++	}
++
++	return nil
++}
++
+ // clusterMemberJoinTokenValid searches for cluster join token that matches the join token provided.
+ // Returns matching operation if found and cancels the operation, otherwise returns nil.
+ func clusterMemberJoinTokenValid(s *state.State, r *http.Request, projectName string, joinToken *api.ClusterMemberJoinToken) (*api.Operation, error) {
+@@ -367,29 +402,9 @@ func clusterMemberJoinTokenValid(s *state.State, r *http.Request, projectName st
+ 			return nil, fmt.Errorf("Failed to cancel operation %q: %w", foundOp.ID, err)
+ 		}
+ 
+-		expiresAt, ok := foundOp.Metadata["expiresAt"]
+-		if ok {
+-			var expiry time.Time
+-
+-			// Depending on whether it's a local operation or not, expiry will either be a time.Time or a string.
+-			if s.ServerName == foundOp.Location {
+-				expiry, ok = expiresAt.(time.Time)
+-				if !ok {
+-					return nil, api.StatusErrorf(http.StatusInternalServerError, "Invalid expiry metadata")
+-				}
+-			} else {
+-				expiryStr, ok := expiresAt.(string)
+-				if !ok {
+-					return nil, api.StatusErrorf(http.StatusInternalServerError, "Invalid expiry metadata")
+-				}
+-
+-				expiry, _ = time.Parse(time.RFC3339Nano, expiryStr)
+-			}
+-
+-			// Check if token has expired.
+-			if time.Now().After(expiry) {
+-				return nil, api.StatusErrorf(http.StatusForbidden, "Token has expired")
+-			}
++		err = tokenOperationCheckExpiry(s, foundOp)
++		if err != nil {
++			return nil, err
+ 		}
+ 
+ 		return foundOp, nil
+@@ -431,14 +446,9 @@ func certificateTokenValid(s *state.State, r *http.Request, addToken *api.Certif
+ 			return nil, fmt.Errorf("Failed to cancel operation %q: %w", foundOp.ID, err)
+ 		}
+ 
+-		expiresAt, ok := foundOp.Metadata["expiresAt"]
+-		if ok {
+-			expiry, ok := expiresAt.(time.Time)
+-
+-			// Check if token has expired.
+-			if ok && time.Now().After(expiry) {
+-				return nil, api.StatusErrorf(http.StatusForbidden, "Token has expired")
+-			}
++		err = tokenOperationCheckExpiry(s, foundOp)
++		if err != nil {
++			return nil, err
+ 		}
+ 
+ 		return foundOp, nil

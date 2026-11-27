@@ -1,0 +1,104 @@
+From bc13442dcc4f4b13f32430933c8a871d970626c1 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:04:12 -0500
+Subject: [PATCH] client: Bound the messages read on ping-only websockets
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The exec control and stdin connections, the event listener and the
+daemon's exec stdout and stderr readers accepted a message of any size
+from the peer, which for a VM is the guest's agent.
+
+This addresses GHSA-3jgx-fpg2-x499 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 6e272a666558f855d8c1eb1dc0cfbfc09b304917)
+---
+ client/incus_events.go      | 3 +++
+ client/incus_instances.go   | 6 ++++++
+ cmd/incusd/instance_exec.go | 4 ++++
+ shared/ws/upgrader.go       | 3 +++
+ 4 files changed, 16 insertions(+)
+
+diff --git a/client/incus_events.go b/client/incus_events.go
+index 311ac18860..578358bf50 100644
+--- a/client/incus_events.go
++++ b/client/incus_events.go
+@@ -11,6 +11,7 @@ import (
+ 	"github.com/gorilla/websocket"
+ 
+ 	"github.com/lxc/incus/v7/shared/api"
++	"github.com/lxc/incus/v7/shared/ws"
+ )
+ 
+ // Event handling functions
+@@ -79,6 +80,8 @@ func (r *ProtocolIncus) getEvents(allProjects bool, eventTypes []string) (*Event
+ 		return nil, err
+ 	}
+ 
++	wsConn.SetReadLimit(ws.EventMessageMaxSize)
++
+ 	r.eventConnsLock.Lock()
+ 	r.eventConns[listener.projectName] = wsConn // Save for others to use.
+ 	r.eventConnsLock.Unlock()
+diff --git a/client/incus_instances.go b/client/incus_instances.go
+index 0f45321d6f..92ce5c343b 100644
+--- a/client/incus_instances.go
++++ b/client/incus_instances.go
+@@ -1330,6 +1330,9 @@ func (r *ProtocolIncus) ExecInstance(instanceName string, exec api.InstanceExecP
+ 	if conns[api.SecretNameControl] != nil {
+ 		conn := conns[api.SecretNameControl]
+ 
++		// The server only sends pings on this connection.
++		conn.SetReadLimit(ws.ControlMessageMaxSize)
++
+ 		go func() {
+ 			_, _, _ = conn.ReadMessage() // Consume pings from server.
+ 		}()
+@@ -1366,6 +1369,9 @@ func (r *ProtocolIncus) ExecInstance(instanceName string, exec api.InstanceExecP
+ 		if conns["0"] != nil {
+ 			conn := conns["0"]
+ 
++			// The server only sends pings on this connection.
++			conn.SetReadLimit(ws.ControlMessageMaxSize)
++
+ 			go func() {
+ 				_, _, _ = conn.ReadMessage() // Consume pings from server.
+ 			}()
+diff --git a/cmd/incusd/instance_exec.go b/cmd/incusd/instance_exec.go
+index 0567fd8dbc..cd8d749dc9 100644
+--- a/cmd/incusd/instance_exec.go
++++ b/cmd/incusd/instance_exec.go
+@@ -483,6 +483,8 @@ func (s *execWs) do(op *operations.Operation) error {
+ 					// where the control connection isn't used by the client and so we need to
+ 					// detect when the client disconnects to avoid leaving the command running
+ 					// in the background.
++					conn.SetReadLimit(ws.ControlMessageMaxSize)
++
+ 					go func() {
+ 						_, _, err := conn.ReadMessage()
+ 
+@@ -503,6 +505,8 @@ func (s *execWs) do(op *operations.Operation) error {
+ 					// Consume data (e.g. websocket pings) from stderr too to
+ 					// avoid a situation where we hit an inactivity timeout on
+ 					// stderr during long exec sessions
++					conn.SetReadLimit(ws.ControlMessageMaxSize)
++
+ 					go func() {
+ 						_, _, _ = conn.ReadMessage()
+ 					}()
+diff --git a/shared/ws/upgrader.go b/shared/ws/upgrader.go
+index 2c8eb93442..fe74c1a889 100644
+--- a/shared/ws/upgrader.go
++++ b/shared/ws/upgrader.go
+@@ -72,6 +72,9 @@ func checkOrigin(r *http.Request) bool {
+ // ControlMessageMaxSize is the maximum size of a websocket control message.
+ const ControlMessageMaxSize = 1024 * 32
+ 
++// EventMessageMaxSize is the maximum size of a websocket event message.
++const EventMessageMaxSize = 1024 * 1024 * 16
++
+ // Upgrader is a websocket upgrader which validates the request Origin.
+ var Upgrader = websocket.Upgrader{
+ 	HandshakeTimeout: time.Second * 5,

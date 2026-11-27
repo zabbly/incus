@@ -1,0 +1,234 @@
+From 45a9d090694801a6ddcd0ab7c585be5b1b5f77d0 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:09:55 -0500
+Subject: [PATCH] client/oci: Check the unpacked size against the image budget
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The project disk budget was only compared with the compressed layer
+sizes, so a small image could unpack to gigabytes on the host.
+
+Walk the layers first and refuse an image whose content exceeds the
+budget before anything is written.
+
+This addresses GHSA-9pvj-5r2h-r873 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 0b21476713ae97f4076b246e1128f77af9650f4a)
+---
+ client/interfaces.go        |   3 ++
+ client/oci_images.go        |   2 +-
+ client/oci_util.go          |   2 +-
+ client/oci_util_linux.go    | 101 +++++++++++++++++++++++++++++++++++-
+ cmd/incusd/daemon_images.go |   1 +
+ test/godeps.list            |   2 +
+ 6 files changed, 108 insertions(+), 3 deletions(-)
+
+diff --git a/client/interfaces.go b/client/interfaces.go
+index be7f4169d6..72f8b19e3e 100644
+--- a/client/interfaces.go
++++ b/client/interfaces.go
+@@ -545,6 +545,9 @@ type ImageFileRequest struct {
+ 	// Path retriever for image delta downloads
+ 	// If set, it must return the path to the image file or an empty string if not available
+ 	DeltaSourceRetriever func(fingerprint string, file string) string
++
++	// Maximum unpacked size of an OCI image (0 for no limit)
++	MaxUnpackedSize int64
+ }
+ 
+ // The ImageFileResponse struct is used as the response for image downloads.
+diff --git a/client/oci_images.go b/client/oci_images.go
+index 216aa58574..d62996989f 100644
+--- a/client/oci_images.go
++++ b/client/oci_images.go
+@@ -208,7 +208,7 @@ func (r *ProtocolOCI) GetImageFile(fingerprint string, req ImageFileRequest) (*I
+ 		req.ProgressHandler(ioprogress.ProgressData{Text: "Unpacking the OCI image"})
+ 	}
+ 
+-	err = r.unpackOCIImage(filepath.Join(ociPath, "oci"), imageTag, filepath.Join(ociPath, "image"))
++	err = r.unpackOCIImage(filepath.Join(ociPath, "oci"), imageTag, filepath.Join(ociPath, "image"), req.MaxUnpackedSize)
+ 	if err != nil {
+ 		logger.Debug("Error unpacking OCI image", logger.Ctx{"image": filepath.Join(ociPath, "oci"), "err": err})
+ 		return nil, err
+diff --git a/client/oci_util.go b/client/oci_util.go
+index 839b511280..4fb0c5cef5 100644
+--- a/client/oci_util.go
++++ b/client/oci_util.go
+@@ -6,6 +6,6 @@ import (
+ 	"fmt"
+ )
+ 
+-func (r *ProtocolOCI) unpackOCIImage(imagePath string, imageTag string, bundlePath string) error {
++func (r *ProtocolOCI) unpackOCIImage(imagePath string, imageTag string, bundlePath string, maxSize int64) error {
+ 	return fmt.Errorf("Platform isn't supported")
+ }
+diff --git a/client/oci_util_linux.go b/client/oci_util_linux.go
+index f51c145a5a..b97033c9fc 100644
+--- a/client/oci_util_linux.go
++++ b/client/oci_util_linux.go
+@@ -3,9 +3,12 @@
+ package incus
+ 
+ import (
++	"archive/tar"
+ 	"context"
+ 	"encoding/json"
++	"errors"
+ 	"fmt"
++	"io"
+ 	"os"
+ 	"path/filepath"
+ 
+@@ -15,6 +18,8 @@ import (
+ 	"github.com/opencontainers/umoci"
+ 	"github.com/opencontainers/umoci/oci/cas/dir"
+ 	"github.com/opencontainers/umoci/oci/casext"
++	"github.com/opencontainers/umoci/oci/casext/blobcompress"
++	"github.com/opencontainers/umoci/oci/casext/mediatype"
+ 	"github.com/opencontainers/umoci/oci/layer"
+ 
+ 	"github.com/lxc/incus/v7/shared/logger"
+@@ -53,7 +58,7 @@ func (h *umociLogHandler) HandleLog(e *log.Entry) error {
+ 	return nil
+ }
+ 
+-func (r *ProtocolOCI) unpackOCIImage(imagePath string, imageTag string, bundlePath string) error {
++func (r *ProtocolOCI) unpackOCIImage(imagePath string, imageTag string, bundlePath string, maxSize int64) error {
+ 	var unpackOptions layer.UnpackOptions
+ 	unpackOptions.KeepDirlinks = true
+ 
+@@ -66,6 +71,14 @@ func (r *ProtocolOCI) unpackOCIImage(imagePath string, imageTag string, bundlePa
+ 	engineExt := casext.NewEngine(engine)
+ 	defer logger.WarnOnError(engine.Close, "Failed to close CAS engine")
+ 
++	// The layers decide how much gets written, check that before unpacking.
++	if maxSize > 0 {
++		err = r.checkUnpackedSize(engineExt, imageTag, maxSize)
++		if err != nil {
++			return err
++		}
++	}
++
+ 	err = umoci.Unpack(engineExt, imageTag, bundlePath, unpackOptions)
+ 	if err != nil {
+ 		return err
+@@ -74,6 +87,92 @@ func (r *ProtocolOCI) unpackOCIImage(imagePath string, imageTag string, bundlePa
+ 	return r.stripVolumeMounts(engineExt, imageTag, bundlePath)
+ }
+ 
++// checkUnpackedSize fails if the image's layers unpack to more than maxSize.
++func (r *ProtocolOCI) checkUnpackedSize(engineExt casext.Engine, imageTag string, maxSize int64) error {
++	ctx := context.Background()
++
++	descriptorPaths, err := engineExt.ResolveReference(ctx, imageTag)
++	if err != nil {
++		return fmt.Errorf("Resolve image reference: %w", err)
++	}
++
++	if len(descriptorPaths) != 1 {
++		return fmt.Errorf("Bad number of descriptors for tag %q: %d", imageTag, len(descriptorPaths))
++	}
++
++	manifestBlob, err := engineExt.FromDescriptor(ctx, descriptorPaths[0].Descriptor())
++	if err != nil {
++		return fmt.Errorf("Get image manifest: %w", err)
++	}
++
++	defer logger.WarnOnError(manifestBlob.Close, "Failed to close manifest blob")
++
++	manifest, ok := manifestBlob.Data.(ispec.Manifest)
++	if !ok {
++		return fmt.Errorf("Unexpected manifest media type %q", manifestBlob.Descriptor.MediaType)
++	}
++
++	var size int64
++	for _, descriptor := range manifest.Layers {
++		size, err = r.layerUnpackedSize(engineExt, descriptor, size, maxSize)
++		if err != nil {
++			return err
++		}
++	}
++
++	return nil
++}
++
++// layerUnpackedSize adds the unpacked size of a layer to size, failing once it passes maxSize.
++func (r *ProtocolOCI) layerUnpackedSize(engineExt casext.Engine, descriptor ispec.Descriptor, size int64, maxSize int64) (int64, error) {
++	layerBlob, err := engineExt.FromDescriptor(context.Background(), descriptor)
++	if err != nil {
++		return -1, fmt.Errorf("Get image layer: %w", err)
++	}
++
++	defer logger.WarnOnError(layerBlob.Close, "Failed to close layer blob")
++
++	layerData, ok := layerBlob.Data.(io.Reader)
++	if !ok {
++		return -1, fmt.Errorf("Unexpected layer media type %q", descriptor.MediaType)
++	}
++
++	// Decompress the layer the way umoci does.
++	_, compression := mediatype.SplitMediaTypeSuffix(descriptor.MediaType)
++
++	algorithm := blobcompress.GetAlgorithm(compression)
++	if algorithm == nil {
++		return -1, fmt.Errorf("Unsupported layer media type %q", descriptor.MediaType)
++	}
++
++	layerRaw, err := algorithm.Decompress(layerData)
++	if err != nil {
++		return -1, fmt.Errorf("Decompress image layer: %w", err)
++	}
++
++	defer logger.WarnOnError(layerRaw.Close, "Failed to close layer reader")
++
++	tr := tar.NewReader(layerRaw)
++	for {
++		hdr, err := tr.Next()
++		if errors.Is(err, io.EOF) {
++			break
++		}
++
++		if err != nil {
++			return -1, fmt.Errorf("Read image layer: %w", err)
++		}
++
++		// Count a block per entry so directories and empty files aren't free.
++		size += hdr.Size + 4096
++		if size > maxSize {
++			return -1, fmt.Errorf("Unpacked image size exceeds allowed budget of %d", maxSize)
++		}
++	}
++
++	return size, nil
++}
++
+ // stripVolumeMounts removes the tmpfs mounts umoci synthesizes from the image's volumes so those paths stay on the instance root disk.
+ func (r *ProtocolOCI) stripVolumeMounts(engineExt casext.Engine, imageTag string, bundlePath string) error {
+ 	ctx := context.Background()
+diff --git a/cmd/incusd/daemon_images.go b/cmd/incusd/daemon_images.go
+index 995fa6c84e..c648fb6648 100644
+--- a/cmd/incusd/daemon_images.go
++++ b/cmd/incusd/daemon_images.go
+@@ -491,6 +491,7 @@ func imageDownload(ctx context.Context, r *http.Request, s *state.State, op *ope
+ 			MetaFile:        io.ReadWriteSeeker(dest),
+ 			RootfsFile:      io.ReadWriteSeeker(destRootfs),
+ 			ProgressHandler: progress,
++			MaxUnpackedSize: args.Budget,
+ 			Canceler:        canceler,
+ 			DeltaSourceRetriever: func(fingerprint string, file string) string {
+ 				// The base name comes from the remote server; only offer an image the project already holds.
+diff --git a/test/godeps.list b/test/godeps.list
+index cac0879482..c26fe2ec69 100644
+--- a/test/godeps.list
++++ b/test/godeps.list
+@@ -20,6 +20,8 @@ github.com/opencontainers/image-spec/specs-go/v1
+ github.com/opencontainers/runtime-spec/specs-go
+ github.com/opencontainers/umoci
+ github.com/opencontainers/umoci/oci/casext
++github.com/opencontainers/umoci/oci/casext/blobcompress
++github.com/opencontainers/umoci/oci/casext/mediatype
+ github.com/opencontainers/umoci/oci/cas/dir
+ github.com/opencontainers/umoci/oci/layer
+ github.com/pkg/sftp

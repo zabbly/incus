@@ -1,0 +1,36 @@
+From b026920a2aa11efcb31903a3b11162be4b86238a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:58:22 -0500
+Subject: [PATCH] incusd/project: Reject a negative limits.processes in the
+ aggregate check
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A negative value removes the instance's pids limit while lowering the
+project total it is checked against.
+
+This addresses GHSA-9pvj-5r2h-r873 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 09303fa53e9a98c34f140fd71e78a8ebebabb75e)
+---
+ internal/server/project/permissions.go | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/internal/server/project/permissions.go b/internal/server/project/permissions.go
+index ae365936ae..a2bc11639b 100644
+--- a/internal/server/project/permissions.go
++++ b/internal/server/project/permissions.go
+@@ -1988,6 +1988,11 @@ var aggregateLimitConfigValueParsers = map[string]func(string) (int64, error){
+ 			return -1, err
+ 		}
+ 
++		// A negative value disables the instance limit and would lower the total.
++		if limit < 0 {
++			return -1, fmt.Errorf("Invalid value %q", value)
++		}
++
+ 		return int64(limit), nil
+ 	},
+ 	"limits.cpu": func(value string) (int64, error) {

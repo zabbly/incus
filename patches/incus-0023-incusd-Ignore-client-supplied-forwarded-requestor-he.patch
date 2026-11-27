@@ -1,0 +1,72 @@
+From 2c6b3282ac2aac7a7686b79e4b349a8e5ba8a38f Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Fri, 23 Oct 2026 22:46:03 -0400
+Subject: [PATCH] incusd: Ignore client-supplied forwarded requestor headers
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A cluster member forwarded the client's X-Incus-forwarded-* headers to
+the target member, which trusted them, so a client could set its own
+requestor identity and pass every permission check on the hop.
+
+Strip those headers on ingress for any non-cluster protocol, and drop
+them in the cluster proxy hook unless the request came from a member.
+
+This addresses GHSA-9m5m-cr24-m367 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 741f83bc9075efb79280dfc2b005fdde6f73cf28)
+---
+ cmd/incusd/daemon.go               | 7 +++++++
+ internal/server/cluster/connect.go | 7 +++++++
+ internal/server/request/const.go   | 3 +++
+ 3 files changed, 17 insertions(+)
+
+diff --git a/cmd/incusd/daemon.go b/cmd/incusd/daemon.go
+index e6aa6ed517..ac26ec4268 100644
+--- a/cmd/incusd/daemon.go
++++ b/cmd/incusd/daemon.go
+@@ -807,6 +807,13 @@ func (d *Daemon) createCmd(restAPI *http.ServeMux, apiVersion string, c APIEndpo
+ 			}
+ 		}
+ 
++		// Drop client-supplied forwarded requestor headers; only a cluster member may set them.
++		if protocol != "cluster" {
++			for _, header := range request.ForwardedHeaders {
++				r.Header.Del(header)
++			}
++		}
++
+ 		// Restrict internal queries to remote, non-cluster, clients
+ 		if apiVersion == "internal" && !slices.Contains([]string{"unix", "cluster"}, protocol) {
+ 			internalAllowed := func() bool {
+diff --git a/internal/server/cluster/connect.go b/internal/server/cluster/connect.go
+index 14ae2ee839..98af00f92a 100644
+--- a/internal/server/cluster/connect.go
++++ b/internal/server/cluster/connect.go
+@@ -64,6 +64,13 @@ func Connect(address string, networkCert *localtls.CertInfo, serverCert *localtl
+ 		if r != nil {
+ 			ctx := r.Context()
+ 
++			// Only a cluster member may relay requestor details; drop any copied from a client request.
++			if ctx.Value(request.CtxProtocol) != "cluster" {
++				for _, header := range request.ForwardedHeaders {
++					req.Header.Del(header)
++				}
++			}
++
+ 			val, ok := ctx.Value(request.CtxUsername).(string)
+ 			if ok {
+ 				req.Header.Add(request.HeaderForwardedUsername, val)
+diff --git a/internal/server/request/const.go b/internal/server/request/const.go
+index f09608cd51..898269941a 100644
+--- a/internal/server/request/const.go
++++ b/internal/server/request/const.go
+@@ -53,3 +53,6 @@ const (
+ 	// HeaderForwardedClaims is the forwarded OIDC claims field (JSON) in request header.
+ 	HeaderForwardedClaims = "X-Incus-forwarded-claims"
+ )
++
++// ForwardedHeaders lists the headers carrying the requestor details between cluster members.
++var ForwardedHeaders = []string{HeaderForwardedAddress, HeaderForwardedUsername, HeaderForwardedProtocol, HeaderForwardedClaims}

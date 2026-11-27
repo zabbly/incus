@@ -1,0 +1,58 @@
+From 71c008bef0ebce8aaaeb704d9eb05512f2d4354c Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:00:48 -0500
+Subject: [PATCH] incusd/cluster: Give joined members the cluster CA symlink
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Only the bootstrap member created cluster.ca, so joined members loaded
+their certificate without the CA and never checked ca.crl.
+
+This addresses GHSA-9m5m-cr24-m367 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 35672e4d594f805613375213422814c99c744f26)
+---
+ internal/util/cert.go | 18 ++++++++++--------
+ 1 file changed, 10 insertions(+), 8 deletions(-)
+
+diff --git a/internal/util/cert.go b/internal/util/cert.go
+index 7d4842e5f5..2fd8875882 100644
+--- a/internal/util/cert.go
++++ b/internal/util/cert.go
+@@ -14,17 +14,11 @@ import (
+ // If a cluster certificate is found it will be loaded instead.
+ // If neither a server or cluster certfificate exists, a new server certificate will be generated.
+ func LoadCert(dir string) (*localtls.CertInfo, error) {
+-	prefix := "server"
+ 	if util.PathExists(filepath.Join(dir, "cluster.crt")) {
+-		prefix = "cluster"
+-	}
+-
+-	cert, err := localtls.KeyPairAndCA(dir, prefix, localtls.CertServer, true)
+-	if err != nil {
+-		return nil, fmt.Errorf("failed to load TLS certificate: %w", err)
++		return LoadClusterCert(dir)
+ 	}
+ 
+-	return cert, nil
++	return LoadServerCert(dir)
+ }
+ 
+ // LoadClusterCert reads the cluster certificate from the given var dir.
+@@ -33,6 +27,14 @@ func LoadCert(dir string) (*localtls.CertInfo, error) {
+ func LoadClusterCert(dir string) (*localtls.CertInfo, error) {
+ 	prefix := "cluster"
+ 
++	// Members that joined a cluster may be missing the CA symlink.
++	if util.PathExists(filepath.Join(dir, "server.ca")) && !util.PathExists(filepath.Join(dir, "cluster.ca")) {
++		err := os.Symlink("server.ca", filepath.Join(dir, "cluster.ca"))
++		if err != nil {
++			return nil, fmt.Errorf("Failed to symlink server CA cert to cluster CA cert: %w", err)
++		}
++	}
++
+ 	cert, err := localtls.KeyPairAndCA(dir, prefix, localtls.CertServer, true)
+ 	if err != nil {
+ 		return nil, fmt.Errorf("failed to load cluster TLS certificate: %w", err)

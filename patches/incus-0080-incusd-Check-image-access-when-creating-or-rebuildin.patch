@@ -1,0 +1,89 @@
+From 0809b8d6309567613f2e8b337a87c74a1a35e933 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:30:21 -0500
+Subject: [PATCH] incusd: Check image access when creating or rebuilding from a
+ local image
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Instance creation and rebuild resolved any image of the project without
+asking the authorizer, and a private image already present in the
+project was reused for a remote download without a check either.
+
+This addresses GHSA-8553-6xmq-7g3g (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit eaded8b74d0f8d8387837ecf2b51707e6d4e4bea)
+---
+ cmd/incusd/daemon_images.go    | 9 +++++++++
+ cmd/incusd/instance_rebuild.go | 9 +++++++++
+ cmd/incusd/instances_post.go   | 8 ++++++++
+ 3 files changed, 26 insertions(+)
+
+diff --git a/cmd/incusd/daemon_images.go b/cmd/incusd/daemon_images.go
+index 32a0cd5a30..ca61eb5f0c 100644
+--- a/cmd/incusd/daemon_images.go
++++ b/cmd/incusd/daemon_images.go
+@@ -203,6 +203,15 @@ func imageDownload(ctx context.Context, r *http.Request, s *state.State, op *ope
+ 
+ 		return err
+ 	})
++
++	// A private image may only be reused by a caller allowed to view it.
++	if err == nil && r != nil && !imgInfo.Public && !imgInfo.Cached {
++		err = s.Authorizer.CheckPermission(ctx, r, auth.ObjectImage(args.ProjectName, imgInfo.Fingerprint), auth.EntitlementCanView)
++		if err != nil {
++			return nil, false, err
++		}
++	}
++
+ 	if err == nil {
+ 		var nodeAddress string
+ 
+diff --git a/cmd/incusd/instance_rebuild.go b/cmd/incusd/instance_rebuild.go
+index 8a3e35be1d..f74963fec0 100644
+--- a/cmd/incusd/instance_rebuild.go
++++ b/cmd/incusd/instance_rebuild.go
+@@ -8,6 +8,7 @@ import (
+ 	"net/http"
+ 
+ 	internalInstance "github.com/lxc/incus/v7/internal/instance"
++	"github.com/lxc/incus/v7/internal/server/auth"
+ 	"github.com/lxc/incus/v7/internal/server/db"
+ 	dbCluster "github.com/lxc/incus/v7/internal/server/db/cluster"
+ 	"github.com/lxc/incus/v7/internal/server/db/operationtype"
+@@ -123,6 +124,14 @@ func instanceRebuildPost(d *Daemon, r *http.Request) response.Response {
+ 		return response.SmartError(err)
+ 	}
+ 
++	// A local image may only be used by a caller allowed to view it.
++	if sourceImage != nil && req.Source.Server == "" {
++		err = s.Authorizer.CheckPermission(r.Context(), r, auth.ObjectImage(targetProject.Name, sourceImage.Fingerprint), auth.EntitlementCanView)
++		if err != nil {
++			return response.SmartError(err)
++		}
++	}
++
+ 	inst, err = instance.LoadByProjectAndName(s, targetProject.Name, name)
+ 	if err != nil {
+ 		return response.SmartError(err)
+diff --git a/cmd/incusd/instances_post.go b/cmd/incusd/instances_post.go
+index 827fd14d35..ace68d652c 100644
+--- a/cmd/incusd/instances_post.go
++++ b/cmd/incusd/instances_post.go
+@@ -1658,6 +1658,14 @@ func instancesPost(d *Daemon, r *http.Request) response.Response {
+ 		return response.SmartError(err)
+ 	}
+ 
++	// A local image may only be used by a caller allowed to view it.
++	if sourceImage != nil && req.Source.Server == "" {
++		err = s.Authorizer.CheckPermission(r.Context(), r, auth.ObjectImage(targetProjectName, sourceImage.Fingerprint), auth.EntitlementCanView)
++		if err != nil {
++			return response.SmartError(err)
++		}
++	}
++
+ 	err = instance.ValidName(req.Name, false)
+ 	if err != nil {
+ 		return response.BadRequest(err)

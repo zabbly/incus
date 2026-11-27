@@ -1,0 +1,47 @@
+From ebf95d5109a516f439fee645feaca3982f2aa5f7 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:03:10 -0500
+Subject: [PATCH] incusd: Stop forkfile when its PID file can't be written
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The helper had already been started when the PID file write failed,
+and nothing killed or reaped it, so a client that made the write fail
+left a root process and then a zombie behind per request.
+
+This addresses GHSA-23fc-ggg4-5r2r (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit c2515e2910c2df9f68697b869500ce3b76007d5d)
+---
+ internal/server/instance/drivers/driver_lxc.go | 2 ++
+ internal/server/storage/drivers/volume.go      | 2 ++
+ 2 files changed, 4 insertions(+)
+
+diff --git a/internal/server/instance/drivers/driver_lxc.go b/internal/server/instance/drivers/driver_lxc.go
+index 6bee01a94c..45ca2c0945 100644
+--- a/internal/server/instance/drivers/driver_lxc.go
++++ b/internal/server/instance/drivers/driver_lxc.go
+@@ -8202,6 +8202,8 @@ func (d *lxc) FileSFTPConn() (net.Conn, error) {
+ 		pidFile := filepath.Join(d.RunPath(), "forkfile.pid")
+ 		err = os.WriteFile(pidFile, fmt.Appendf(nil, "%d\n", forkfile.Process.Pid), 0o600)
+ 		if err != nil {
++			_ = forkfile.Process.Kill()
++			_ = forkfile.Wait()
+ 			chReady <- fmt.Errorf("Failed to write forkfile PID: %w", err)
+ 			return
+ 		}
+diff --git a/internal/server/storage/drivers/volume.go b/internal/server/storage/drivers/volume.go
+index e6bfe56d29..fe799ffb43 100644
+--- a/internal/server/storage/drivers/volume.go
++++ b/internal/server/storage/drivers/volume.go
+@@ -966,6 +966,8 @@ func (v Volume) FileSFTPConn(s *state.State) (net.Conn, error) {
+ 			pidFile := filepath.Join(v.forkfileRunPath(), "forkfile.pid")
+ 			err = os.WriteFile(pidFile, fmt.Appendf(nil, "%d\n", forkfile.Process.Pid), 0o600)
+ 			if err != nil {
++				_ = forkfile.Process.Kill()
++				_ = forkfile.Wait()
+ 				return fmt.Errorf("Failed to write forkfile PID: %w", err)
+ 			}
+ 

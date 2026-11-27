@@ -1,0 +1,26 @@
+From 6f3f21de687f84730d1ccdc74766c648a6532311 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Thu, 26 Nov 2026 18:19:43 -0500
+Subject: [PATCH] tests: Skip DAD on the peering host address
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+---
+ test/suites/network_ovn.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/test/suites/network_ovn.sh b/test/suites/network_ovn.sh
+index 4bc9b5ef1b..ac2d569c56 100644
+--- a/test/suites/network_ovn.sh
++++ b/test/suites/network_ovn.sh
+@@ -1362,7 +1362,7 @@ test_network_ovn_peering() {
+     ovn2IPv6="$(incus network get ovn2 volatile.network.ipv6.address --project=prj-ovn2)"
+ 
+     ip a add "${ovn1NICIPv4}/32" dev incusbr0
+-    ip a add "${ovn1NICIPv6}/128" dev incusbr0
++    ip a add "${ovn1NICIPv6}/128" dev incusbr0 nodad
+     ip -4 r add "${ovn2NICIPv4}/32" via "${ovn2IPv4}" dev incusbr0 src "${ovn1NICIPv4}"
+     ip -6 r add "${ovn2NICIPv6}/128" via "${ovn2IPv6}" dev incusbr0 src "${ovn1NICIPv6}"
+ 

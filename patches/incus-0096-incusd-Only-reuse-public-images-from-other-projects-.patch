@@ -1,0 +1,67 @@
+From 5d65022a68a30c06e4a45290cae4d7441a6544fc Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:30:23 -0500
+Subject: [PATCH] incusd: Only reuse public images from other projects on
+ refresh
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Image refresh and auto-update run without a request, which skipped the
+view check on reusing another project's image, so a remote alias could
+be pointed at a fingerprint prefix to copy any private image. Internal
+callers now only reuse public images and download the rest, and the
+fingerprint a remote returns must be a full one before any lookup.
+
+A missing image with no server to fetch it from is now an error rather
+than a nil dereference.
+
+This addresses GHSA-4j59-4pqh-f3qm (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 70bba24d5e0061d575c1a8815a5a08dea395d0af)
+---
+ cmd/incusd/daemon_images.go | 16 ++++++++++++++--
+ 1 file changed, 14 insertions(+), 2 deletions(-)
+
+diff --git a/cmd/incusd/daemon_images.go b/cmd/incusd/daemon_images.go
+index ca61eb5f0c..6b958ac0ce 100644
+--- a/cmd/incusd/daemon_images.go
++++ b/cmd/incusd/daemon_images.go
+@@ -161,6 +161,12 @@ func imageDownload(ctx context.Context, r *http.Request, s *state.State, op *ope
+ 
+ 			fp = info.Fingerprint
+ 		}
++
++		// The remote's answer is looked up by prefix below, so only accept a full fingerprint.
++		err = validate.IsSHA256(fp)
++		if err != nil {
++			return nil, false, errors.New("Invalid image fingerprint")
++		}
+ 	}
+ 
+ 	// Ensure we are the only ones operating on this image.
+@@ -251,8 +257,9 @@ func imageDownload(ctx context.Context, r *http.Request, s *state.State, op *ope
+ 		if err == nil {
+ 			// Only reuse another project's image when the caller may see it,
+ 			// otherwise download it (proving access) and dedupe on disk.
+-			reuse := otherImg.Public || r == nil
+-			if !reuse {
++			// Internal callers have no request to check against, so they only reuse public images.
++			reuse := otherImg.Public
++			if !reuse && r != nil {
+ 				err = s.Authorizer.CheckPermission(ctx, r, auth.ObjectImage(otherImg.Project, otherImg.Fingerprint), auth.EntitlementCanView)
+ 				if err == nil {
+ 					reuse = true
+@@ -370,6 +377,11 @@ func imageDownload(ctx context.Context, r *http.Request, s *state.State, op *ope
+ 		return info, false, nil
+ 	}
+ 
++	// Nothing to download from.
++	if args.Server == "" {
++		return nil, false, api.StatusErrorf(http.StatusNotFound, "Image not found")
++	}
++
+ 	// Begin downloading
+ 	if op == nil {
+ 		ctxMap = logger.Ctx{"alias": alias, "server": args.Server}

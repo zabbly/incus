@@ -1,0 +1,75 @@
+From b27b67836590764ab6e4ddcb722d2940bbcde46b Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:42:47 -0500
+Subject: [PATCH] client/oci: Fingerprint the manifest and pin the copy to it
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The OCI fingerprint only hashed the layer digests, so images with the
+same layers but a different configuration shared a fingerprint, and
+the copy re-resolved the tag so a registry could serve the inspected
+manifest to one request and other content to the next. The manifest
+digest is now part of the fingerprint and the copy is pinned to it.
+
+This addresses GHSA-4j59-4pqh-f3qm (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 5e7723274f3a728c99098360504cfa5b73ac17a8)
+---
+ client/oci_images.go | 19 ++++++++++++++++---
+ 1 file changed, 16 insertions(+), 3 deletions(-)
+
+diff --git a/client/oci_images.go b/client/oci_images.go
+index fe58b501d9..216aa58574 100644
+--- a/client/oci_images.go
++++ b/client/oci_images.go
+@@ -30,6 +30,7 @@ import (
+ 
+ type ociInfo struct {
+ 	Alias        string
++	Source       string
+ 	Name         string    `json:"Name"`
+ 	Digest       string    `json:"Digest"`
+ 	Created      time.Time `json:"Created"`
+@@ -193,7 +194,7 @@ func (r *ProtocolOCI) GetImageFile(fingerprint string, req ImageFileRequest) (*I
+ 	imageTag := "latest"
+ 
+ 	stdout, err := r.runSkopeo(
+-		"copy", info.Alias,
++		"copy", info.Source,
+ 		"--remove-signatures",
+ 		fmt.Sprintf("oci:%s:%s", filepath.Join(ociPath, "oci"), imageTag),
+ 	)
+@@ -458,8 +459,18 @@ func (r *ProtocolOCI) GetImageAlias(name string) (*api.ImageAliasesEntry, string
+ 		return nil, "", err
+ 	}
+ 
++	// Pin the copy to the manifest that was inspected.
++	if info.Digest == "" {
++		err = errors.New("OCI image has no manifest digest")
++		r.errors[name] = err
++
++		return nil, "", err
++	}
++
++	imageWithoutTag, _, _ := strings.Cut(imageWithoutHash, ":")
+ 	info.Alias = name
+-	info.Digest = r.computeFingerprint(info.Layers)
++	info.Source = fmt.Sprintf("%s@%s", imageWithoutTag, info.Digest)
++	info.Digest = r.computeFingerprint(info.Digest, info.Layers)
+ 
+ 	archID, err := osarch.ArchitectureID(info.Architecture)
+ 	if err != nil {
+@@ -525,8 +536,10 @@ func (r *ProtocolOCI) ExportImage(_ string, _ api.ImageExportPost) (Operation, e
+ 	return nil, errors.New("Exporting images is not supported with OCI registry")
+ }
+ 
+-func (r *ProtocolOCI) computeFingerprint(layers []string) string {
++// computeFingerprint hashes the manifest digest and the layers, the latter differ per architecture.
++func (r *ProtocolOCI) computeFingerprint(digest string, layers []string) string {
+ 	h := sha256.New()
++	h.Write([]byte(digest))
+ 
+ 	for _, layer := range layers {
+ 		h.Write([]byte(layer))

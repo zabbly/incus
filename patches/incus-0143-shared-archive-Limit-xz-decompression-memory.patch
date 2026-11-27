@@ -1,0 +1,48 @@
+From fb52e2c095273b5e6d4a1df248f96ce8f8f9c96f Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:05:11 -0500
+Subject: [PATCH] shared/archive: Limit xz decompression memory
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The dictionary size comes from the file being unpacked, so an upload
+could make the root-run xz allocate gigabytes outside any limit.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 4c9ff81d51e8b309bb2cc66177bdb482fd9633b8)
+---
+ shared/archive/detect.go | 9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/shared/archive/detect.go b/shared/archive/detect.go
+index f059739df0..b9107d93b2 100644
+--- a/shared/archive/detect.go
++++ b/shared/archive/detect.go
+@@ -11,6 +11,9 @@ import (
+ 	"github.com/lxc/incus/v7/shared/logger"
+ )
+ 
++// xzMemoryLimit caps the decompression memory, the file decides the dictionary size.
++const xzMemoryLimit = "--memlimit-decompress=512MiB"
++
+ // DetectCompression detects compression from a file name.
+ func DetectCompression(fname string) ([]string, string, []string, error) {
+ 	f, err := os.Open(fname)
+@@ -53,11 +56,11 @@ func DetectCompressionFile(f io.Reader) ([]string, string, []string, error) {
+ 
+ 		return []string{"-zxf"}, ".tar.gz", []string{"gzip", "-d"}, nil
+ 	case n >= 5 && (bytes.Equal(header[1:5], []byte{'7', 'z', 'X', 'Z'}) && header[0] == 0xFD):
+-		return []string{"-Jxf"}, ".tar.xz", []string{"xz", "-d"}, nil
++		return []string{"-I", "xz " + xzMemoryLimit, "-xf"}, ".tar.xz", []string{"xz", xzMemoryLimit, "-d"}, nil
+ 	case n >= 5 && (bytes.Equal(header[1:5], []byte{'7', 'z', 'X', 'Z'}) && header[0] != 0xFD):
+-		return []string{"--lzma", "-xf"}, ".tar.lzma", []string{"lzma", "-d"}, nil
++		return []string{"-I", "lzma " + xzMemoryLimit, "-xf"}, ".tar.lzma", []string{"lzma", xzMemoryLimit, "-d"}, nil
+ 	case n >= 3 && bytes.Equal(header[0:3], []byte{0x5d, 0x00, 0x00}):
+-		return []string{"--lzma", "-xf"}, ".tar.lzma", []string{"lzma", "-d"}, nil
++		return []string{"-I", "lzma " + xzMemoryLimit, "-xf"}, ".tar.lzma", []string{"lzma", xzMemoryLimit, "-d"}, nil
+ 	case n >= 4 && bytes.Equal(header[0:4], []byte{0x28, 0xb5, 0x2f, 0xfd}):
+ 		return []string{"--zstd", "-xf"}, ".tar.zst", []string{"zstd", "-d"}, nil
+ 	case n >= 4 && bytes.Equal(header[0:4], []byte{0x04, 0x22, 0x4d, 0x18}):

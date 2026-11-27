@@ -1,0 +1,49 @@
+From 25d2dd402f0cdcdda186c609910801903d6041a0 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:14:12 -0500
+Subject: [PATCH] incusd/instance/lxc: Only stop the DHCP helper of the
+ instance
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The PID file comes from the instance volume, so an image could point it
+at another instance's helper.
+
+This addresses GHSA-28m6-7v43-rr8m (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 66e00de76734b208eecfb369d5bbd9a3568d6cb0)
+---
+ internal/server/instance/drivers/driver_lxc.go | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/internal/server/instance/drivers/driver_lxc.go b/internal/server/instance/drivers/driver_lxc.go
+index 3002c0ca41..b21aef0455 100644
+--- a/internal/server/instance/drivers/driver_lxc.go
++++ b/internal/server/instance/drivers/driver_lxc.go
+@@ -3730,9 +3730,10 @@ func (d *lxc) Rebuild(img *api.Image, op *operations.Operation) error {
+ // stopDHCPClient kills the forknet dhcp process if any and waits for it to
+ // exit so the container's cgroup can be fully cleaned up.
+ func (d *lxc) stopDHCPClient() {
+-	pidPath := filepath.Join(d.Path(), "network", "dhcp.pid")
++	networkPath := filepath.Join(d.Path(), "network")
++	pidPath := filepath.Join(networkPath, "dhcp.pid")
+ 
+-	dhcpPIDStr, err := os.ReadFile(pidPath)
++	dhcpPIDStr, err := readRegularFileInRoot(networkPath, "dhcp.pid")
+ 	if err != nil {
+ 		return
+ 	}
+@@ -3749,9 +3750,9 @@ func (d *lxc) stopDHCPClient() {
+ 
+ 	defer func() { _ = pidFd.Close() }()
+ 
+-	// Guard against PID reuse.
++	// Guard against PID reuse and a planted PID file, the helper names the instance's network path.
+ 	cmdline, err := os.ReadFile(fmt.Sprintf("/proc/%d/cmdline", dhcpPID))
+-	if err != nil || (!strings.HasPrefix(string(cmdline), "[incus dhcp]") && !strings.Contains(string(cmdline), "forknet\x00dhcp")) {
++	if err != nil || !strings.Contains(string(cmdline), networkPath) || (!strings.HasPrefix(string(cmdline), "[incus dhcp]") && !strings.Contains(string(cmdline), "forknet\x00dhcp")) {
+ 		return
+ 	}
+ 

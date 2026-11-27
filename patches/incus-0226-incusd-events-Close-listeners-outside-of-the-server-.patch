@@ -1,0 +1,51 @@
+From 0fb86a69b3a6dd5f113af29fde50c00c85050a9e Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Fri, 20 Nov 2026 14:45:03 -0500
+Subject: [PATCH] incusd/events: Close listeners outside of the server lock
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Closing a listener logs, and log entries are broadcast under that lock.
+
+This addresses GHSA-9m5m-cr24-m367 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+---
+ internal/server/events/events.go | 18 ++++++++++++------
+ 1 file changed, 12 insertions(+), 6 deletions(-)
+
+diff --git a/internal/server/events/events.go b/internal/server/events/events.go
+index 61b040d225..8d4f72143d 100644
+--- a/internal/server/events/events.go
++++ b/internal/server/events/events.go
+@@ -68,17 +68,23 @@ func (s *Server) SetLocalLocation(location string) {
+ 
+ // CloseListeners closes the listeners opened by a matching identity.
+ func (s *Server) CloseListeners(match func(protocol string, username string) bool) {
+-	s.lock.Lock()
+-	defer s.lock.Unlock()
++	matched := []*Listener{}
+ 
++	s.lock.Lock()
+ 	for _, listener := range s.listeners {
+ 		listener.lock.Lock()
+-		matched := listener.username != "" && match(listener.protocol, listener.username)
++		if listener.username != "" && match(listener.protocol, listener.username) {
++			matched = append(matched, listener)
++		}
++
+ 		listener.lock.Unlock()
++	}
+ 
+-		if matched {
+-			listener.Close()
+-		}
++	s.lock.Unlock()
++
++	// Close outside of the lock, closing logs and log entries are broadcast as events.
++	for _, listener := range matched {
++		listener.Close()
+ 	}
+ }
+ 

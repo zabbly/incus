@@ -1,0 +1,293 @@
+From 02f9b55f536f3d3ca2c4a79fef185e538071635b Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Thu, 5 Nov 2026 10:06:35 -0500
+Subject: [PATCH] incusd/backup: Bound backup parsing to the project's disk
+ budget
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Reading the backup index decompressed the whole archive with no bound,
+so a small compressed upload could keep the decompressor and the daemon
+busy producing data far past anything the project could store.
+
+This addresses GHSA-9pvj-5r2h-r873 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 9338bdd95586079d42c644bd931c673265ce4346)
+---
+ cmd/incus-simplestreams/main_add.go           |  4 +--
+ cmd/incusd/instances_post.go                  |  2 +-
+ cmd/incusd/storage_buckets.go                 |  2 +-
+ cmd/incusd/storage_volumes.go                 |  2 +-
+ internal/server/backup/backup_info.go         |  6 ++--
+ internal/server/backup/backup_utils.go        |  5 ++--
+ .../storage/drivers/driver_btrfs_utils.go     |  2 +-
+ .../storage/drivers/driver_btrfs_volumes.go   |  2 +-
+ .../storage/drivers/driver_zfs_volumes.go     |  2 +-
+ internal/server/storage/drivers/utils.go      |  2 +-
+ .../server/storage/s3/transfer_manager.go     |  2 +-
+ internal/server/storage/utils.go              |  8 ++---
+ shared/archive/archive.go                     | 29 +++++++++++++++++--
+ 13 files changed, 47 insertions(+), 21 deletions(-)
+
+diff --git a/cmd/incus-simplestreams/main_add.go b/cmd/incus-simplestreams/main_add.go
+index 8c52075a6a..62e9075cc7 100644
+--- a/cmd/incus-simplestreams/main_add.go
++++ b/cmd/incus-simplestreams/main_add.go
+@@ -211,7 +211,7 @@ func (c *cmdAdd) run(cmd *cobra.Command, args []string) error {
+ 		return err
+ 	}
+ 
+-	metaTar, metaTarCancel, err := archive.CompressedTarReader(context.Background(), metaFile, unpacker, "")
++	metaTar, metaTarCancel, err := archive.CompressedTarReader(context.Background(), metaFile, unpacker, "", -1)
+ 	if err != nil {
+ 		return err
+ 	}
+@@ -291,7 +291,7 @@ func (c *cmdAdd) run(cmd *cobra.Command, args []string) error {
+ 			return err
+ 		}
+ 
+-		typeTar, typeTarCancel, err := archive.CompressedTarReader(context.Background(), metaFile, unpacker, "")
++		typeTar, typeTarCancel, err := archive.CompressedTarReader(context.Background(), metaFile, unpacker, "", -1)
+ 		if err != nil {
+ 			return err
+ 		}
+diff --git a/cmd/incusd/instances_post.go b/cmd/incusd/instances_post.go
+index d2fefc40c1..660aa05107 100644
+--- a/cmd/incusd/instances_post.go
++++ b/cmd/incusd/instances_post.go
+@@ -941,7 +941,7 @@ func createFromBackup(s *state.State, r *http.Request, projectName string, data
+ 		return response.InternalError(err)
+ 	}
+ 
+-	bInfo, err := backup.GetInfo(backupFile, s.OS, backupFile.Name())
++	bInfo, err := backup.GetInfo(backupFile, s.OS, backupFile.Name(), budget)
+ 	if err != nil {
+ 		return response.BadRequest(err)
+ 	}
+diff --git a/cmd/incusd/storage_buckets.go b/cmd/incusd/storage_buckets.go
+index 5e3ba8e159..c6f5afbab6 100644
+--- a/cmd/incusd/storage_buckets.go
++++ b/cmd/incusd/storage_buckets.go
+@@ -1762,7 +1762,7 @@ func createStoragePoolBucketFromBackup(s *state.State, r *http.Request, requestP
+ 	}
+ 
+ 	logger.Debug("Reading backup file info")
+-	bInfo, err := backup.GetInfo(backupFile, s.OS, backupFile.Name())
++	bInfo, err := backup.GetInfo(backupFile, s.OS, backupFile.Name(), budget)
+ 	if err != nil {
+ 		return response.BadRequest(err)
+ 	}
+diff --git a/cmd/incusd/storage_volumes.go b/cmd/incusd/storage_volumes.go
+index 6ec81ed9f4..c76c26655a 100644
+--- a/cmd/incusd/storage_volumes.go
++++ b/cmd/incusd/storage_volumes.go
+@@ -3040,7 +3040,7 @@ func createStoragePoolVolumeFromBackup(s *state.State, r *http.Request, requestP
+ 	}
+ 
+ 	logger.Debug("Reading backup file info")
+-	bInfo, err := backup.GetInfo(backupFile, s.OS, backupFile.Name())
++	bInfo, err := backup.GetInfo(backupFile, s.OS, backupFile.Name(), budget)
+ 	if err != nil {
+ 		return response.BadRequest(err)
+ 	}
+diff --git a/internal/server/backup/backup_info.go b/internal/server/backup/backup_info.go
+index f02529f342..744dba7fdb 100644
+--- a/internal/server/backup/backup_info.go
++++ b/internal/server/backup/backup_info.go
+@@ -60,8 +60,8 @@ type Info struct {
+ 	Config           *config.Config `json:"config,omitempty" yaml:"config,omitempty"`                     // Equivalent of backup.yaml but embedded in index for quick retrieval.
+ }
+ 
+-// GetInfo extracts backup information from a given ReadSeeker.
+-func GetInfo(r io.ReadSeeker, sysOS *sys.OS, outputPath string) (*Info, error) {
++// GetInfo extracts backup information from a given ReadSeeker, reading at most maxSize decompressed bytes.
++func GetInfo(r io.ReadSeeker, sysOS *sys.OS, outputPath string, maxSize int64) (*Info, error) {
+ 	result := Info{}
+ 	hasIndexFile := false
+ 	hasOptimizedHeader := false
+@@ -71,7 +71,7 @@ func GetInfo(r io.ReadSeeker, sysOS *sys.OS, outputPath string) (*Info, error) {
+ 	optimizedHeaderFalse := false
+ 
+ 	// Extract.
+-	tr, cancelFunc, err := TarReader(r, sysOS, outputPath)
++	tr, cancelFunc, err := TarReader(r, sysOS, outputPath, maxSize)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+diff --git a/internal/server/backup/backup_utils.go b/internal/server/backup/backup_utils.go
+index f82176c8c3..cdbd0aded3 100644
+--- a/internal/server/backup/backup_utils.go
++++ b/internal/server/backup/backup_utils.go
+@@ -26,7 +26,8 @@ import (
+ )
+ 
+ // TarReader rewinds backup file handle r and returns new tar reader and process cleanup function.
+-func TarReader(r io.ReadSeeker, sysOS *sys.OS, outputPath string) (*tar.Reader, context.CancelFunc, error) {
++// A non-negative maxSize bounds the decompressed data.
++func TarReader(r io.ReadSeeker, sysOS *sys.OS, outputPath string, maxSize int64) (*tar.Reader, context.CancelFunc, error) {
+ 	_, err := r.Seek(0, io.SeekStart)
+ 	if err != nil {
+ 		return nil, nil, err
+@@ -41,7 +42,7 @@ func TarReader(r io.ReadSeeker, sysOS *sys.OS, outputPath string) (*tar.Reader,
+ 		return nil, nil, errors.New("Unsupported backup compression")
+ 	}
+ 
+-	tr, cancelFunc, err := archive.CompressedTarReader(context.Background(), r, unpacker, outputPath)
++	tr, cancelFunc, err := archive.CompressedTarReader(context.Background(), r, unpacker, outputPath, maxSize)
+ 	if err != nil {
+ 		return nil, nil, err
+ 	}
+diff --git a/internal/server/storage/drivers/driver_btrfs_utils.go b/internal/server/storage/drivers/driver_btrfs_utils.go
+index a859ea2942..1655e34a32 100644
+--- a/internal/server/storage/drivers/driver_btrfs_utils.go
++++ b/internal/server/storage/drivers/driver_btrfs_utils.go
+@@ -583,7 +583,7 @@ func (d *btrfs) loadOptimizedBackupHeader(r io.ReadSeeker, mountPath string, bas
+ 	header := BTRFSMetaDataHeader{}
+ 
+ 	// Extract.
+-	tr, cancelFunc, err := backup.TarReader(r, d.state.OS, mountPath)
++	tr, cancelFunc, err := backup.TarReader(r, d.state.OS, mountPath, -1)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+diff --git a/internal/server/storage/drivers/driver_btrfs_volumes.go b/internal/server/storage/drivers/driver_btrfs_volumes.go
+index 947345679b..ac80c9d50c 100644
+--- a/internal/server/storage/drivers/driver_btrfs_volumes.go
++++ b/internal/server/storage/drivers/driver_btrfs_volumes.go
+@@ -269,7 +269,7 @@ func (d *btrfs) CreateVolumeFromBackup(vol Volume, srcBackup backup.Info, srcDat
+ 
+ 	// unpackSubVolume unpacks a subvolume file from a backup tarball file.
+ 	unpackSubVolume := func(r io.ReadSeeker, unpacker []string, srcFile string, targetPath string) (string, error) {
+-		tr, cancelFunc, err := archive.CompressedTarReader(context.Background(), r, unpacker, targetPath)
++		tr, cancelFunc, err := archive.CompressedTarReader(context.Background(), r, unpacker, targetPath, -1)
+ 		if err != nil {
+ 			return "", err
+ 		}
+diff --git a/internal/server/storage/drivers/driver_zfs_volumes.go b/internal/server/storage/drivers/driver_zfs_volumes.go
+index c691664e41..f2c5623360 100644
+--- a/internal/server/storage/drivers/driver_zfs_volumes.go
++++ b/internal/server/storage/drivers/driver_zfs_volumes.go
+@@ -403,7 +403,7 @@ func (d *zfs) CreateVolumeFromBackup(vol Volume, srcBackup backup.Info, srcData
+ 		d.Logger().Debug("Unpacking optimized volume", logger.Ctx{"source": srcFile, "target": target})
+ 
+ 		targetPath := fmt.Sprintf("%s/storage-pools/%s", internalUtil.VarPath(""), target)
+-		tr, cancelFunc, err := archive.CompressedTarReader(context.Background(), r, unpacker, targetPath)
++		tr, cancelFunc, err := archive.CompressedTarReader(context.Background(), r, unpacker, targetPath, -1)
+ 		if err != nil {
+ 			return err
+ 		}
+diff --git a/internal/server/storage/drivers/utils.go b/internal/server/storage/drivers/utils.go
+index 93064b8de4..7c151bbc17 100644
+--- a/internal/server/storage/drivers/utils.go
++++ b/internal/server/storage/drivers/utils.go
+@@ -1309,7 +1309,7 @@ func UnpackVolume(d Driver, vol Volume, r io.ReadSeeker, tarArgs []string, unpac
+ 	if vol.contentType == ContentTypeBlock {
+ 		srcFile := fmt.Sprintf("%s.%s", srcPrefix, genericVolumeBlockExtension)
+ 
+-		tr, cancelFunc, err := archive.CompressedTarReader(context.Background(), r, unpacker, mountPath)
++		tr, cancelFunc, err := archive.CompressedTarReader(context.Background(), r, unpacker, mountPath, -1)
+ 		if err != nil {
+ 			return err
+ 		}
+diff --git a/internal/server/storage/s3/transfer_manager.go b/internal/server/storage/s3/transfer_manager.go
+index 320d6b1139..697d846bc1 100644
+--- a/internal/server/storage/s3/transfer_manager.go
++++ b/internal/server/storage/s3/transfer_manager.go
+@@ -142,7 +142,7 @@ func (t TransferManager) UploadAllFiles(bucketName string, srcData io.ReadSeeker
+ 	defer logger.WarnOnError(func() error { return os.RemoveAll(mountPath) }, "Failed to remove temporary mount path")
+ 	logger.Debugf("Created temp mount path %s", mountPath)
+ 
+-	tr, cancelFunc, err := backup.TarReader(srcData, nil, mountPath)
++	tr, cancelFunc, err := backup.TarReader(srcData, nil, mountPath, -1)
+ 	if err != nil {
+ 		return err
+ 	}
+diff --git a/internal/server/storage/utils.go b/internal/server/storage/utils.go
+index 30c762eb10..af5b04498a 100644
+--- a/internal/server/storage/utils.go
++++ b/internal/server/storage/utils.go
+@@ -591,8 +591,8 @@ func validateVolumeCommonRules(vol drivers.Volume) map[string]func(string) error
+ 	return rules
+ }
+ 
+-// tarballContentSize returns the total size of the entries in a possibly compressed tarball.
+-func tarballContentSize(path string, outputPath string) (int64, error) {
++// tarballContentSize returns the total size of the entries in a possibly compressed tarball, giving up past maxSize.
++func tarballContentSize(path string, outputPath string, maxSize int64) (int64, error) {
+ 	f, err := os.Open(path)
+ 	if err != nil {
+ 		return -1, err
+@@ -605,7 +605,7 @@ func tarballContentSize(path string, outputPath string) (int64, error) {
+ 		return -1, err
+ 	}
+ 
+-	tr, cancelFunc, err := archive.CompressedTarReader(context.Background(), f, unpacker, outputPath)
++	tr, cancelFunc, err := archive.CompressedTarReader(context.Background(), f, unpacker, outputPath, maxSize)
+ 	if err != nil {
+ 		return -1, err
+ 	}
+@@ -936,7 +936,7 @@ func ImageUnpack(imageFile string, vol drivers.Volume, destBlockFile string, sys
+ 				return -1, err
+ 			}
+ 
+-			contentSize, err := tarballContentSize(imageFile, tempDir)
++			contentSize, err := tarballContentSize(imageFile, tempDir, sizeBytes+(4*1024*1024))
+ 			if err != nil {
+ 				return -1, err
+ 			}
+diff --git a/shared/archive/archive.go b/shared/archive/archive.go
+index 4063e96fe3..9de36329bc 100644
+--- a/shared/archive/archive.go
++++ b/shared/archive/archive.go
+@@ -92,7 +92,8 @@ func ExtractWithFds(cmdName string, args []string, allowedCmds []string, stdin i
+ // This can be done before reading to the end of the tarball if desired.
+ //
+ // This uses RunWrapper if set.
+-func CompressedTarReader(ctx context.Context, r io.ReadSeeker, unpacker []string, outputPath string) (*tar.Reader, context.CancelFunc, error) {
++// A non-negative maxSize bounds the decompressed data, reads fail with ErrDecompressedTooLarge past it.
++func CompressedTarReader(ctx context.Context, r io.ReadSeeker, unpacker []string, outputPath string, maxSize int64) (*tar.Reader, context.CancelFunc, error) {
+ 	_, cancelFunc := context.WithCancel(ctx)
+ 
+ 	_, err := r.Seek(0, io.SeekStart)
+@@ -148,7 +149,11 @@ func CompressedTarReader(ctx context.Context, r io.ReadSeeker, unpacker []string
+ 			}
+ 		}
+ 
+-		tr = tar.NewReader(pipeReader)
++		if maxSize >= 0 {
++			tr = tar.NewReader(&limitedReader{r: pipeReader, limit: maxSize})
++		} else {
++			tr = tar.NewReader(pipeReader)
++		}
+ 	} else {
+ 		tr = tar.NewReader(r)
+ 	}
+@@ -156,6 +161,26 @@ func CompressedTarReader(ctx context.Context, r io.ReadSeeker, unpacker []string
+ 	return tr, cancelFunc, nil
+ }
+ 
++// ErrDecompressedTooLarge is returned once a tarball decompresses past the allowed size.
++var ErrDecompressedTooLarge = errors.New("Decompressed data exceeds the allowed size")
++
++// limitedReader fails once more than limit bytes went through it.
++type limitedReader struct {
++	r     io.Reader
++	limit int64
++	read  int64
++}
++
++func (l *limitedReader) Read(p []byte) (int, error) {
++	n, err := l.r.Read(p)
++	l.read += int64(n)
++	if l.read > l.limit {
++		return n, ErrDecompressedTooLarge
++	}
++
++	return n, err
++}
++
+ // Unpack extracts image from archive.
+ func Unpack(file string, path string, blockBackend bool, maxMemory int64, tracker *ioprogress.ProgressTracker) error {
+ 	extractArgs, extension, unpacker, err := DetectCompression(file)

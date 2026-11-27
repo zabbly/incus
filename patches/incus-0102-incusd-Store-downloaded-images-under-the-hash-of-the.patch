@@ -1,0 +1,83 @@
+From 572c05370c0112dc5eb6b627b92c9c8deb8f8e24 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:42:47 -0500
+Subject: [PATCH] incusd: Store downloaded images under the hash of their
+ content
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A remote claiming an OCI image skips the client's fingerprint check,
+so a client controlling an image server could store any bytes under a
+fingerprint of its choosing and either attach its record to another
+project's private image or poison the shared copy before others pull
+it. The client now reports the hash it computed and the daemon records
+the image under that hash when it differs from the requested one.
+
+This addresses GHSA-4j59-4pqh-f3qm (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 24fcfee6ef2f22e7571f546ca7ddda0a12cfe715)
+---
+ client/incus_images.go      |  4 ++++
+ client/interfaces.go        |  3 +++
+ cmd/incusd/daemon_images.go | 10 ++++++++++
+ 3 files changed, 17 insertions(+)
+
+diff --git a/client/incus_images.go b/client/incus_images.go
+index 3589980725..250d56e79f 100644
+--- a/client/incus_images.go
++++ b/client/incus_images.go
+@@ -339,6 +339,8 @@ func incusDownloadImage(fingerprint string, uri string, userAgent string, do fun
+ 			return nil, fmt.Errorf("Image fingerprint doesn't match. Got %s expected %s", hash, fingerprint)
+ 		}
+ 
++		resp.Fingerprint = hash
++
+ 		return &resp, nil
+ 	}
+ 
+@@ -368,6 +370,8 @@ func incusDownloadImage(fingerprint string, uri string, userAgent string, do fun
+ 		return nil, fmt.Errorf("Image fingerprint doesn't match. Got %s expected %s", hash, fingerprint)
+ 	}
+ 
++	resp.Fingerprint = hash
++
+ 	return &resp, nil
+ }
+ 
+diff --git a/client/interfaces.go b/client/interfaces.go
+index a43371ebd8..be7f4169d6 100644
+--- a/client/interfaces.go
++++ b/client/interfaces.go
+@@ -560,6 +560,9 @@ type ImageFileResponse struct {
+ 
+ 	// Size of the rootfs file
+ 	RootfsSize int64
++
++	// SHA-256 of the downloaded files, when computed
++	Fingerprint string
+ }
+ 
+ // The ImageCopyArgs struct is used to pass additional options during image copy.
+diff --git a/cmd/incusd/daemon_images.go b/cmd/incusd/daemon_images.go
+index ecfee742ed..f9c9288847 100644
+--- a/cmd/incusd/daemon_images.go
++++ b/cmd/incusd/daemon_images.go
+@@ -527,6 +527,16 @@ func imageDownload(ctx context.Context, r *http.Request, s *state.State, op *ope
+ 			return nil, false, err
+ 		}
+ 
++		// The remote may skip the hash check by claiming an OCI image, so store what was received under its own hash.
++		if resp.Fingerprint != "" && resp.Fingerprint != fp {
++			if alias == fp {
++				alias = resp.Fingerprint
++			}
++
++			fp = resp.Fingerprint
++			info.Fingerprint = fp
++		}
++
+ 		// Truncate down to size
+ 		if resp.RootfsSize > 0 {
+ 			err = destRootfs.Truncate(resp.RootfsSize)

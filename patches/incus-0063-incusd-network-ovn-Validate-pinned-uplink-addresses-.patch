@@ -1,0 +1,65 @@
+From dccc9072f0b1079df98e84f638a8b0c0a475dfe6 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:30:02 -0500
+Subject: [PATCH] incusd/network/ovn: Validate pinned uplink addresses against
+ the ranges
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A client could set the router's uplink address through the volatile
+keys to any value, including the uplink gateway or another network's
+address, and on standalone servers the in-use check was skipped at
+creation time.
+
+This addresses GHSA-5pf7-5wqc-rp52 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit b37cb60e5a9d0fa6df02e8a8373ba0c79f264a6b)
+---
+ internal/server/network/driver_ovn.go | 27 ++++++++++++++++++++++++---
+ 1 file changed, 24 insertions(+), 3 deletions(-)
+
+diff --git a/internal/server/network/driver_ovn.go b/internal/server/network/driver_ovn.go
+index f8b35e33cb..48cd670a20 100644
+--- a/internal/server/network/driver_ovn.go
++++ b/internal/server/network/driver_ovn.go
+@@ -1065,14 +1065,35 @@ func (n *ovn) Validate(config map[string]string, clientType request.ClientType)
+ 			continue
+ 		}
+ 
+-		// Skip if unchanged and already created
+-		if config[key] == n.config[key] && n.status == api.NetworkStatusCreated {
++		// Skip if unchanged on a network this member has already created.
++		if config[key] == n.config[key] && n.LocalStatus() == api.NetworkStatusCreated {
+ 			continue
+ 		}
+ 
+ 		ipAddress := net.ParseIP(config[key])
+ 		if ipAddress == nil {
+-			continue
++			return fmt.Errorf("Invalid uplink address %q", config[key])
++		}
++
++		// A client-supplied address must come from the uplink's allocation ranges.
++		if clientType == request.ClientTypeNormal {
++			rangesKey := "ipv4.ovn.ranges"
++			if key == ovnVolatileUplinkIPv6 {
++				rangesKey = "ipv6.ovn.ranges"
++			}
++
++			if uplink.Config[rangesKey] == "" {
++				return fmt.Errorf("Uplink address %q can't be set without %q on the uplink", config[key], rangesKey)
++			}
++
++			ipRanges, err := parseIPRanges(uplink.Config[rangesKey])
++			if err != nil {
++				return err
++			}
++
++			if !ipInPointerRanges(ipAddress, ipRanges) {
++				return fmt.Errorf("Uplink address %q isn't within the uplink's %q", config[key], rangesKey)
++			}
+ 		}
+ 
+ 		err = n.validateUplinkAddressNotInUse(uplink.Name, ipAddress)

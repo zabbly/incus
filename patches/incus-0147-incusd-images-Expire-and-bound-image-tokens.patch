@@ -1,0 +1,93 @@
+From 3b8aed9297a66e6e8598dd991f688e3d9c4bc34a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:08:17 -0500
+Subject: [PATCH] incusd/images: Expire and bound image tokens
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Image tokens held their request metadata in memory forever and a
+project could create as many as it liked. They now expire after an
+hour, are swept with the other tokens and are capped per project.
+
+This addresses GHSA-4j59-4pqh-f3qm (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 69795c5f6d12af5ea258c11242b86a0e3a1d0765)
+---
+ cmd/incusd/images.go | 22 +++++++++++++++++++++-
+ cmd/incusd/tokens.go |  3 ++-
+ 2 files changed, 23 insertions(+), 2 deletions(-)
+
+diff --git a/cmd/incusd/images.go b/cmd/incusd/images.go
+index d1f9a23129..47cac028a6 100644
+--- a/cmd/incusd/images.go
++++ b/cmd/incusd/images.go
+@@ -1353,7 +1353,8 @@ func imagesPost(d *Daemon, r *http.Request) response.Response {
+ 		return response.InternalError(err)
+ 	}
+ 
+-	decoder := json.NewDecoder(post)
++	// The JSON form of the request is small, the spool is for tarballs.
++	decoder := json.NewDecoder(io.LimitReader(post, 1024*1024))
+ 	imageUpload := false
+ 
+ 	req := api.ImagesPost{}
+@@ -5414,17 +5415,36 @@ func imageSyncBetweenNodes(ctx context.Context, s *state.State, r *http.Request,
+ 	return nil
+ }
+ 
++// imageTokenExpiry is how long an image token stays valid.
++const imageTokenExpiry = time.Hour
++
++// imageTokenMax bounds the pending image tokens per project.
++const imageTokenMax = 64
++
+ func createTokenResponse(s *state.State, r *http.Request, projectName string, fingerprint string, metadata jmap.Map, opType operationtype.Type) response.Response {
+ 	secret, err := internalUtil.RandomHexString(32)
+ 	if err != nil {
+ 		return response.InternalError(err)
+ 	}
+ 
++	// Bound how many tokens a project can hold open.
++	count := 0
++	for _, op := range operations.Clone() {
++		if op.Project() == projectName && (op.Type() == operationtype.ImageToken || op.Type() == operationtype.ImageUploadToken) {
++			count++
++		}
++	}
++
++	if count >= imageTokenMax {
++		return response.Unavailable(errors.New("Too many pending image tokens"))
++	}
++
+ 	meta := jmap.Map{}
+ 
+ 	maps.Copy(meta, metadata)
+ 
+ 	meta["secret"] = secret
++	meta["expiresAt"] = time.Now().Add(imageTokenExpiry)
+ 
+ 	resources := map[string][]api.URL{}
+ 	resources["images"] = []api.URL{*api.NewURL().Path(version.APIVersion, "images", fingerprint)}
+diff --git a/cmd/incusd/tokens.go b/cmd/incusd/tokens.go
+index fa451982d2..b682d478dd 100644
+--- a/cmd/incusd/tokens.go
++++ b/cmd/incusd/tokens.go
+@@ -2,6 +2,7 @@ package main
+ 
+ import (
+ 	"context"
++	"slices"
+ 	"time"
+ 
+ 	"github.com/lxc/incus/v7/internal/server/db/operationtype"
+@@ -16,7 +17,7 @@ func autoRemoveExpiredTokens(ctx context.Context, s *state.State) {
+ 
+ 	for _, op := range operations.Clone() {
+ 		// Only consider token operations
+-		if op.Type() != operationtype.ClusterJoinToken && op.Type() != operationtype.CertificateAddToken {
++		if !slices.Contains([]operationtype.Type{operationtype.ClusterJoinToken, operationtype.CertificateAddToken, operationtype.ImageToken, operationtype.ImageUploadToken}, op.Type()) {
+ 			continue
+ 		}
+ 

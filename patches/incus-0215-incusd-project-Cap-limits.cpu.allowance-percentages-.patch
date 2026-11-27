@@ -1,0 +1,42 @@
+From 2e73a89d4ce633cd744600ff5b829f27576d8769 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:08:12 -0500
+Subject: [PATCH] incusd/project: Cap limits.cpu.allowance percentages in
+ restricted projects
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A percentage above 100 maps to a CPU weight above every other
+instance's default, which a restricted project shouldn't get to set.
+
+This addresses GHSA-5pf7-5wqc-rp52 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit aec6e25becdd9959927b9d76094d956c04fee927)
+---
+ internal/server/project/permissions.go | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/internal/server/project/permissions.go b/internal/server/project/permissions.go
+index 44a02686dd..f6ad1d84ce 100644
+--- a/internal/server/project/permissions.go
++++ b/internal/server/project/permissions.go
+@@ -1089,6 +1089,17 @@ func checkRestrictions(project api.Project, instances []api.Instance, profiles [
+ 				return fmt.Errorf("Use of low-level config %q on %s %q of project %q is forbidden", key, entityTypeLabel, entityName, project.Name)
+ 			}
+ 
++			// A percentage above 100 raises the CPU weight above every other instance's default.
++			if isContainerOrProfile && !allowContainerLowLevel && key == "limits.cpu.allowance" {
++				percent, isPercent := strings.CutSuffix(value, "%")
++				if isPercent {
++					n, err := strconv.Atoi(percent)
++					if err == nil && n > 100 {
++						return fmt.Errorf(`Use of "limits.cpu.allowance" above 100%% on %s %q of project %q is forbidden`, entityTypeLabel, entityName, project.Name)
++					}
++				}
++			}
++
+ 			if isVMOrProfile && !allowVMLowLevel && isVMLowLevelOptionForbidden(key) {
+ 				return fmt.Errorf("Use of low-level config %q on %s %q of project %q is forbidden", key, entityTypeLabel, entityName, project.Name)
+ 			}

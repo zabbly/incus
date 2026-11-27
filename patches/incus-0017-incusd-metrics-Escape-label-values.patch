@@ -1,0 +1,44 @@
+From b5a6e08590c76a2f5d3a4bee0b999240c5e9d4bb Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Tue, 6 Oct 2026 06:25:37 -0400
+Subject: [PATCH] incusd/metrics: Escape label values
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Label values such as mount points and interface names reported by the
+agent are controlled by the guest and were written as is, letting a
+guest inject labels or break the whole metrics output.
+
+This addresses GHSA-25w7-6vhq-9xqg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit af980427810a9dfd5c0069a6565c3774539c4d2d)
+---
+ internal/server/metrics/metrics.go | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/internal/server/metrics/metrics.go b/internal/server/metrics/metrics.go
+index 4c4b7d8218..7dd0e4e144 100644
+--- a/internal/server/metrics/metrics.go
++++ b/internal/server/metrics/metrics.go
+@@ -111,6 +111,10 @@ func (m *MetricSet) Merge(metricSet *MetricSet) {
+ 	}
+ }
+ 
++// labelValueEscaper escapes label values as required by the Prometheus text format.
++var labelValueEscaper = strings.NewReplacer(`\`, `\\`, `"`, `\"`, "\n", `\n`)
++
++// String renders the metric set in the Prometheus text format.
+ func (m *MetricSet) String() string {
+ 	var out strings.Builder
+ 	metricTypes := make([]MetricType, 0, len(m.set))
+@@ -170,7 +174,7 @@ func (m *MetricSet) String() string {
+ 
+ 					out.WriteString(labelName)
+ 					out.WriteString("=\"")
+-					out.WriteString(sample.Labels[labelName])
++					out.WriteString(labelValueEscaper.Replace(sample.Labels[labelName]))
+ 					out.WriteString("\"")
+ 				}
+ 

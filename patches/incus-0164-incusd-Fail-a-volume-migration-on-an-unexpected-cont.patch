@@ -1,0 +1,39 @@
+From 6e6c49b5390406eefcd6f22c7f41727465496147 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:00:02 -0500
+Subject: [PATCH] incusd: Fail a volume migration on an unexpected control
+ message
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The sink logged any control message that wasn't a failure and kept
+waiting, so the source could grow the daemon log without bound.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit b0452ab43d087e6ca4a64c1fd1feb2922f8e2855)
+---
+ cmd/incusd/migrate_storage_volumes.go | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/cmd/incusd/migrate_storage_volumes.go b/cmd/incusd/migrate_storage_volumes.go
+index 8b53e2e452..da8c091a51 100644
+--- a/cmd/incusd/migrate_storage_volumes.go
++++ b/cmd/incusd/migrate_storage_volumes.go
+@@ -537,10 +537,10 @@ func (c *migrationSink) DoStorage(st *state.State, projectName string, poolName
+ 				return errors.New(msg.GetMessage())
+ 			}
+ 
+-			// The source can only tell us it failed (e.g. if
+-			// checkpointing failed). We have to tell the source
+-			// whether or not the restore was successful.
+-			logger.Warn("Unknown message from migration source", logger.Ctx{"message": msg.GetMessage()})
++			// The source can only tell us it failed, anything else ends the migration.
++			c.disconnect()
++
++			return errors.New("Unexpected message from migration source")
+ 		}
+ 	}
+ }

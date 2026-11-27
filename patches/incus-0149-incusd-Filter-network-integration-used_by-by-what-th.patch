@@ -1,0 +1,41 @@
+From e1a27251eff8e802857aa93d67c2e092b6704338 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:58:57 -0500
+Subject: [PATCH] incusd: Filter network integration used_by by what the caller
+ may view
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This addresses GHSA-44g3-g988-46rg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit acf8a971fd3840b37f3ff06cfb3708cadb7bfaca)
+---
+ cmd/incusd/network_integrations.go | 6 ++----
+ 1 file changed, 2 insertions(+), 4 deletions(-)
+
+diff --git a/cmd/incusd/network_integrations.go b/cmd/incusd/network_integrations.go
+index cbe235fead..c28f5fd79d 100644
+--- a/cmd/incusd/network_integrations.go
++++ b/cmd/incusd/network_integrations.go
+@@ -225,8 +225,7 @@ func networkIntegrationsGet(d *Daemon, r *http.Request) response.Response {
+ 						usedBy = append(usedBy, url)
+ 					}
+ 				}
+-				// Assign the collected URLs (original 'err' check is implicitly handled by checks above)
+-				result.UsedBy = usedBy
++				result.UsedBy = project.FilterUsedBy(s.Authorizer, r, usedBy)
+ 
+ 				if clauses != nil && len(clauses.Clauses) > 0 {
+ 					match, err := filter.Match(*result, *clauses)
+@@ -592,8 +591,7 @@ func networkIntegrationGet(d *Daemon, r *http.Request) response.Response {
+ 				usedBy = append(usedBy, url)
+ 			}
+ 		}
+-		// Assign the collected URLs (original 'err' check is implicitly handled by checks above)
+-		info.UsedBy = usedBy
++		info.UsedBy = project.FilterUsedBy(s.Authorizer, r, usedBy)
+ 
+ 		return nil
+ 	})

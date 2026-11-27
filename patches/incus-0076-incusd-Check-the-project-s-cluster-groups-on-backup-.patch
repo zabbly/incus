@@ -1,0 +1,82 @@
+From 10c6ad0c88ef4f7a5f3b10fa0ddda97281f96070 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:36:59 -0500
+Subject: [PATCH] incusd: Check the project's cluster groups on backup import
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The import restores the instance on the member that received the
+upload without consulting restricted.cluster.groups, unlike every
+other placement path.
+
+This addresses GHSA-8m9x-vx2q-7f9q (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 9e13ec8bc967eb5fbbdb2a183a056b7ff39cf4e7)
+---
+ cmd/incusd/instances_post.go           | 10 +++++++++
+ internal/server/project/permissions.go | 29 ++++++++++++++++++++++++++
+ 2 files changed, 39 insertions(+)
+
+diff --git a/cmd/incusd/instances_post.go b/cmd/incusd/instances_post.go
+index 92a51be141..c977536030 100644
+--- a/cmd/incusd/instances_post.go
++++ b/cmd/incusd/instances_post.go
+@@ -855,6 +855,16 @@ func createFromBackup(s *state.State, r *http.Request, projectName string, data
+ 		return response.Forbidden(errors.New("Cluster member is evacuated"))
+ 	}
+ 
++	// The instance is restored on this member, so the project must be allowed to use it.
++	if s.ServerClustered {
++		err := s.DB.Cluster.Transaction(r.Context(), func(ctx context.Context, tx *db.ClusterTx) error {
++			return project.CheckMemberAllowed(ctx, tx, projectName, s.ServerName)
++		})
++		if err != nil {
++			return response.SmartError(err)
++		}
++	}
++
+ 	reverter := revert.New()
+ 	defer reverter.Fail()
+ 
+diff --git a/internal/server/project/permissions.go b/internal/server/project/permissions.go
+index 69ad18682c..02bc633b4a 100644
+--- a/internal/server/project/permissions.go
++++ b/internal/server/project/permissions.go
+@@ -2148,6 +2148,35 @@ func AllowClusterGroup(p *api.Project, groupName string) error {
+ 	return nil
+ }
+ 
++// CheckMemberAllowed returns an error if the project isn't allowed to use the named cluster member.
++func CheckMemberAllowed(ctx context.Context, tx *db.ClusterTx, projectName string, memberName string) error {
++	dbProject, err := cluster.GetProject(ctx, tx.Tx(), projectName)
++	if err != nil {
++		return err
++	}
++
++	p, err := dbProject.ToAPI(ctx, tx.Tx())
++	if err != nil {
++		return err
++	}
++
++	if util.IsFalseOrEmpty(p.Config["restricted"]) || len(GetRestrictedClusterGroups(p)) == 0 {
++		return nil
++	}
++
++	member, err := tx.GetNodeByName(ctx, memberName)
++	if err != nil {
++		return err
++	}
++
++	err = AllowClusterMember(p, &member)
++	if err != nil {
++		return api.StatusErrorf(http.StatusForbidden, "%s", err.Error())
++	}
++
++	return nil
++}
++
+ // CheckTargetMember checks if the given targetMemberName is present in allMembers
+ // and is allowed for the project.
+ // If the target member is allowed it returns the resolved node information.

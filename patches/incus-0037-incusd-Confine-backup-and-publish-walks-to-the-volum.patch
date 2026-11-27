@@ -1,0 +1,417 @@
+From 9546fde90bf1f346c920fabe4c285707bc88bc77 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Sat, 24 Oct 2026 00:09:32 -0400
+Subject: [PATCH] incusd: Confine backup and publish walks to the volume
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Instance and custom volume backups and image publish walked a volume by
+absolute host path and re-resolved each entry in WriteFile, so a
+directory swapped for a symlink mid-walk sent the daemon into the host
+filesystem and leaked its files into the tarball.
+
+Walk through an os.Root so an escaping symlink isn't followed, and pin
+each entry with an O_PATH descriptor checked against the walk's stat
+before reading it.
+
+This addresses GHSA-42x8-664j-84w8 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit bf242f233adf31c09051fb6eca4ebb8177b5a847)
+---
+ .../instancewriter/instance_tar_writer.go     | 40 ++++++--
+ .../instance_tar_writer_test.go               | 77 ++++++++++++++++
+ internal/instancewriter/walk.go               | 91 +++++++++++++++++++
+ internal/linux/filesystem.go                  | 27 ++++++
+ .../server/instance/drivers/driver_lxc.go     |  6 +-
+ internal/server/storage/drivers/utils.go      | 19 +++-
+ 6 files changed, 245 insertions(+), 15 deletions(-)
+ create mode 100644 internal/instancewriter/instance_tar_writer_test.go
+ create mode 100644 internal/instancewriter/walk.go
+
+diff --git a/internal/instancewriter/instance_tar_writer.go b/internal/instancewriter/instance_tar_writer.go
+index 780287fc7d..fd8a85b390 100644
+--- a/internal/instancewriter/instance_tar_writer.go
++++ b/internal/instancewriter/instance_tar_writer.go
+@@ -6,8 +6,10 @@ import (
+ 	"archive/tar"
+ 	"fmt"
+ 	"io"
++	"io/fs"
+ 	"os"
+ 	"strings"
++	"syscall"
+ 
+ 	"golang.org/x/sys/unix"
+ 
+@@ -49,12 +51,37 @@ func (ctw *InstanceTarWriter) WriteFile(name string, srcPath string, fi os.FileI
+ 	var nlink int
+ 	var ino uint64
+ 
++	// Pin the entry so a path component swapped for a symlink mid-walk can't redirect the reads
++	// below into the rest of the host filesystem.
++	pathFd, err := unix.Open(srcPath, unix.O_PATH|unix.O_NOFOLLOW|unix.O_CLOEXEC, 0)
++	if err != nil {
++		return fmt.Errorf("Failed to open %q: %w", srcPath, err)
++	}
++
++	defer func() { _ = unix.Close(pathFd) }()
++
++	// Get file stat.
++	var stat unix.Stat_t
++	err = unix.Fstat(pathFd, &stat)
++	if err != nil {
++		return fmt.Errorf("Failed to get file stat: %w", err)
++	}
++
++	// Make sure we pinned the same inode the walk saw, not something swapped in since.
++	walkStat, ok := fi.Sys().(*syscall.Stat_t)
++	if !ok || uint64(walkStat.Dev) != uint64(stat.Dev) || walkStat.Ino != stat.Ino {
++		return fmt.Errorf("File %q was replaced during export: %w", srcPath, fs.ErrNotExist)
++	}
++
+ 	link := ""
+ 	if fi.Mode()&os.ModeSymlink == os.ModeSymlink {
+-		link, err = os.Readlink(srcPath)
++		buf := make([]byte, unix.PathMax)
++		n, err := unix.Readlinkat(pathFd, "", buf)
+ 		if err != nil {
+ 			return fmt.Errorf("Failed to resolve symlink for %q: %w", srcPath, err)
+ 		}
++
++		link = string(buf[:n])
+ 	}
+ 
+ 	// Sockets cannot be stored in tarballs, just skip them (consistent with tar).
+@@ -74,13 +101,6 @@ func (ctw *InstanceTarWriter) WriteFile(name string, srcPath string, fi os.FileI
+ 		hdr.Size = fi.Size()
+ 	}
+ 
+-	// Get file stat.
+-	var stat unix.Stat_t
+-	err = unix.Lstat(srcPath, &stat)
+-	if err != nil {
+-		return fmt.Errorf("Failed to get file stat: %w", err)
+-	}
+-
+ 	hdr.Uid = int(stat.Uid)
+ 	hdr.Gid = int(stat.Gid)
+ 	ino = stat.Ino
+@@ -118,7 +138,7 @@ func (ctw *InstanceTarWriter) WriteFile(name string, srcPath string, fi os.FileI
+ 
+ 	// Handle xattrs (for real files only).
+ 	if link == "" {
+-		xattrs, err := linux.GetAllXattr(srcPath)
++		xattrs, err := linux.GetAllXattrFromFd(pathFd)
+ 		if err != nil {
+ 			return fmt.Errorf("Failed to read xattr for %q: %w", srcPath, err)
+ 		}
+@@ -161,7 +181,7 @@ func (ctw *InstanceTarWriter) WriteFile(name string, srcPath string, fi os.FileI
+ 	}
+ 
+ 	if hdr.Typeflag == tar.TypeReg {
+-		f, err := os.Open(srcPath)
++		f, err := os.Open(fmt.Sprintf("/proc/self/fd/%d", pathFd))
+ 		if err != nil {
+ 			return fmt.Errorf("Failed to open file %q: %w", srcPath, err)
+ 		}
+diff --git a/internal/instancewriter/instance_tar_writer_test.go b/internal/instancewriter/instance_tar_writer_test.go
+new file mode 100644
+index 0000000000..d06c190fe3
+--- /dev/null
++++ b/internal/instancewriter/instance_tar_writer_test.go
+@@ -0,0 +1,77 @@
++//go:build linux && cgo
++
++package instancewriter
++
++import (
++	"archive/tar"
++	"bytes"
++	"io"
++	"os"
++	"path/filepath"
++	"testing"
++
++	"github.com/stretchr/testify/assert"
++	"github.com/stretchr/testify/require"
++)
++
++// tarEntries packs root with Walk + WriteFile and returns the names and contents in the tarball.
++func tarEntries(t *testing.T, root string) map[string]string {
++	t.Helper()
++
++	buf := &bytes.Buffer{}
++	ctw := NewInstanceTarWriter(buf, nil)
++
++	err := Walk(root, func(srcPath string, fi os.FileInfo, err error) error {
++		if err != nil {
++			return err
++		}
++
++		name := filepath.Join("backup", filepath.Clean("/"+srcPath[len(root):]))
++		return ctw.WriteFile(name, srcPath, fi, false)
++	})
++	require.NoError(t, err)
++	require.NoError(t, ctw.Close())
++
++	out := map[string]string{}
++	tr := tar.NewReader(buf)
++	for {
++		hdr, err := tr.Next()
++		if err == io.EOF {
++			break
++		}
++
++		require.NoError(t, err)
++
++		content, err := io.ReadAll(tr)
++		require.NoError(t, err)
++		out[hdr.Name] = string(content)
++	}
++
++	return out
++}
++
++// TestWriteFileNormal checks that a plain tree is packed with its file contents.
++func TestWriteFileNormal(t *testing.T) {
++	root := t.TempDir()
++	require.NoError(t, os.MkdirAll(filepath.Join(root, "sub"), 0o755))
++	require.NoError(t, os.WriteFile(filepath.Join(root, "sub", "file"), []byte("hello"), 0o644))
++
++	entries := tarEntries(t, root)
++	assert.Equal(t, "hello", entries["backup/sub/file"])
++}
++
++// TestWalkDoesNotEscape checks that a directory swapped for a symlink out of the tree isn't followed.
++func TestWalkDoesNotEscape(t *testing.T) {
++	outside := t.TempDir()
++	require.NoError(t, os.WriteFile(filepath.Join(outside, "secret"), []byte("secret"), 0o600))
++
++	root := t.TempDir()
++	require.NoError(t, os.Symlink(outside, filepath.Join(root, "link")))
++
++	entries := tarEntries(t, root)
++
++	// The symlink is recorded as a symlink, its target is never read.
++	_, hasSecret := entries["backup/link/secret"]
++	assert.False(t, hasSecret)
++	assert.NotContains(t, entries, "backup/link/secret")
++}
+diff --git a/internal/instancewriter/walk.go b/internal/instancewriter/walk.go
+new file mode 100644
+index 0000000000..4842bd3e91
+--- /dev/null
++++ b/internal/instancewriter/walk.go
+@@ -0,0 +1,91 @@
++//go:build linux && cgo
++
++package instancewriter
++
++import (
++	"os"
++	"path/filepath"
++	"sort"
++)
++
++// Walk walks the file tree rooted at root like filepath.Walk, but confined to root: a path
++// component that is a symlink pointing outside root is not followed, so an entry swapped for a
++// symlink mid-walk can't send the caller into the rest of the host filesystem. The callback is
++// given the absolute path and an lstat result taken within root.
++func Walk(root string, fn filepath.WalkFunc) error {
++	r, err := os.OpenRoot(root)
++	if err != nil {
++		return err
++	}
++
++	defer func() { _ = r.Close() }()
++
++	return walk(r, root, ".", fn)
++}
++
++func walk(r *os.Root, root string, rel string, fn filepath.WalkFunc) error {
++	path := root
++	if rel != "." {
++		path = filepath.Join(root, rel)
++	}
++
++	fi, err := r.Lstat(rel)
++	if err != nil {
++		return fn(path, nil, err)
++	}
++
++	err = fn(path, fi, nil)
++	if err != nil {
++		if fi.IsDir() && err == filepath.SkipDir {
++			return nil
++		}
++
++		return err
++	}
++
++	if !fi.IsDir() {
++		return nil
++	}
++
++	names, err := readDirNames(r, rel)
++	if err != nil {
++		return fn(path, fi, err)
++	}
++
++	for _, name := range names {
++		child := name
++		if rel != "." {
++			child = rel + "/" + name
++		}
++
++		err = walk(r, root, child, fn)
++		if err != nil {
++			if err == filepath.SkipDir {
++				break
++			}
++
++			return err
++		}
++	}
++
++	return nil
++}
++
++// readDirNames lists a directory within the root. It uses Readdirnames rather than fs.WalkDir so
++// that directory names which aren't valid UTF-8 don't abort the walk.
++func readDirNames(r *os.Root, rel string) ([]string, error) {
++	f, err := r.Open(rel)
++	if err != nil {
++		return nil, err
++	}
++
++	names, err := f.Readdirnames(-1)
++	_ = f.Close()
++	if err != nil {
++		return nil, err
++	}
++
++	sort.Strings(names)
++
++	return names, nil
++}
+diff --git a/internal/linux/filesystem.go b/internal/linux/filesystem.go
+index cfc139bfd4..14b279fac3 100644
+--- a/internal/linux/filesystem.go
++++ b/internal/linux/filesystem.go
+@@ -277,6 +277,33 @@ func GetAllXattr(path string) (map[string]string, error) {
+ 	return xattrs, nil
+ }
+ 
++// GetAllXattrFromFd returns all extended attributes of the inode referred to by fd, which should be
++// an O_PATH descriptor. Reading through /proc/self/fd avoids re-resolving the path.
++func GetAllXattrFromFd(fd int) (map[string]string, error) {
++	path := fmt.Sprintf("/proc/self/fd/%d", fd)
++
++	xattrNames, err := xattr.List(path)
++	if err != nil {
++		if errors.Is(err, unix.EOPNOTSUPP) {
++			return nil, nil
++		}
++
++		return nil, fmt.Errorf("Failed getting extended attributes: %w", err)
++	}
++
++	xattrs := make(map[string]string, len(xattrNames))
++	for _, xattrName := range xattrNames {
++		value, err := xattr.Get(path, xattrName)
++		if err != nil {
++			return nil, fmt.Errorf("Failed getting %q extended attribute: %w", xattrName, err)
++		}
++
++		xattrs[xattrName] = string(value)
++	}
++
++	return xattrs, nil
++}
++
+ // IsBlockdev checks if the provided file is a block device.
+ func IsBlockdev(fm os.FileMode) bool {
+ 	return ((fm&os.ModeDevice != 0) && (fm&os.ModeCharDevice == 0))
+diff --git a/internal/server/instance/drivers/driver_lxc.go b/internal/server/instance/drivers/driver_lxc.go
+index e290bf8e83..e0101a3a85 100644
+--- a/internal/server/instance/drivers/driver_lxc.go
++++ b/internal/server/instance/drivers/driver_lxc.go
+@@ -6124,13 +6124,13 @@ func (d *lxc) Export(metaWriter io.Writer, rootfsWriter io.Writer, properties ma
+ 	// Include all the rootfs files.
+ 	fnam = d.RootfsPath()
+ 	if rootfsWriter == nil {
+-		err = filepath.Walk(fnam, writeToMetaTar)
++		err = instancewriter.Walk(fnam, writeToMetaTar)
+ 		if err != nil {
+ 			d.logger.Error("Failed exporting instance", ctxMap)
+ 			return nil, err
+ 		}
+ 	} else {
+-		err = filepath.Walk(fnam, writeToRootfsTar)
++		err = instancewriter.Walk(fnam, writeToRootfsTar)
+ 		if err != nil {
+ 			d.logger.Error("Failed exporting instance", ctxMap)
+ 			return nil, err
+@@ -6140,7 +6140,7 @@ func (d *lxc) Export(metaWriter io.Writer, rootfsWriter io.Writer, properties ma
+ 	// Include all the templates.
+ 	fnam = d.TemplatesPath()
+ 	if util.PathExists(fnam) {
+-		err = filepath.Walk(fnam, writeToMetaTar)
++		err = instancewriter.Walk(fnam, writeToMetaTar)
+ 		if err != nil {
+ 			d.logger.Error("Failed exporting instance", ctxMap)
+ 			return nil, err
+diff --git a/internal/server/storage/drivers/utils.go b/internal/server/storage/drivers/utils.go
+index 9ea63441bc..3590b8a2b9 100644
+--- a/internal/server/storage/drivers/utils.go
++++ b/internal/server/storage/drivers/utils.go
+@@ -1094,8 +1094,13 @@ func BackupVolume(d Driver, v Volume, writer instancewriter.InstanceWriter, moun
+ 			logMsg := "Copying virtual machine config volume"
+ 
+ 			d.Logger().Debug(logMsg, logger.Ctx{"sourcePath": mountPath, "prefix": prefix})
+-			err = filepath.Walk(mountPath, func(srcPath string, fi os.FileInfo, err error) error {
++			err = instancewriter.Walk(mountPath, func(srcPath string, fi os.FileInfo, err error) error {
+ 				if err != nil {
++					if errors.Is(err, fs.ErrNotExist) {
++						logger.Warnf("File vanished during export: %q, skipping", srcPath)
++						return nil
++					}
++
+ 					return err
+ 				}
+ 
+@@ -1107,6 +1112,11 @@ func BackupVolume(d Driver, v Volume, writer instancewriter.InstanceWriter, moun
+ 				name := filepath.Join(prefix, strings.TrimPrefix(srcPath, mountPath))
+ 				err = writer.WriteFile(name, srcPath, fi, false)
+ 				if err != nil {
++					if errors.Is(err, fs.ErrNotExist) {
++						logger.Warnf("File vanished during export: %q, skipping", srcPath)
++						return nil
++					}
++
+ 					return fmt.Errorf("Error adding %q as %q to tarball: %w", srcPath, name, err)
+ 				}
+ 
+@@ -1176,7 +1186,7 @@ func BackupVolume(d Driver, v Volume, writer instancewriter.InstanceWriter, moun
+ 		}
+ 	}
+ 
+-	return filepath.Walk(mountPath, func(srcPath string, fi os.FileInfo, err error) error {
++	return instancewriter.Walk(mountPath, func(srcPath string, fi os.FileInfo, err error) error {
+ 		if err != nil {
+ 			if errors.Is(err, fs.ErrNotExist) {
+ 				logger.Warnf("File vanished during export: %q, skipping", srcPath)
+@@ -1193,6 +1203,11 @@ func BackupVolume(d Driver, v Volume, writer instancewriter.InstanceWriter, moun
+ 		// This means that the file in the tarball may be inconsistent.
+ 		err = writer.WriteFile(name, srcPath, fi, true)
+ 		if err != nil {
++			if errors.Is(err, fs.ErrNotExist) {
++				logger.Warnf("File vanished during export: %q, skipping", srcPath)
++				return nil
++			}
++
+ 			return fmt.Errorf("Error adding %q as %q to tarball: %w", srcPath, name, err)
+ 		}
+ 

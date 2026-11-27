@@ -1,0 +1,46 @@
+From 55cbeb1881de497bbf7757de6972000c14a2e98a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:05:25 -0500
+Subject: [PATCH] incusd: Read the file path from the URL only
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+FormValue parses a multipart body, spooling large parts to the host's
+temporary directory where nothing removed them.
+
+This addresses GHSA-8m9x-vx2q-7f9q (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 7d4207889c3a1cd71cd5df6a2853b53ec49978c4)
+---
+ cmd/incusd/instance_file.go        | 2 +-
+ cmd/incusd/storage_volumes_file.go | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/cmd/incusd/instance_file.go b/cmd/incusd/instance_file.go
+index 1c49e90d0c..b90174d7e0 100644
+--- a/cmd/incusd/instance_file.go
++++ b/cmd/incusd/instance_file.go
+@@ -57,7 +57,7 @@ func instanceFileHandler(d *Daemon, r *http.Request) response.Response {
+ 	}
+ 
+ 	// Parse and cleanup the path.
+-	path := r.FormValue("path")
++	path := request.QueryParam(r, "path")
+ 	if path == "" {
+ 		return response.BadRequest(errors.New("Missing path argument"))
+ 	}
+diff --git a/cmd/incusd/storage_volumes_file.go b/cmd/incusd/storage_volumes_file.go
+index b77022c499..8225aab1ab 100644
+--- a/cmd/incusd/storage_volumes_file.go
++++ b/cmd/incusd/storage_volumes_file.go
+@@ -90,7 +90,7 @@ func storagePoolVolumeTypeFileHandler(d *Daemon, r *http.Request) response.Respo
+ 	vol := pool.GetVolume(storageDrivers.VolumeTypeCustom, storageDrivers.ContentTypeFS, diskVolName, volumeDB.Config)
+ 
+ 	// Parse the path.
+-	path := r.FormValue("path")
++	path := request.QueryParam(r, "path")
+ 	if path == "" {
+ 		return response.BadRequest(errors.New("Missing path argument"))
+ 	}

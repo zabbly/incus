@@ -1,0 +1,152 @@
+From 4ee4483320022ba0e6d7734ca1508b53fc4ca7eb Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:08:56 -0500
+Subject: [PATCH] incusd/util: Harden template rendering
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Templates from images, instance metadata and snapshot patterns are
+rendered in the daemon, and a few tags and filters let one produce
+output or allocations unrelated to its size, or panic the renderer.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 29f88b04eb6079099a621f0d4caaf26c6fdf0048)
+---
+ internal/util/template.go | 90 ++++++++++++++++++++++++++++-----------
+ 1 file changed, 66 insertions(+), 24 deletions(-)
+
+diff --git a/internal/util/template.go b/internal/util/template.go
+index 3e9c1fa433..f621d15518 100644
+--- a/internal/util/template.go
++++ b/internal/util/template.go
+@@ -9,22 +9,71 @@ import (
+ 	"github.com/flosch/pongo2/v6"
+ )
+ 
+-var bannedTemplateTags = []string{"extends", "import", "include", "ssi"}
++// bannedTemplateTags and bannedTemplateFilters read files or produce output unrelated to the template's size.
++var (
++	bannedTemplateTags    = []string{"extends", "import", "include", "ssi", "lorem", "macro"}
++	bannedTemplateFilters = []string{"center", "floatformat", "ljust", "rjust"}
++)
+ 
+-// RenderTemplate renders a pongo2 template with nesting support.
+-// This supports up to 3 levels of nesting (to avoid loops).
+-func RenderTemplate(template string, ctx pongo2.Context) (string, error) {
+-	// Prepare a custom set.
++// templateMaxOutput bounds the rendered output.
++const templateMaxOutput = 16 * 1024 * 1024
++
++// newTemplateSet returns a template set with the banned tags and filters blocked.
++func newTemplateSet() (*pongo2.TemplateSet, error) {
+ 	custom := pongo2.NewSet("render-template", pongo2.DefaultLoader)
+ 
+-	// Block the use of some tags.
+ 	for _, tag := range bannedTemplateTags {
+ 		err := custom.BanTag(tag)
+ 		if err != nil {
+-			return "", fmt.Errorf("Failed to configure custom pongo2 parser: Failed to block tag tag %q: %w", tag, err)
++			return nil, fmt.Errorf("Failed to configure custom pongo2 parser: Failed to block tag %q: %w", tag, err)
+ 		}
+ 	}
+ 
++	for _, filter := range bannedTemplateFilters {
++		err := custom.BanFilter(filter)
++		if err != nil {
++			return nil, fmt.Errorf("Failed to configure custom pongo2 parser: Failed to block filter %q: %w", filter, err)
++		}
++	}
++
++	return custom, nil
++}
++
++// boundedWriter fails once more than templateMaxOutput bytes have been written.
++type boundedWriter struct {
++	w io.Writer
++	n int
++}
++
++func (b *boundedWriter) Write(p []byte) (int, error) {
++	b.n += len(p)
++	if b.n > templateMaxOutput {
++		return 0, errors.New("Template output is too large")
++	}
++
++	return b.w.Write(p)
++}
++
++// executeTemplate renders a template to w, turning a renderer panic into an error.
++func executeTemplate(tpl *pongo2.Template, ctx pongo2.Context, w io.Writer) (err error) {
++	defer func() {
++		r := recover()
++		if r != nil {
++			err = fmt.Errorf("Template rendering failed: %v", r)
++		}
++	}()
++
++	return tpl.ExecuteWriterUnbuffered(ctx, &boundedWriter{w: w})
++}
++
++// RenderTemplate renders a pongo2 template with nesting support.
++// This supports up to 3 levels of nesting (to avoid loops).
++func RenderTemplate(template string, ctx pongo2.Context) (string, error) {
++	custom, err := newTemplateSet()
++	if err != nil {
++		return "", err
++	}
++
+ 	// Limit recursion to 3 levels.
+ 	for range 3 {
+ 		// Load template from string
+@@ -34,11 +83,15 @@ func RenderTemplate(template string, ctx pongo2.Context) (string, error) {
+ 		}
+ 
+ 		// Get rendered template
+-		ret, err := tpl.Execute(ctx)
++		var sb strings.Builder
++
++		err = executeTemplate(tpl, ctx, &sb)
+ 		if err != nil {
+-			return ret, err
++			return sb.String(), err
+ 		}
+ 
++		ret := sb.String()
++
+ 		// Check if another pass is needed.
+ 		if !strings.Contains(ret, "{{") && !strings.Contains(ret, "{%") {
+ 			return ret, nil
+@@ -54,15 +107,9 @@ func RenderTemplate(template string, ctx pongo2.Context) (string, error) {
+ // RenderTemplateFile renders a pongo2 template to a file.
+ // No nesting is supported in this scenario.
+ func RenderTemplateFile(w io.Writer, template string, ctx pongo2.Context) error {
+-	// Prepare a custom set.
+-	custom := pongo2.NewSet("render-template", pongo2.DefaultLoader)
+-
+-	// Block the use of some tags.
+-	for _, tag := range bannedTemplateTags {
+-		err := custom.BanTag(tag)
+-		if err != nil {
+-			return fmt.Errorf("Failed to configure custom pongo2 parser: Failed to block tag tag %q: %w", tag, err)
+-		}
++	custom, err := newTemplateSet()
++	if err != nil {
++		return err
+ 	}
+ 
+ 	// Load template from string
+@@ -72,10 +119,5 @@ func RenderTemplateFile(w io.Writer, template string, ctx pongo2.Context) error
+ 	}
+ 
+ 	// Get rendered template
+-	err = tpl.ExecuteWriter(ctx, w)
+-	if err != nil {
+-		return err
+-	}
+-
+-	return nil
++	return executeTemplate(tpl, ctx, w)
+ }

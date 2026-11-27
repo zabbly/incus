@@ -1,0 +1,46 @@
+From f1ef7d0304cf9ca32913a3e7503ddfe3b7c2aa09 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Mon, 23 Nov 2026 11:49:16 -0500
+Subject: [PATCH] incusd/instance: Only render regular files as templates
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This addresses GHSA-42x8-664j-84w8 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+---
+ internal/server/instance/drivers/driver_lxc.go  | 4 ++--
+ internal/server/instance/drivers/driver_qemu.go | 4 ++--
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/internal/server/instance/drivers/driver_lxc.go b/internal/server/instance/drivers/driver_lxc.go
+index 7b7763dec1..dbbc571902 100644
+--- a/internal/server/instance/drivers/driver_lxc.go
++++ b/internal/server/instance/drivers/driver_lxc.go
+@@ -7866,8 +7866,8 @@ func (d *lxc) templateApplyNow(trigger instance.TemplateTrigger) error {
+ 				return fmt.Errorf("Couldn't access template file: %w", err)
+ 			}
+ 
+-			if tplFileStat.Mode()&os.ModeSymlink == os.ModeSymlink {
+-				return errors.New("Template file is a symlink")
++			if !tplFileStat.Mode().IsRegular() {
++				return errors.New("Template file isn't a regular file")
+ 			}
+ 
+ 			// Create the directory hierarchy, this has to be done
+diff --git a/internal/server/instance/drivers/driver_qemu.go b/internal/server/instance/drivers/driver_qemu.go
+index 1e6001f095..dcc130a8f2 100644
+--- a/internal/server/instance/drivers/driver_qemu.go
++++ b/internal/server/instance/drivers/driver_qemu.go
+@@ -4381,8 +4381,8 @@ func (d *qemu) templateApplyNow(trigger instance.TemplateTrigger, path string) e
+ 				return fmt.Errorf("Couldn't access template file: %w", err)
+ 			}
+ 
+-			if tplFileStat.Mode()&os.ModeSymlink == os.ModeSymlink {
+-				return errors.New("Template file is a symlink")
++			if !tplFileStat.Mode().IsRegular() {
++				return errors.New("Template file isn't a regular file")
+ 			}
+ 
+ 			// Create the file itself.

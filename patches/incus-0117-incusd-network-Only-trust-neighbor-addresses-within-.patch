@@ -1,0 +1,69 @@
+From c1140e2dc4fb299e5914c129f28e154e8dceb817 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:00:05 -0500
+Subject: [PATCH] incusd/network: Only trust neighbor addresses within the
+ bridge subnets
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The NAT proxy and BGP instance announcements took every address the
+host's neighbor table held for the instance's MAC, which the instance
+writes itself with a single ARP request or neighbor solicitation.
+
+This addresses GHSA-fg2p-r659-c4q8 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit c31caa506a98cd43a89950a459ff7090ee7b6f7b)
+---
+ internal/server/network/network_utils.go | 30 ++++++++++++++++++++++++
+ 1 file changed, 30 insertions(+)
+
+diff --git a/internal/server/network/network_utils.go b/internal/server/network/network_utils.go
+index 2715fec6b6..a7dd2c657f 100644
+--- a/internal/server/network/network_utils.go
++++ b/internal/server/network/network_utils.go
+@@ -915,6 +915,32 @@ func GetNeighborAddresses(interfaceName string, hwaddr net.HardwareAddr, version
+ 		return nil, err
+ 	}
+ 
++	// The neighbor entries are written by the instance, only trust those within the interface's subnets.
++	iface, err := net.InterfaceByName(interfaceName)
++	if err != nil {
++		return nil, fmt.Errorf("Failed to get interface %q: %w", interfaceName, err)
++	}
++
++	ifaceAddrs, err := iface.Addrs()
++	if err != nil {
++		return nil, fmt.Errorf("Failed to get addresses of interface %q: %w", interfaceName, err)
++	}
++
++	onLink := func(addr net.IP) bool {
++		for _, ifaceAddr := range ifaceAddrs {
++			ipNet, ok := ifaceAddr.(*net.IPNet)
++			if !ok || ipNet.IP.Equal(addr) {
++				continue
++			}
++
++			if ipNet.Contains(addr) {
++				return true
++			}
++		}
++
++		return false
++	}
++
+ 	addresses := make([]net.IP, 0, len(neighIPs))
+ 	for _, neighIP := range neighIPs {
+ 		// Skip entries that don't represent a usable address.
+@@ -936,6 +962,10 @@ func GetNeighborAddresses(interfaceName string, hwaddr net.HardwareAddr, version
+ 			continue
+ 		}
+ 
++		if !onLink(neighIP.Addr) {
++			continue
++		}
++
+ 		addresses = append(addresses, neighIP.Addr)
+ 	}
+ 

@@ -1,0 +1,97 @@
+From cccd30ea547c31f95bc66c72381330783d413a59 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:01:56 -0500
+Subject: [PATCH] incusd: Validate volatile hardware addresses
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+volatile.<name>.hwaddr accepted any string and restricted clients may
+set it, so a value with line breaks was written as extra dnsmasq
+dhcp-host lines on a shared bridge. The last_state keys are no longer
+treated as safe for restricted clients either.
+
+This addresses GHSA-mmh3-jfjc-6vc2 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 38d26bda07b16cfbf902d31201ed46cfb2282984)
+---
+ internal/instance/config.go              |  4 ++--
+ internal/server/network/network_utils.go |  6 ++++++
+ internal/server/project/permissions.go   |  2 +-
+ shared/validate/validate.go              | 10 ++++++++++
+ 4 files changed, 19 insertions(+), 3 deletions(-)
+
+diff --git a/internal/instance/config.go b/internal/instance/config.go
+index 27a42bc5a8..edf69f5b5b 100644
+--- a/internal/instance/config.go
++++ b/internal/instance/config.go
+@@ -1630,7 +1630,7 @@ func ConfigKeyChecker(key string, instanceType api.InstanceType) (func(value str
+ 		//  type: string
+ 		//  shortdesc: Network device MAC address
+ 		if strings.HasSuffix(key, ".hwaddr") {
+-			return validate.IsAny, nil
++			return validate.Optional(validate.IsHardwareAddress), nil
+ 		}
+ 
+ 		// gendoc:generate(entity=instance, group=volatile, key=volatile.<name>.io.bus)
+@@ -1684,7 +1684,7 @@ func ConfigKeyChecker(key string, instanceType api.InstanceType) (func(value str
+ 		//  type: string
+ 		//  shortdesc: Network device original MAC
+ 		if strings.HasSuffix(key, ".last_state.hwaddr") {
+-			return validate.IsAny, nil
++			return validate.Optional(validate.IsHardwareAddress), nil
+ 		}
+ 
+ 		// gendoc:generate(entity=instance, group=volatile, key=volatile.<name>.last_state.ip_addresses)
+diff --git a/internal/server/network/network_utils.go b/internal/server/network/network_utils.go
+index a7dd2c657f..596ec1afa0 100644
+--- a/internal/server/network/network_utils.go
++++ b/internal/server/network/network_utils.go
+@@ -515,6 +515,12 @@ func UpdateDNSMasqStatic(s *state.State, networkName string) error {
+ 				continue
+ 			}
+ 
++			// Skip entries that would break the dnsmasq host file.
++			_, err = net.ParseMAC(d["hwaddr"])
++			if err != nil {
++				continue
++			}
++
+ 			// Treat "none" and static in-instance (CIDR) addresses as not set for DHCP purposes.
+ 			for _, key := range []string{"ipv4.address", "ipv6.address"} {
+ 				if d[key] == "none" || strings.Contains(d[key], "/") {
+diff --git a/internal/server/project/permissions.go b/internal/server/project/permissions.go
+index 4858460e2d..ae365936ae 100644
+--- a/internal/server/project/permissions.go
++++ b/internal/server/project/permissions.go
+@@ -362,7 +362,7 @@ func isSafeVolatileKey(key string) bool {
+ 			return true
+ 		}
+ 
+-		if strings.HasSuffix(key, ".hwaddr") {
++		if strings.HasSuffix(key, ".hwaddr") && !strings.Contains(key, ".last_state.") {
+ 			return true
+ 		}
+ 	}
+diff --git a/shared/validate/validate.go b/shared/validate/validate.go
+index cf51ea07ce..16d4bdd53d 100644
+--- a/shared/validate/validate.go
++++ b/shared/validate/validate.go
+@@ -267,6 +267,16 @@ func IsNetworkMAC(value string) error {
+ 	return nil
+ }
+ 
++// IsHardwareAddress validates whether the string is a hardware address of any length.
++func IsHardwareAddress(value string) error {
++	_, err := net.ParseMAC(value)
++	if err != nil {
++		return errors.New("Invalid hardware address")
++	}
++
++	return nil
++}
++
+ // IsMACPattern validates whether the string is a MAC address pattern.
+ func IsMACPattern(value string) error {
+ 	match, _ := regexp.MatchString(`^(?:[0-9a-fA-FxX]{2}:){5}[0-9a-fA-FxX]{2}$`, value)

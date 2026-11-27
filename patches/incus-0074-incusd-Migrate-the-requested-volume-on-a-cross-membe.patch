@@ -1,0 +1,47 @@
+From b03d06d10ceb353c0dbbe2e973d648d3247eef98 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:35:10 -0500
+Subject: [PATCH] incusd: Migrate the requested volume on a cross-member move
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The cluster move branch passed the project from the request body as
+the source project, so the volume migrated and deleted was the one of
+that name in the target project rather than the one named in the URL.
+
+This addresses GHSA-8m9x-vx2q-7f9q (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 80c44f8c208056ae9bafcfdb21951bcfe7dedd7a)
+---
+ cmd/incusd/storage_volumes.go | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/cmd/incusd/storage_volumes.go b/cmd/incusd/storage_volumes.go
+index 9e173e0713..366167bfd6 100644
+--- a/cmd/incusd/storage_volumes.go
++++ b/cmd/incusd/storage_volumes.go
+@@ -1535,7 +1535,7 @@ func storagePoolVolumePost(d *Daemon, r *http.Request) response.Response {
+ 		}
+ 
+ 		run := func(op *operations.Operation) error {
+-			return migrateStorageVolume(s, r, volumeName, srcPoolName, targetMemberInfo.Name, targetProjectName, req, op)
++			return migrateStorageVolume(s, r, volumeName, srcPoolName, targetMemberInfo.Name, projectName, req, op)
+ 		}
+ 
+ 		resources := map[string][]api.URL{}
+@@ -1736,7 +1736,12 @@ func storageVolumePostClusteringMigrate(s *state.State, r *http.Request, srcPool
+ 			return fmt.Errorf("Failed to connect to destination server %q: %w", newMember.Address, err)
+ 		}
+ 
+-		dest = dest.UseTarget(newMember.Name).UseProject(srcProjectName)
++		// The volume is created in the requested project, defaulting to the source project.
++		if newProjectName == "" {
++			newProjectName = srcProjectName
++		}
++
++		dest = dest.UseTarget(newMember.Name).UseProject(newProjectName)
+ 
+ 		resources := map[string][]api.URL{}
+ 		resources["storage_volumes"] = []api.URL{*api.NewURL().Path(version.APIVersion, "storage-pools", srcPool.Name(), "volumes", "custom", srcVolumeName)}

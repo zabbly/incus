@@ -1,0 +1,53 @@
+From 832b2e82fc0f9bd4524bf0a4d56052510d43519d Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Thu, 5 Nov 2026 10:06:35 -0500
+Subject: [PATCH] incusd/project: Check pool disk limits on volume update
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This addresses GHSA-9pvj-5r2h-r873 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 96bde02d9e4a1daad9bedab3846ee1279e0e4d56)
+---
+ internal/server/project/permissions.go | 19 +++++++++++++++++--
+ 1 file changed, 17 insertions(+), 2 deletions(-)
+
+diff --git a/internal/server/project/permissions.go b/internal/server/project/permissions.go
+index f6ad1d84ce..3469774f9f 100644
+--- a/internal/server/project/permissions.go
++++ b/internal/server/project/permissions.go
+@@ -1410,6 +1410,21 @@ func AllowVolumeConfig(tx *db.ClusterTx, projectName string, poolName string, co
+ 	return checkRestrictedVolumeConfig(tx, info, poolName, config, nil)
+ }
+ 
++// hasDiskLimit returns whether the project sets limits.disk or a pool-specific disk limit.
++func hasDiskLimit(config map[string]string) bool {
++	if config["limits.disk"] != "" {
++		return true
++	}
++
++	for key := range config {
++		if strings.HasPrefix(key, projectLimitDiskPool) {
++			return true
++		}
++	}
++
++	return false
++}
++
+ // AllowVolumeUpdate returns an error if any project-specific limit or
+ // restriction is violated when updating an existing custom volume.
+ func AllowVolumeUpdate(tx *db.ClusterTx, projectName string, poolName string, volumeName string, req api.StorageVolumePut, currentConfig map[string]string) error {
+@@ -1427,8 +1442,8 @@ func AllowVolumeUpdate(tx *db.ClusterTx, projectName string, poolName string, vo
+ 		return err
+ 	}
+ 
+-	// If "limits.disk" is not set, there's nothing to do.
+-	if info.Project.Config["limits.disk"] == "" {
++	// Without a disk limit there's nothing to do.
++	if !hasDiskLimit(info.Project.Config) {
+ 		return nil
+ 	}
+ 

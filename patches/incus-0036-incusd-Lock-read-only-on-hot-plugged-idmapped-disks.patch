@@ -1,0 +1,131 @@
+From c11829c35fd4d11a6db8d1656ae7cf8d19dc7d7c Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Fri, 23 Oct 2026 23:20:14 -0400
+Subject: [PATCH] incusd: Lock read-only on hot-plugged idmapped disks
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A shifted read-only disk hot-plugged into a running container was cloned
+from the host mount namespace, where the read-only flag isn't locked, so
+container root could remount it read-write.
+
+Clone it from a copy of the mount table made under the container's user
+namespace, where the flag is locked, and handle recursive mounts.
+
+This addresses GHSA-28m6-7v43-rr8m (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit b7dcc8b2fff51f2bee9f233c1e549a4215e17df5)
+---
+ cmd/incusd/main_forkmount.go | 55 ++++++++++++++++++++++++++++++++++--
+ 1 file changed, 53 insertions(+), 2 deletions(-)
+
+diff --git a/cmd/incusd/main_forkmount.go b/cmd/incusd/main_forkmount.go
+index 3756d3b903..270c719fc9 100644
+--- a/cmd/incusd/main_forkmount.go
++++ b/cmd/incusd/main_forkmount.go
+@@ -11,6 +11,7 @@ package main
+ #include <lxc/lxccontainer.h>
+ #include <lxc/version.h>
+ #include <sched.h>
++#include <signal.h>
+ #include <stdbool.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+@@ -18,6 +19,7 @@ package main
+ #include <sys/mount.h>
+ #include <sys/stat.h>
+ #include <sys/types.h>
++#include <sys/wait.h>
+ #include <unistd.h>
+ 
+ #include "incus.h"
+@@ -366,6 +368,43 @@ static int make_dest_open(int fd_src, const char *dest)
+ 	return make_final_open(&st_src, dest);
+ }
+ 
++// enter_locked_mntns joins a copy of the host mount table made under the container's user namespace,
++// where every mount's read-only flag is locked, so a clone taken here stays locked in the container.
++static int enter_locked_mntns(int ns_fd)
++{
++	__do_close int mnt_fd = -EBADF;
++	pid_t pid;
++	int status;
++
++	pid = fork();
++	if (pid < 0)
++		return -1;
++
++	if (pid == 0) {
++		attach_userns_fd(ns_fd);
++
++		if (unshare(CLONE_NEWNS) < 0)
++			_exit(EXIT_FAILURE);
++
++		raise(SIGSTOP);
++		_exit(EXIT_SUCCESS);
++	}
++
++	if (waitpid(pid, &status, WUNTRACED) != pid || !WIFSTOPPED(status)) {
++		kill(pid, SIGKILL);
++		waitpid(pid, NULL, 0);
++		return -1;
++	}
++
++	mnt_fd = preserve_ns(pid, -EBADF, "mnt");
++	kill(pid, SIGKILL);
++	waitpid(pid, NULL, 0);
++	if (mnt_fd < 0)
++		return -1;
++
++	return setns(mnt_fd, CLONE_NEWNS);
++}
++
+ static void do_move_forkmount(int pidfd, int ns_fd)
+ {
+ 	__do_close int fs_fd = -EBADF, mnt_fd = -EBADF, fd_userns = -EBADF,
+@@ -373,6 +412,8 @@ static void do_move_forkmount(int pidfd, int ns_fd)
+ 	int ret;
+ 	char *fstype, *src, *dest, *idmapType, *flags;
+ 	unsigned int old_mntflags = 0, new_mntflags = 0;
++	unsigned int open_tree_flags = OPEN_TREE_CLOEXEC | OPEN_TREE_CLONE;
++	unsigned int setattr_flags = AT_EMPTY_PATH;
+ 
+ 	fstype = advance_arg(true);
+ 	src = advance_arg(true);
+@@ -386,6 +427,12 @@ static void do_move_forkmount(int pidfd, int ns_fd)
+ 
+ 	mnt_attributes_new(old_mntflags, &new_mntflags);
+ 
++	// A recursive mount needs its submounts cloned and idmapped too, as liblxc does at start.
++	if (old_mntflags & MS_REC) {
++		open_tree_flags |= AT_RECURSIVE;
++		setattr_flags |= AT_RECURSIVE;
++	}
++
+ 	if (strcmp(fstype, "") && strcmp(fstype, "none")) {
+ 		fs_fd = incus_fsopen(fstype, FSOPEN_CLOEXEC);
+ 		if (fs_fd < 0)
+@@ -403,7 +450,11 @@ static void do_move_forkmount(int pidfd, int ns_fd)
+ 		if (mnt_fd < 0)
+ 			die("fsmount");
+ 	} else {
+-		mnt_fd = incus_open_tree(-EBADF, src, OPEN_TREE_CLOEXEC | OPEN_TREE_CLONE);
++		// Clone from a namespace where the source is locked, so the container can't remount it rw.
++		if (enter_locked_mntns(ns_fd) < 0)
++			die("enter locked mount namespace");
++
++		mnt_fd = incus_open_tree(-EBADF, src, open_tree_flags);
+ 		if (mnt_fd < 0)
+ 			die("open_tree");
+ 	}
+@@ -419,7 +470,7 @@ static void do_move_forkmount(int pidfd, int ns_fd)
+ 
+ 		};
+ 
+-		ret = incus_mount_setattr(mnt_fd, "", AT_EMPTY_PATH, &attr, sizeof(attr));
++		ret = incus_mount_setattr(mnt_fd, "", setattr_flags, &attr, sizeof(attr));
+ 		if (ret)
+ 			die("idmap mount");
+ 	}

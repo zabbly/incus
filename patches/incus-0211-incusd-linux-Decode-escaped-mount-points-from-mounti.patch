@@ -1,0 +1,35 @@
+From 79b3f9a8db73b25b6360b2b4fa4fe8085d6426b6 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:08:11 -0500
+Subject: [PATCH] incusd/linux: Decode escaped mount points from mountinfo
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The kernel escapes spaces, tabs, newlines and backslashes in the mount
+point field, so a path containing one was never seen as mounted and
+every use stacked another mount on it.
+
+This addresses GHSA-28m6-7v43-rr8m (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit c6421b39bbdda205db4b1e0d9143fed7f4c91bfe)
+---
+ internal/linux/filesystem.go | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/internal/linux/filesystem.go b/internal/linux/filesystem.go
+index 05f0ed8a50..063b5c7cbd 100644
+--- a/internal/linux/filesystem.go
++++ b/internal/linux/filesystem.go
+@@ -107,7 +107,9 @@ func hasMountEntry(name string) int {
+ 			return -1
+ 		}
+ 
+-		cleanPath := filepath.Clean(tokens[4])
++		// The kernel escapes space, tab, newline and backslash in mount points.
++		mountPath := strings.NewReplacer(`\040`, " ", `\011`, "\t", `\012`, "\n", `\134`, `\`).Replace(tokens[4])
++		cleanPath := filepath.Clean(mountPath)
+ 		if cleanPath == actualPath {
+ 			return 1
+ 		}

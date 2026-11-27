@@ -1,0 +1,168 @@
+From 49c5a13c02a10be0ca7a650616bd5911a508e0f2 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:07:38 -0500
+Subject: [PATCH] incusd/backup: Hold stored backups and squashfs conversion to
+ the disk budget
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Stored backups were written with no budget, and a squashfs backup was
+expanded into a second uncapped temporary file after the capped upload.
+
+This addresses GHSA-9pvj-5r2h-r873 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit fb38ed7daae1c16d5533a16affd918d9c6d492d3)
+---
+ cmd/incusd/backup.go          | 70 +++++++++++++++++++++++++++++++++++
+ cmd/incusd/instances_post.go  |  4 +-
+ cmd/incusd/storage_volumes.go |  4 +-
+ 3 files changed, 74 insertions(+), 4 deletions(-)
+
+diff --git a/cmd/incusd/backup.go b/cmd/incusd/backup.go
+index 03ff6652e2..f2ddc93553 100644
+--- a/cmd/incusd/backup.go
++++ b/cmd/incusd/backup.go
+@@ -12,6 +12,7 @@ import (
+ 	"go.yaml.in/yaml/v4"
+ 
+ 	"github.com/lxc/incus/v7/internal/instancewriter"
++	internalIO "github.com/lxc/incus/v7/internal/io"
+ 	"github.com/lxc/incus/v7/internal/server/backup"
+ 	"github.com/lxc/incus/v7/internal/server/db"
+ 	dbCluster "github.com/lxc/incus/v7/internal/server/db/cluster"
+@@ -27,6 +28,7 @@ import (
+ 	"github.com/lxc/incus/v7/internal/server/task"
+ 	internalUtil "github.com/lxc/incus/v7/internal/util"
+ 	"github.com/lxc/incus/v7/shared/api"
++	"github.com/lxc/incus/v7/shared/archive"
+ 	"github.com/lxc/incus/v7/shared/idmap"
+ 	"github.com/lxc/incus/v7/shared/ioprogress"
+ 	"github.com/lxc/incus/v7/shared/logger"
+@@ -35,6 +37,56 @@ import (
+ 	"github.com/lxc/incus/v7/shared/util"
+ )
+ 
++// quotaWriteCloser bounds a stored backup by the project's disk budget.
++type quotaWriteCloser struct {
++	io.Writer
++	io.Closer
++}
++
++// backupQuotaWriter wraps a stored backup's file in the project's remaining disk budget.
++func backupQuotaWriter(s *state.State, projectName string, f io.WriteCloser) (io.WriteCloser, error) {
++	var budget int64
++
++	err := s.DB.Cluster.Transaction(context.TODO(), func(ctx context.Context, tx *db.ClusterTx) error {
++		var err error
++
++		budget, err = project.GetSpaceBudget(tx, projectName)
++
++		return err
++	})
++	if err != nil {
++		_ = f.Close()
++		return nil, err
++	}
++
++	return &quotaWriteCloser{Writer: internalIO.NewQuotaWriter(f, budget), Closer: f}, nil
++}
++
++// backupDecompress runs a decompressor into the file, bounded by the project's disk budget.
++func backupDecompress(decomArgs []string, tarFile *os.File, budget int64) error {
++	pipeReader, pipeWriter, err := os.Pipe()
++	if err != nil {
++		return err
++	}
++
++	chCopy := make(chan error, 1)
++	go func() {
++		_, err := io.Copy(internalIO.NewQuotaWriter(tarFile, budget), pipeReader)
++		_ = pipeReader.Close()
++		chCopy <- err
++	}()
++
++	err = archive.ExtractWithFds(decomArgs[0], decomArgs[1:], nil, nil, pipeWriter)
++	_ = pipeWriter.Close()
++
++	copyErr := <-chCopy
++	if copyErr != nil {
++		return copyErr
++	}
++
++	return err
++}
++
+ // Create a new backup.
+ func backupCreate(s *state.State, args db.InstanceBackup, sourceInst instance.Instance, op *operations.Operation, writer *io.PipeWriter) error {
+ 	l := logger.AddContext(logger.Ctx{"project": sourceInst.Project().Name, "instance": sourceInst.Name(), "name": args.Name})
+@@ -139,6 +191,12 @@ func backupCreate(s *state.State, args db.InstanceBackup, sourceInst instance.In
+ 			return fmt.Errorf("Error opening backup tarball for writing %q: %w", target, err)
+ 		}
+ 
++		// Hold the stored backup to the project's disk budget.
++		tarFileWriter, err = backupQuotaWriter(s, sourceInst.Project().Name, tarFileWriter)
++		if err != nil {
++			return err
++		}
++
+ 		reverter.Add(func() { _ = os.Remove(target) })
+ 	} else {
+ 		tarFileWriter = writer
+@@ -503,6 +561,12 @@ func volumeBackupCreate(s *state.State, args db.StoragePoolVolumeBackup, project
+ 			return fmt.Errorf("Error opening backup file for writing %q: %w", target, err)
+ 		}
+ 
++		// Hold the stored backup to the project's disk budget.
++		fileWriter, err = backupQuotaWriter(s, projectName, fileWriter)
++		if err != nil {
++			return err
++		}
++
+ 		reverter.Add(func() { _ = os.Remove(target) })
+ 	} else {
+ 		fileWriter = writer
+@@ -767,6 +831,12 @@ func bucketBackupCreate(s *state.State, args db.StoragePoolBucketBackup, project
+ 			return fmt.Errorf("Error opening backup tarball for writing %q: %w", target, err)
+ 		}
+ 
++		// Hold the stored backup to the project's disk budget.
++		tarFileWriter, err = backupQuotaWriter(s, projectName, tarFileWriter)
++		if err != nil {
++			return err
++		}
++
+ 		reverter.Add(func() { _ = os.Remove(target) })
+ 	} else {
+ 		tarFileWriter = writer
+diff --git a/cmd/incusd/instances_post.go b/cmd/incusd/instances_post.go
+index 0bc1d2cf31..d2fefc40c1 100644
+--- a/cmd/incusd/instances_post.go
++++ b/cmd/incusd/instances_post.go
+@@ -921,8 +921,8 @@ func createFromBackup(s *state.State, r *http.Request, projectName string, data
+ 
+ 		defer logger.WarnOnError(func() error { return os.Remove(tarFile.Name()) }, "Failed to remove tarball file")
+ 
+-		// Decompress to tarFile temporary file.
+-		err = archive.ExtractWithFds(decomArgs[0], decomArgs[1:], nil, nil, tarFile)
++		// Decompress to tarFile temporary file, within the project's disk budget.
++		err = backupDecompress(decomArgs, tarFile, budget)
+ 		if err != nil {
+ 			return response.InternalError(err)
+ 		}
+diff --git a/cmd/incusd/storage_volumes.go b/cmd/incusd/storage_volumes.go
+index fdaa1f9bb3..6ec81ed9f4 100644
+--- a/cmd/incusd/storage_volumes.go
++++ b/cmd/incusd/storage_volumes.go
+@@ -3019,8 +3019,8 @@ func createStoragePoolVolumeFromBackup(s *state.State, r *http.Request, requestP
+ 
+ 		defer logger.WarnOnError(func() error { return os.Remove(tarFile.Name()) }, "Failed to remove tarball file")
+ 
+-		// Decompress to tarFile temporary file.
+-		err = archive.ExtractWithFds(decomArgs[0], decomArgs[1:], nil, nil, tarFile)
++		// Decompress to tarFile temporary file, within the project's disk budget.
++		err = backupDecompress(decomArgs, tarFile, budget)
+ 		if err != nil {
+ 			return response.InternalError(err)
+ 		}

@@ -1,0 +1,80 @@
+From eb7e96afe9254418791f5635139959be9e74f80b Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:37:17 -0500
+Subject: [PATCH] incusd/project: Keep container runtime state out of
+ restricted projects
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Restricted projects could receive a container live migration and have
+CRIU restore the supplied state as root. Live migration and stateful
+containers now require restricted.containers.lowlevel=allow, and a
+stateful restore requires migration.stateful like the other stateful
+actions.
+
+This addresses GHSA-8553-6xmq-7g3g (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 76053d964bf738d60e85cf12e1fd67cae43a29c8)
+---
+ internal/server/instance/drivers/driver_lxc.go |  5 +++++
+ internal/server/project/permissions.go         | 18 ++++++++++++++++--
+ 2 files changed, 21 insertions(+), 2 deletions(-)
+
+diff --git a/internal/server/instance/drivers/driver_lxc.go b/internal/server/instance/drivers/driver_lxc.go
+index b0000a8214..eeb05f6393 100644
+--- a/internal/server/instance/drivers/driver_lxc.go
++++ b/internal/server/instance/drivers/driver_lxc.go
+@@ -4413,6 +4413,11 @@ func (d *lxc) Snapshot(name string, expiry time.Time, stateful bool) error {
+ 
+ // Restore restores a snapshot.
+ func (d *lxc) Restore(sourceContainer instance.Instance, stateful bool, diskOnly bool) error {
++	// Check that migration.stateful is set for stateful actions.
++	if stateful && !d.CanLiveMigrate() {
++		return errors.New("Stateful restore requires that the instance migration.stateful be set to true")
++	}
++
+ 	var ctxMap logger.Ctx
+ 
+ 	op, err := operationlock.Create(d.Project().Name, d.Name(), d.op, operationlock.ActionRestore, false, false)
+diff --git a/internal/server/project/permissions.go b/internal/server/project/permissions.go
+index 02bc633b4a..1dad282c8b 100644
+--- a/internal/server/project/permissions.go
++++ b/internal/server/project/permissions.go
+@@ -243,12 +243,21 @@ func AllowMigrationTarget(tx *db.ClusterTx, projectName string) error {
+ }
+ 
+ // checkMigrationSource refuses pull mode migration in restricted projects, as the server would connect
+-// to an arbitrary remote URL.
++// to an arbitrary remote URL, and container live migration unless low-level options are allowed, as
++// CRIU would restore the runtime state supplied by the source as root.
+ func checkMigrationSource(project api.Project, req api.InstancesPost) error {
+-	if util.IsTrue(project.Config["restricted"]) && req.Source.Type == "migration" && req.Source.Mode == "pull" {
++	if !util.IsTrue(project.Config["restricted"]) || req.Source.Type != "migration" {
++		return nil
++	}
++
++	if req.Source.Mode == "pull" {
+ 		return errors.New("Restricted projects aren't allowed to use pull mode migration")
+ 	}
+ 
++	if req.Source.Live && req.Type != api.InstanceTypeVM && project.Config["restricted.containers.lowlevel"] != "allow" {
++		return errors.New("Restricted projects aren't allowed to use container live migration")
++	}
++
+ 	return nil
+ }
+ 
+@@ -1040,6 +1049,11 @@ func checkRestrictions(project api.Project, instances []api.Instance, profiles [
+ 			return fmt.Errorf(`Non-isolated containers are forbidden on %s %q of project %q ("security.idmap.isolated" must be set to "true")`, entityTypeLabel, entityName, project.Name)
+ 		}
+ 
++		// Container runtime state is restored by CRIU as root and may come from a backup or migration.
++		if !allowContainerLowLevel && instType == instancetype.Container && util.IsTrue(config["migration.stateful"]) {
++			return fmt.Errorf(`Stateful containers are forbidden on %s %q of project %q ("migration.stateful" must not be set to "true")`, entityTypeLabel, entityName, project.Name)
++		}
++
+ 		for key, value := range config {
+ 			if ((isContainerOrProfile && !allowContainerLowLevel) || (isVMOrProfile && !allowVMLowLevel)) && key == "raw.idmap" {
+ 				// If the low-level raw.idmap is used check whether the raw.idmap host IDs

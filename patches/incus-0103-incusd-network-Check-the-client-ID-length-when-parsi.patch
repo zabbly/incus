@@ -1,0 +1,50 @@
+From c83dd5c111869dbeb50d5dc85e7657f89a5ef865 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:57:45 -0500
+Subject: [PATCH] incusd/network: Check the client ID length when parsing
+ leases
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A lease with a short hardware address and a short client ID made the
+parsers slice past the start of the column and panic, which took the
+daemon down from the DNS server and the instance list.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit d177d92920625e46c99d3846916e6219300b4fdb)
+---
+ internal/server/network/driver_bridge.go | 3 ++-
+ internal/server/network/network_utils.go | 3 ++-
+ 2 files changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/internal/server/network/driver_bridge.go b/internal/server/network/driver_bridge.go
+index 1341df1070..4a13ec629f 100644
+--- a/internal/server/network/driver_bridge.go
++++ b/internal/server/network/driver_bridge.go
+@@ -3479,7 +3479,8 @@ func (n *bridge) Leases(projectName string, clientType request.ClientType) ([]ap
+ 			mac := GetMACSlice(fields[1])
+ 			macStr := strings.Join(mac, ":")
+ 
+-			if len(macStr) < 17 && fields[4] != "" {
++			// A short hardware address may be a DHCPv6 IAID, the MAC then ends the DUID.
++			if len(macStr) < 17 && len(fields[4]) >= 17 {
+ 				macStr = fields[4][len(fields[4])-17:]
+ 			}
+ 
+diff --git a/internal/server/network/network_utils.go b/internal/server/network/network_utils.go
+index 08a7d33736..2715fec6b6 100644
+--- a/internal/server/network/network_utils.go
++++ b/internal/server/network/network_utils.go
+@@ -966,7 +966,8 @@ func GetLeaseAddresses(networkName string, hwaddr string) ([]net.IP, error) {
+ 		mac := GetMACSlice(fields[1])
+ 		macStr := strings.Join(mac, ":")
+ 
+-		if len(macStr) < 17 && fields[4] != "" {
++		// A short hardware address may be a DHCPv6 IAID, the MAC then ends the DUID.
++		if len(macStr) < 17 && len(fields[4]) >= 17 {
+ 			macStr = fields[4][len(fields[4])-17:]
+ 		}
+ 

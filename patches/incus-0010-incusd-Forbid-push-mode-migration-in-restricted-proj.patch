@@ -1,0 +1,109 @@
+From 4a5b2442bd59b242695437a0c2c2fd7dab229291 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Tue, 3 Nov 2026 09:35:02 -0500
+Subject: [PATCH] incusd: Forbid push mode migration in restricted projects
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Push mode migration makes the server connect to a user supplied
+operation URL just like pull mode does, but it wasn't covered by the
+restricted project check on instances, snapshots and custom volumes.
+
+This addresses GHSA-chhj-pwx6-9cx3 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 14b850768fd086b35524588d1e3ac2a472acb991)
+---
+ cmd/incusd/instance_post.go            |  9 +++++++++
+ cmd/incusd/instance_snapshot.go        |  9 +++++++++
+ cmd/incusd/storage_volumes.go          |  9 +++++++++
+ internal/server/project/permissions.go | 15 +++++++++++++++
+ 4 files changed, 42 insertions(+)
+
+diff --git a/cmd/incusd/instance_post.go b/cmd/incusd/instance_post.go
+index aa2c8dc5e1..188295b65a 100644
+--- a/cmd/incusd/instance_post.go
++++ b/cmd/incusd/instance_post.go
+@@ -555,6 +555,15 @@ func instancePost(d *Daemon, r *http.Request) response.Response {
+ 	}
+ 
+ 	// Cross-server instance migration.
++	if req.Target != nil {
++		err = s.DB.Cluster.Transaction(r.Context(), func(ctx context.Context, tx *db.ClusterTx) error {
++			return project.AllowMigrationTarget(tx, projectName)
++		})
++		if err != nil {
++			return response.SmartError(err)
++		}
++	}
++
+ 	ws, err := newMigrationSource(inst, req.Live, req.InstanceOnly, req.AllowInconsistent, "", "", req.Devices, nil, req.Target)
+ 	if err != nil {
+ 		return response.InternalError(err)
+diff --git a/cmd/incusd/instance_snapshot.go b/cmd/incusd/instance_snapshot.go
+index 4ae78f159a..1aa01b1fc5 100644
+--- a/cmd/incusd/instance_snapshot.go
++++ b/cmd/incusd/instance_snapshot.go
+@@ -751,6 +751,15 @@ func snapshotPost(s *state.State, r *http.Request, snapInst instance.Instance) r
+ 			}
+ 		}
+ 
++		if req.Target != nil {
++			err = s.DB.Cluster.Transaction(r.Context(), func(ctx context.Context, tx *db.ClusterTx) error {
++				return project.AllowMigrationTarget(tx, snapInst.Project().Name)
++			})
++			if err != nil {
++				return response.SmartError(err)
++			}
++		}
++
+ 		ws, err := newMigrationSource(snapInst, reqNew.Live, true, false, "", "", nil, nil, req.Target)
+ 		if err != nil {
+ 			return response.SmartError(err)
+diff --git a/cmd/incusd/storage_volumes.go b/cmd/incusd/storage_volumes.go
+index 70d85d8df8..9e173e0713 100644
+--- a/cmd/incusd/storage_volumes.go
++++ b/cmd/incusd/storage_volumes.go
+@@ -1807,6 +1807,15 @@ func storageVolumePostClusteringMigrate(s *state.State, r *http.Request, srcPool
+ 
+ // storagePoolVolumeTypePostMigration handles volume migration type POST requests.
+ func storagePoolVolumeTypePostMigration(s *state.State, r *http.Request, requestProjectName string, projectName string, poolName string, volumeName string, req api.StorageVolumePost) response.Response {
++	if req.Target != nil {
++		err := s.DB.Cluster.Transaction(r.Context(), func(ctx context.Context, tx *db.ClusterTx) error {
++			return project.AllowMigrationTarget(tx, requestProjectName)
++		})
++		if err != nil {
++			return response.SmartError(err)
++		}
++	}
++
+ 	ws, err := newStorageMigrationSource(req.VolumeOnly, req.Target)
+ 	if err != nil {
+ 		return response.InternalError(err)
+diff --git a/internal/server/project/permissions.go b/internal/server/project/permissions.go
+index 2363015ae8..2dfb5ab8c7 100644
+--- a/internal/server/project/permissions.go
++++ b/internal/server/project/permissions.go
+@@ -227,6 +227,21 @@ func AllowInstanceMigrationSource(tx *db.ClusterTx, projectName string, req api.
+ 	return checkMigrationSource(info.Project, req)
+ }
+ 
++// AllowMigrationTarget refuses push mode migration in restricted projects, as the server would connect
++// to an arbitrary remote URL.
++func AllowMigrationTarget(tx *db.ClusterTx, projectName string) error {
++	info, err := fetchProject(tx, projectName, true)
++	if err != nil {
++		return err
++	}
++
++	if info != nil && util.IsTrue(info.Project.Config["restricted"]) {
++		return errors.New("Restricted projects aren't allowed to use push mode migration")
++	}
++
++	return nil
++}
++
+ // checkMigrationSource refuses pull mode migration in restricted projects, as the server would connect
+ // to an arbitrary remote URL.
+ func checkMigrationSource(project api.Project, req api.InstancesPost) error {

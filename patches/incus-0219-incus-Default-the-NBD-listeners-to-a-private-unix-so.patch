@@ -1,0 +1,135 @@
+From 929eb221b8cd0ec4b65c953616eeb28fb3b1050a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Tue, 17 Nov 2026 15:25:47 -0500
+Subject: [PATCH] incus: Default the NBD listeners to a private unix socket
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This addresses GHSA-wm96-rxh7-f5w2 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+---
+ cmd/incus/low_level.go      | 11 +++--------
+ cmd/incus/storage_volume.go | 11 +++--------
+ cmd/incus/utils.go          | 37 +++++++++++++++++++++++++++++++++++++
+ 3 files changed, 43 insertions(+), 16 deletions(-)
+
+diff --git a/cmd/incus/low_level.go b/cmd/incus/low_level.go
+index c26fd04775..d24ac6f816 100644
+--- a/cmd/incus/low_level.go
++++ b/cmd/incus/low_level.go
+@@ -13,7 +13,6 @@ import (
+ 	"errors"
+ 	"fmt"
+ 	"io"
+-	"net"
+ 	"os"
+ 	"slices"
+ 	"sort"
+@@ -310,17 +309,13 @@ func (c *cmdLowLevelNBD) run(cmd *cobra.Command, args []string) error {
+ 	}
+ 
+ 	// Proxy to a local listener.
+-	listenAddr := c.flagAddress
+-
+-	if listenAddr == "" {
+-		listenAddr = "127.0.0.1:0" // Listen on a random local port if not specified.
+-	}
+-
+-	listener, err := net.Listen("tcp", listenAddr)
++	listener, err := nbdListen(c.global.conf, c.flagAddress)
+ 	if err != nil {
+ 		return fmt.Errorf(i18n.G("Failed to listen for connection: %w"), err)
+ 	}
+ 
++	defer func() { _ = listener.Close() }()
++
+ 	fmt.Printf(i18n.G("NBD listening on %v")+"\n", listener.Addr())
+ 
+ 	// Track the active connections, the first one starts the NBD session and the
+diff --git a/cmd/incus/storage_volume.go b/cmd/incus/storage_volume.go
+index 0c4d9f3ff3..dc31da7236 100644
+--- a/cmd/incus/storage_volume.go
++++ b/cmd/incus/storage_volume.go
+@@ -5,7 +5,6 @@ import (
+ 	"fmt"
+ 	"io"
+ 	"maps"
+-	"net"
+ 	"net/http"
+ 	"net/url"
+ 	"os"
+@@ -2654,17 +2653,13 @@ func (c *cmdStorageVolumeNBD) Run(cmd *cobra.Command, args []string) error {
+ 	}
+ 
+ 	// Proxy to a local listener.
+-	listenAddr := c.flagAddress
+-
+-	if listenAddr == "" {
+-		listenAddr = "127.0.0.1:0" // Listen on a random local port if not specified.
+-	}
+-
+-	listener, err := net.Listen("tcp", listenAddr)
++	listener, err := nbdListen(c.global.conf, c.flagAddress)
+ 	if err != nil {
+ 		return fmt.Errorf(i18n.G("Failed to listen for connection: %w"), err)
+ 	}
+ 
++	defer func() { _ = listener.Close() }()
++
+ 	fmt.Printf(i18n.G("NBD listening on %v")+"\n", listener.Addr())
+ 
+ 	// Wait for a connection.
+diff --git a/cmd/incus/utils.go b/cmd/incus/utils.go
+index 48347a4b82..fbd9f32eba 100644
+--- a/cmd/incus/utils.go
++++ b/cmd/incus/utils.go
+@@ -14,6 +14,7 @@ import (
+ 	"path"
+ 	"path/filepath"
+ 	"reflect"
++	"runtime"
+ 	"slices"
+ 	"sort"
+ 	"strconv"
+@@ -945,3 +946,39 @@ func parseMode(m string, mode fs.FileMode, umask fs.FileMode, isDir bool) (fs.Fi
+ func parsePristineMode(m string) (fs.FileMode, error) {
+ 	return parseMode(m, fs.FileMode(0), fs.FileMode(0), false)
+ }
++
++// nbdListen sets up the local NBD listener, defaulting to a private unix socket.
++func nbdListen(conf *config.Config, address string) (net.Listener, error) {
++	if address != "" {
++		return net.Listen("tcp", address)
++	}
++
++	// Same fallback as the console on Windows.
++	if runtime.GOOS == "windows" {
++		return net.Listen("tcp", "127.0.0.1:0")
++	}
++
++	if conf.ConfigDir == "" {
++		return nil, errors.New(i18n.G("No configuration directory available, an address must be specified"))
++	}
++
++	err := os.MkdirAll(conf.ConfigPath("sockets"), 0o700)
++	if err != nil {
++		return nil, err
++	}
++
++	// Generate a random file name.
++	f, err := os.CreateTemp(conf.ConfigPath("sockets"), "*.nbd")
++	if err != nil {
++		return nil, err
++	}
++
++	_ = f.Close()
++
++	err = os.Remove(f.Name())
++	if err != nil {
++		return nil, err
++	}
++
++	return net.Listen("unix", f.Name())
++}

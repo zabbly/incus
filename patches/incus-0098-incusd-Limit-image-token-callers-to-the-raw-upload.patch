@@ -1,0 +1,37 @@
+From 34a0e484ac90b3fb04a86e860c56b467e02f3306 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:32:30 -0500
+Subject: [PATCH] incusd: Limit image token callers to the raw upload
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The token check only gated entry to the handler, so a token holder
+could send any JSON request form, minting new tokens for private images
+or importing images under its own aliases.
+
+This addresses GHSA-4j59-4pqh-f3qm (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 19bba7f8a559c421e428413b496b59133c11c074)
+---
+ cmd/incusd/images.go | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/cmd/incusd/images.go b/cmd/incusd/images.go
+index 5783e2743b..44d35e7d06 100644
+--- a/cmd/incusd/images.go
++++ b/cmd/incusd/images.go
+@@ -1316,6 +1316,12 @@ func imagesPost(d *Daemon, r *http.Request) response.Response {
+ 		imageUpload = true
+ 	}
+ 
++	// A token only admits the raw upload it was issued for.
++	if !trusted && !imageUpload {
++		cleanup(builddir, post)
++		return response.Forbidden(nil)
++	}
++
+ 	if !imageUpload && req.Source.Mode == "push" {
+ 		cleanup(builddir, post)
+ 

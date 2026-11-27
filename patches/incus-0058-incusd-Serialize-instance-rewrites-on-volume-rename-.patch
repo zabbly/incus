@@ -1,0 +1,181 @@
+From 0cc6496f73267d9e6db18082f7b0923e5ce9f961 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Sat, 24 Oct 2026 00:57:38 -0400
+Subject: [PATCH] incusd: Serialize instance rewrites on volume rename and
+ profile update
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Rewriting the instances affected by a custom volume rename/move or a
+profile update wrote back a copy of each instance record listed before
+the loop, without the instance lock or a reload, so a concurrent
+instance update could be silently reverted, dropping a required key like
+security.idmap.isolated. The volume path also ran the write inside the
+listing transaction, holding the global database connection for 30s.
+
+Collect the instances first, then update each under its operation lock
+from the current record, and refresh the profile-update path the same
+way.
+
+This addresses GHSA-mmh3-jfjc-6vc2 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 54f272c9c4fe2e89a79a06f82ec55aa9641130bd)
+---
+ cmd/incusd/profiles_utils.go        | 18 ++++++
+ cmd/incusd/storage_volumes_utils.go | 98 ++++++++++++++++++-----------
+ 2 files changed, 81 insertions(+), 35 deletions(-)
+
+diff --git a/cmd/incusd/profiles_utils.go b/cmd/incusd/profiles_utils.go
+index 26a939a046..6511513297 100644
+--- a/cmd/incusd/profiles_utils.go
++++ b/cmd/incusd/profiles_utils.go
+@@ -235,6 +235,24 @@ func doProfileUpdateInstance(ctx context.Context, s *state.State, args db.Instan
+ 		return err
+ 	}
+ 
++	// Serialise with instance PUT/PATCH and refresh the config and devices from the current record,
++	// so a concurrent instance update isn't reverted by writing back the copy listed earlier. The
++	// profile content stays as it was before the update, so Update still detects the change.
++	unlock, err := instanceOperationLock(s.ShutdownCtx, args.Project, args.Name)
++	if err != nil {
++		return err
++	}
++
++	defer unlock()
++
++	current, err := instance.LoadByProjectAndName(s, args.Project, args.Name)
++	if err != nil {
++		return err
++	}
++
++	args.Config = current.LocalConfig()
++	args.Devices = current.LocalDevices()
++
+ 	// Load the instance using the old profile config.
+ 	inst, err := instance.Load(s, args, p)
+ 	if err != nil {
+diff --git a/cmd/incusd/storage_volumes_utils.go b/cmd/incusd/storage_volumes_utils.go
+index c7c59cf6f4..d6bdce50d5 100644
+--- a/cmd/incusd/storage_volumes_utils.go
++++ b/cmd/incusd/storage_volumes_utils.go
+@@ -17,48 +17,29 @@ import (
+ var supportedVolumeTypes = []int{db.StoragePoolVolumeTypeContainer, db.StoragePoolVolumeTypeVM, db.StoragePoolVolumeTypeCustom, db.StoragePoolVolumeTypeImage}
+ 
+ func storagePoolVolumeUpdateUsers(ctx context.Context, s *state.State, projectName string, oldPoolName string, oldVol *api.StorageVolume, newPoolName string, newVol *api.StorageVolume) error {
+-	// Update all instances that are using the volume with a local (non-expanded) device.
+-	err := storagePools.VolumeUsedByInstanceDevices(s, oldPoolName, projectName, oldVol, false, func(dbInst db.InstanceArgs, project api.Project, usedByDevices []string) error {
+-		inst, err := instance.Load(s, dbInst, project)
+-		if err != nil {
+-			return err
+-		}
+-
+-		localDevices := inst.LocalDevices()
+-		for _, devName := range usedByDevices {
+-			_, exists := localDevices[devName]
+-			if exists {
+-				localDevices[devName]["pool"] = newPoolName
+-
+-				volFields := strings.SplitN(localDevices[devName]["source"], "/", 2)
+-				volFields[0] = newVol.Name
+-				localDevices[devName]["source"] = strings.Join(volFields, "/")
+-			}
+-		}
+-
+-		args := db.InstanceArgs{
+-			Architecture: inst.Architecture(),
+-			Description:  inst.Description(),
+-			Config:       inst.LocalConfig(),
+-			Devices:      localDevices,
+-			Ephemeral:    inst.IsEphemeral(),
+-			Profiles:     inst.Profiles(),
+-			Project:      inst.Project().Name,
+-			Type:         inst.Type(),
+-			Snapshot:     inst.IsSnapshot(),
+-		}
+-
+-		err = inst.Update(args, false)
+-		if err != nil {
+-			return err
+-		}
++	// Collect the instances using the volume inside the listing transaction, then update each one
++	// outside it, so no database query runs in the callback and each write holds the instance lock.
++	type instRef struct {
++		project string
++		name    string
++	}
+ 
++	var instRefs []instRef
++	err := storagePools.VolumeUsedByInstanceDevices(s, oldPoolName, projectName, oldVol, false, func(dbInst db.InstanceArgs, project api.Project, usedByDevices []string) error {
++		instRefs = append(instRefs, instRef{project: dbInst.Project, name: dbInst.Name})
+ 		return nil
+ 	})
+ 	if err != nil {
+ 		return err
+ 	}
+ 
++	for _, ref := range instRefs {
++		err := storagePoolVolumeUpdateInstance(s, ref.project, ref.name, oldPoolName, oldVol, newPoolName, newVol)
++		if err != nil {
++			return err
++		}
++	}
++
+ 	// Update all profiles that are using the volume with a device.
+ 	err = storagePools.VolumeUsedByProfileDevices(s, oldPoolName, projectName, oldVol, func(profileID int64, profile api.Profile, p api.Project, usedByDevices []string) error {
+ 		for name, dev := range profile.Devices {
+@@ -89,6 +70,53 @@ func storagePoolVolumeUpdateUsers(ctx context.Context, s *state.State, projectNa
+ 	return nil
+ }
+ 
++// storagePoolVolumeUpdateInstance rewrites one instance's disk devices that point at a renamed or
++// moved custom volume, holding the instance operation lock and reloading the current record so a
++// concurrent instance update can't be reverted by writing back a stale copy.
++func storagePoolVolumeUpdateInstance(s *state.State, projectName string, instName string, oldPoolName string, oldVol *api.StorageVolume, newPoolName string, newVol *api.StorageVolume) error {
++	unlock, err := instanceOperationLock(s.ShutdownCtx, projectName, instName)
++	if err != nil {
++		return err
++	}
++
++	defer unlock()
++
++	inst, err := instance.LoadByProjectAndName(s, projectName, instName)
++	if err != nil {
++		return err
++	}
++
++	localDevices := inst.LocalDevices()
++	for _, dev := range localDevices {
++		if dev["type"] != "disk" || dev["pool"] != oldPoolName {
++			continue
++		}
++
++		volFields := strings.SplitN(dev["source"], "/", 2)
++		if volFields[0] != oldVol.Name {
++			continue
++		}
++
++		dev["pool"] = newPoolName
++		volFields[0] = newVol.Name
++		dev["source"] = strings.Join(volFields, "/")
++	}
++
++	args := db.InstanceArgs{
++		Architecture: inst.Architecture(),
++		Description:  inst.Description(),
++		Config:       inst.LocalConfig(),
++		Devices:      localDevices,
++		Ephemeral:    inst.IsEphemeral(),
++		Profiles:     inst.Profiles(),
++		Project:      inst.Project().Name,
++		Type:         inst.Type(),
++		Snapshot:     inst.IsSnapshot(),
++	}
++
++	return inst.Update(args, false)
++}
++
+ // storagePoolVolumeUsedByGet returns a list of URL resources that use the volume.
+ func storagePoolVolumeUsedByGet(s *state.State, requestProjectName string, poolName string, vol *db.StorageVolume) ([]string, error) {
+ 	// Handle instance volumes.

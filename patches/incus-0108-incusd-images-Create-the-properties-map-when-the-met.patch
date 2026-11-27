@@ -1,0 +1,32 @@
+From 6e5e6331392799f1652719b2842a797f5eed32f2 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:02:21 -0500
+Subject: [PATCH] incusd/images: Create the properties map when the metadata
+ has none
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit d628effc38a2ba37bdd879f3b4a0951e1d59086e)
+---
+ cmd/incusd/images.go | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/cmd/incusd/images.go b/cmd/incusd/images.go
+index de0e9c21a3..dcf930d983 100644
+--- a/cmd/incusd/images.go
++++ b/cmd/incusd/images.go
+@@ -1023,6 +1023,10 @@ func getImgPostInfo(ctx context.Context, s *state.State, r *http.Request, buildd
+ 		info.Properties = imageMeta.Properties
+ 	}
+ 
++	if info.Properties == nil {
++		info.Properties = map[string]string{}
++	}
++
+ 	if len(propHeaders) > 0 {
+ 		for _, ph := range propHeaders {
+ 			p, _ := url.ParseQuery(ph)

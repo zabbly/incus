@@ -1,0 +1,81 @@
+From e3891674b195ca9c813241a70de91597efa9ee0a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Sat, 24 Oct 2026 00:55:11 -0400
+Subject: [PATCH] incusd/project: Fail closed when the checked profile or
+ instance is gone
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The profile and instance update restriction checks looked the object up
+by name in a freshly fetched project and had no not-found branch. A
+client could rename a profile away and back around its update to skip
+the check and store raw.lxc, and a rename during a snapshot restore
+crashed the daemon on a nil dereference.
+
+Return not-found when the object isn't there, and re-check the profile
+in the transaction that writes it.
+
+This addresses GHSA-mmh3-jfjc-6vc2 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit b43abff4ac3d057af1207016d5cef24086c0aa0f)
+---
+ cmd/incusd/profiles_utils.go           |  6 ++++++
+ internal/server/project/permissions.go | 12 ++++++++++++
+ 2 files changed, 18 insertions(+)
+
+diff --git a/cmd/incusd/profiles_utils.go b/cmd/incusd/profiles_utils.go
+index 826ef75971..26a939a046 100644
+--- a/cmd/incusd/profiles_utils.go
++++ b/cmd/incusd/profiles_utils.go
+@@ -90,6 +90,12 @@ func doProfileUpdate(ctx context.Context, s *state.State, p api.Project, profile
+ 
+ 	// Update the database.
+ 	err = s.DB.Cluster.Transaction(ctx, func(ctx context.Context, tx *db.ClusterTx) error {
++		// Re-check in the transaction doing the write, as the profile may have been renamed since.
++		err := project.AllowProfileUpdate(tx, p.Name, profileName, req)
++		if err != nil {
++			return err
++		}
++
+ 		devices, err := cluster.APIToDevices(req.Devices)
+ 		if err != nil {
+ 			return err
+diff --git a/internal/server/project/permissions.go b/internal/server/project/permissions.go
+index 8562d6ca88..9a79145670 100644
+--- a/internal/server/project/permissions.go
++++ b/internal/server/project/permissions.go
+@@ -1302,6 +1302,11 @@ func allowInstanceUpdate(tx *db.ClusterTx, projectName, instanceName string, req
+ 		updatedInstance = &info.Instances[i]
+ 	}
+ 
++	// The instance may have been renamed or deleted since the caller loaded it.
++	if updatedInstance == nil {
++		return api.StatusErrorf(http.StatusNotFound, "Instance %q not found", instanceName)
++	}
++
+ 	instType, err := instancetype.New(updatedInstance.Type)
+ 	if err != nil {
+ 		return err
+@@ -1447,6 +1452,7 @@ func AllowProfileUpdate(tx *db.ClusterTx, projectName, profileName string, req a
+ 	}
+ 
+ 	// Change the profile being updated.
++	found := false
+ 	for i, profile := range info.Profiles {
+ 		if profile.Name != profileName {
+ 			continue
+@@ -1454,6 +1460,12 @@ func AllowProfileUpdate(tx *db.ClusterTx, projectName, profileName string, req a
+ 
+ 		info.Profiles[i].Config = req.Config
+ 		info.Profiles[i].Devices = req.Devices
++		found = true
++	}
++
++	// Refuse rather than pass an update we couldn't check (profile renamed or deleted meanwhile).
++	if !found {
++		return api.StatusErrorf(http.StatusNotFound, "Profile %q not found", profileName)
+ 	}
+ 
+ 	err = checkRestrictionsAndAggregateLimits(tx, info)

@@ -1,0 +1,61 @@
+From 4a5352aadaf859ff149937cfcb965839464fa203 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Tue, 3 Nov 2026 13:23:43 -0500
+Subject: [PATCH] incusd/migration: Bound the size of protocol messages
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Migration control messages were read fully into memory with no limit,
+letting the peer force arbitrarily large allocations on the receiving
+side.
+
+This addresses GHSA-r69q-f272-2qmr (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit c13fca095ccc45aea757ef2d59a1bc9792c60aa6)
+---
+ internal/migration/wsproto.go | 16 +++++++++++++++-
+ 1 file changed, 15 insertions(+), 1 deletion(-)
+
+diff --git a/internal/migration/wsproto.go b/internal/migration/wsproto.go
+index a5fb73eee2..d160cee2c9 100644
+--- a/internal/migration/wsproto.go
++++ b/internal/migration/wsproto.go
+@@ -2,6 +2,7 @@ package migration
+ 
+ import (
+ 	"errors"
++	"fmt"
+ 	"io"
+ 
+ 	"github.com/gorilla/websocket"
+@@ -10,6 +11,9 @@ import (
+ 	internalIO "github.com/lxc/incus/v7/internal/io"
+ )
+ 
++// MessageMaxSize is the maximum size of a single migration protocol message.
++const MessageMaxSize = 32 * 1024 * 1024
++
+ // ProtoRecv gets a protobuf message from a websocket.
+ func ProtoRecv(ws *websocket.Conn, msg proto.Message) error {
+ 	buf, err := protoRecvRaw(ws)
+@@ -35,7 +39,17 @@ func protoRecvRaw(ws *websocket.Conn) ([]byte, error) {
+ 		return nil, errors.New("Only binary messages allowed")
+ 	}
+ 
+-	return io.ReadAll(r)
++	// Bound the message size, the peer isn't trusted.
++	buf, err := io.ReadAll(io.LimitReader(r, MessageMaxSize+1))
++	if err != nil {
++		return nil, err
++	}
++
++	if len(buf) > MessageMaxSize {
++		return nil, fmt.Errorf("Migration message exceeds the maximum size of %d bytes", MessageMaxSize)
++	}
++
++	return buf, nil
+ }
+ 
+ // ProtoRecvHeader acts like ProtoRecv but knows to expect a header and validates it for errors.

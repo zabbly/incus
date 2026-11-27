@@ -1,0 +1,90 @@
+From 881b3b95912dcaeabccafea77c8dfebb1ff7df95 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Sun, 1 Nov 2026 13:03:13 -0500
+Subject: [PATCH] incusd: Check certificate ownership on every non-admin update
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Non-admin clients may update their own trust entry, but the check that
+the requesting certificate is the one being updated only ran when the
+certificate material was replaced. A description-only update skipped it,
+so any trusted client could rewrite the description of another trust
+entry from its fingerprint.
+
+Always verify the caller holds the target certificate before applying a
+non-admin update.
+
+This addresses GHSA-7643-2vqq-56p3 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 8cc1494530272dae023787b2e43203341458a1cb)
+---
+ cmd/incusd/certificates.go | 47 +++++++++++++++++++-------------------
+ 1 file changed, 23 insertions(+), 24 deletions(-)
+
+diff --git a/cmd/incusd/certificates.go b/cmd/incusd/certificates.go
+index 4854290659..bc7f8dda5f 100644
+--- a/cmd/incusd/certificates.go
++++ b/cmd/incusd/certificates.go
+@@ -1099,7 +1099,29 @@ func doCertificateUpdate(d *Daemon, dbInfo api.Certificate, req api.CertificateP
+ 		certProjects := req.Projects
+ 		if !userCanEditCertificate {
+ 			if r.TLS == nil {
+-				response.Forbidden(errors.New("Cannot update certificate information"))
++				return response.Forbidden(errors.New("Cannot update certificate information"))
++			}
++
++			// Only the holder of the certificate may update it.
++			certBlock, _ := pem.Decode([]byte(dbInfo.Certificate))
++
++			oldCert, err := x509.ParseCertificate(certBlock.Bytes)
++			if err != nil {
++				// This should not happen
++				return response.InternalError(err)
++			}
++
++			trustedCerts := map[string]x509.Certificate{
++				dbInfo.Name: *oldCert,
++			}
++
++			trusted := false
++			if len(r.TLS.PeerCertificates) > 0 {
++				trusted, _ = localUtil.CheckTrustState(*r.TLS.PeerCertificates[0], trustedCerts, s.Endpoints.NetworkCert(), false)
++			}
++
++			if !trusted {
++				return response.Forbidden(errors.New("Certificate cannot be changed"))
+ 			}
+ 
+ 			// Ensure the user in not trying to change fields other than the certificate.
+@@ -1124,29 +1146,6 @@ func doCertificateUpdate(d *Daemon, dbInfo api.Certificate, req api.CertificateP
+ 			}
+ 
+ 			certProjects = dbInfo.Projects
+-
+-			if req.Certificate != "" && dbInfo.Certificate != req.Certificate {
+-				certBlock, _ := pem.Decode([]byte(dbInfo.Certificate))
+-
+-				oldCert, err := x509.ParseCertificate(certBlock.Bytes)
+-				if err != nil {
+-					// This should not happen
+-					return response.InternalError(err)
+-				}
+-
+-				trustedCerts := map[string]x509.Certificate{
+-					dbInfo.Name: *oldCert,
+-				}
+-
+-				trusted := false
+-				if len(r.TLS.PeerCertificates) > 0 {
+-					trusted, _ = localUtil.CheckTrustState(*r.TLS.PeerCertificates[0], trustedCerts, s.Endpoints.NetworkCert(), false)
+-				}
+-
+-				if !trusted {
+-					return response.Forbidden(errors.New("Certificate cannot be changed"))
+-				}
+-			}
+ 		}
+ 
+ 		if req.Certificate != "" && dbInfo.Certificate != req.Certificate {

@@ -1,0 +1,35 @@
+From b8094344c6d7275e47f95251fe504bc0e280a3f9 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:59:29 -0500
+Subject: [PATCH] incusd/util: Stop following redirects after ten hops
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The custom redirect policy dropped the default limit, so a server
+could make the daemon follow redirects forever.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 18794634bbd8139f92e6e87dd5554fa78b3cda57)
+---
+ internal/server/util/http.go | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/internal/server/util/http.go b/internal/server/util/http.go
+index 8e3fbc67d1..26cd8d85c7 100644
+--- a/internal/server/util/http.go
++++ b/internal/server/util/http.go
+@@ -136,6 +136,11 @@ func HTTPClient(certificate string, proxy proxyFunc) (*http.Client, error) {
+ 
+ 	// Setup redirect policy
+ 	myhttp.CheckRedirect = func(req *http.Request, via []*http.Request) error {
++		// Keep the limit of the default policy.
++		if len(via) >= 10 {
++			return errors.New("Stopped after 10 redirects")
++		}
++
+ 		// Replicate the headers
+ 		req.Header = via[len(via)-1].Header
+ 

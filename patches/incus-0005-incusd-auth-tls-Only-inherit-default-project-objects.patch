@@ -1,0 +1,239 @@
+From 6e2c70ea2928cafa1613e488f99e3d74e34b5bcc Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Sun, 1 Nov 2026 13:03:13 -0500
+Subject: [PATCH] incusd/auth/tls: Only inherit default project objects through
+ a project using them
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+All-projects listings granted restricted certificates read access to
+every image, profile, volume, bucket, network and zone in the default
+project, regardless of whether any of the certificate's projects
+inherits that type of object from it. A restricted client with no
+project, or with a project that has the matching feature enabled,
+could still list the default project's objects, including full
+profile configuration.
+
+The single object check and project scoped filtering had the same gap,
+admitting default project objects through any trusted project, so a
+restricted client could copy a default volume or reuse a private
+default image from a project holding its own.
+
+Give the TLS driver access to project configuration and only admit
+default project objects when the relevant certificate project relies
+on the default project for that type.
+
+This addresses GHSA-3c9p-936j-gv99 (CVE pending)
+
+(cherry picked from commit d9efcf80787483a40b684ebe700ac779819dc2fe)
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+---
+ cmd/incusd/daemon.go                  | 22 ++++++++-
+ internal/server/auth/authorization.go | 14 ++++--
+ internal/server/auth/driver_tls.go    | 67 ++++++++++++++++++++-------
+ internal/server/auth/router.go        |  4 +-
+ 4 files changed, 85 insertions(+), 22 deletions(-)
+
+diff --git a/cmd/incusd/daemon.go b/cmd/incusd/daemon.go
+index c8cf7419ec..e6793605cb 100644
+--- a/cmd/incusd/daemon.go
++++ b/cmd/incusd/daemon.go
+@@ -1086,13 +1086,33 @@ func (d *Daemon) Init() error {
+ 	return nil
+ }
+ 
++// projectConfig returns the configuration of a project for the authorizer.
++func (d *Daemon) projectConfig(ctx context.Context, projectName string) (map[string]string, error) {
++	var config map[string]string
++
++	err := d.db.Cluster.Transaction(ctx, func(ctx context.Context, tx *db.ClusterTx) error {
++		dbProject, err := dbCluster.GetProject(ctx, tx.Tx(), projectName)
++		if err != nil {
++			return err
++		}
++
++		config, err = dbCluster.GetProjectConfig(ctx, tx.Tx(), dbProject.ID)
++		return err
++	})
++	if err != nil {
++		return nil, err
++	}
++
++	return config, nil
++}
++
+ func (d *Daemon) init() error {
+ 	var err error
+ 
+ 	var dbWarnings []dbCluster.Warning
+ 
+ 	// Set up the authorization router.
+-	d.authorizer, err = auth.NewRouter(d.shutdownCtx, logger.Log, d.clientCerts)
++	d.authorizer, err = auth.NewRouter(d.shutdownCtx, logger.Log, d.clientCerts, auth.WithProjectConfigFunc(d.projectConfig))
+ 	if err != nil {
+ 		return err
+ 	}
+diff --git a/internal/server/auth/authorization.go b/internal/server/auth/authorization.go
+index 6068f4333c..ff726699ec 100644
+--- a/internal/server/auth/authorization.go
++++ b/internal/server/auth/authorization.go
+@@ -120,9 +120,10 @@ type Authorizer interface {
+ // Opts is used as part of the LoadAuthorizer function so that only the relevant configuration fields are passed into a
+ // particular driver.
+ type Opts struct {
+-	config          map[string]any
+-	projectsGetFunc func(ctx context.Context) (map[int64]string, error)
+-	resourcesFunc   func() (*Resources, error)
++	config            map[string]any
++	projectsGetFunc   func(ctx context.Context) (map[int64]string, error)
++	projectConfigFunc func(ctx context.Context, projectName string) (map[string]string, error)
++	resourcesFunc     func() (*Resources, error)
+ }
+ 
+ // Resources represents a set of current API resources as Object slices for use when loading an Authorizer.
+@@ -159,6 +160,13 @@ func WithProjectsGetFunc(f func(ctx context.Context) (map[int64]string, error))
+ 	}
+ }
+ 
++// WithProjectConfigFunc should be passed into LoadAuthorizer when DriverTLS is used.
++func WithProjectConfigFunc(f func(ctx context.Context, projectName string) (map[string]string, error)) func(*Opts) {
++	return func(o *Opts) {
++		o.projectConfigFunc = f
++	}
++}
++
+ // WithResourcesFunc should be passed into LoadAuthorizer when DriverOpenFGA is used.
+ func WithResourcesFunc(f func() (*Resources, error)) func(*Opts) {
+ 	return func(o *Opts) {
+diff --git a/internal/server/auth/driver_tls.go b/internal/server/auth/driver_tls.go
+index 8bdd25b2b8..9550c94615 100644
+--- a/internal/server/auth/driver_tls.go
++++ b/internal/server/auth/driver_tls.go
+@@ -15,7 +15,18 @@ import (
+ // TLS represents a TLS authorizer.
+ type TLS struct {
+ 	commonAuthorizer
+-	certificates *certificate.Cache
++	certificates      *certificate.Cache
++	projectConfigFunc func(ctx context.Context, projectName string) (map[string]string, error)
++}
++
++// inheritedObjectFeatures maps the object types that can be inherited from the default project to the project feature controlling it.
++var inheritedObjectFeatures = map[ObjectType]string{
++	ObjectTypeImage:         "features.images",
++	ObjectTypeProfile:       "features.profiles",
++	ObjectTypeStorageVolume: "features.storage.volumes",
++	ObjectTypeStorageBucket: "features.storage.buckets",
++	ObjectTypeNetwork:       "features.networks",
++	ObjectTypeNetworkZone:   "features.networks.zones",
+ }
+ 
+ func (t *TLS) load(ctx context.Context, certificateCache *certificate.Cache, opts Opts) error {
+@@ -24,9 +35,35 @@ func (t *TLS) load(ctx context.Context, certificateCache *certificate.Cache, opt
+ 	}
+ 
+ 	t.certificates = certificateCache
++	t.projectConfigFunc = opts.projectConfigFunc
+ 	return nil
+ }
+ 
++// inheritsFromDefault returns whether any of the projects gets objects of the given type from the default project.
++func (t *TLS) inheritsFromDefault(ctx context.Context, projectNames []string, objectType ObjectType) bool {
++	feature, ok := inheritedObjectFeatures[objectType]
++	if !ok || t.projectConfigFunc == nil {
++		return false
++	}
++
++	for _, projectName := range projectNames {
++		if projectName == api.ProjectDefaultName {
++			return true
++		}
++
++		config, err := t.projectConfigFunc(ctx, projectName)
++		if err != nil {
++			continue
++		}
++
++		if util.IsFalseOrEmpty(config[feature]) {
++			return true
++		}
++	}
++
++	return false
++}
++
+ // CheckPermission returns an error if the user does not have the given Entitlement on the given Object.
+ func (t *TLS) CheckPermission(ctx context.Context, r *http.Request, object Object, entitlement Entitlement) error {
+ 	details, err := t.requestDetails(r)
+@@ -95,8 +132,8 @@ func (t *TLS) CheckPermission(ctx context.Context, r *http.Request, object Objec
+ 		return nil
+ 	}
+ 
+-	// Also allow read-only access to inherited resources, but only when accessed through a project the certificate is trusted for.
+-	if object.Project() == api.ProjectDefaultName && entitlement == EntitlementCanView && slices.Contains(projectNames, details.ProjectName) && slices.Contains([]ObjectType{ObjectTypeImage, ObjectTypeProfile, ObjectTypeStorageVolume, ObjectTypeStorageBucket, ObjectTypeNetwork, ObjectTypeNetworkZone}, object.Type()) {
++	// Also allow read-only access to inherited resources, but only through a trusted project that inherits them.
++	if object.Project() == api.ProjectDefaultName && entitlement == EntitlementCanView && slices.Contains(projectNames, details.ProjectName) && t.inheritsFromDefault(ctx, []string{details.ProjectName}, object.Type()) {
+ 		return nil
+ 	}
+ 
+@@ -172,6 +209,16 @@ func (t *TLS) GetPermissionChecker(ctx context.Context, r *http.Request, entitle
+ 		return allowFunc(false), nil
+ 	}
+ 
++	// Objects from the default project are only visible when the relevant certificate projects inherit them.
++	inherited := false
++	if entitlement == EntitlementCanView {
++		if details.IsAllProjectsRequest {
++			inherited = t.inheritsFromDefault(ctx, projectNames, objectType)
++		} else if slices.Contains(projectNames, details.ProjectName) {
++			inherited = t.inheritsFromDefault(ctx, []string{details.ProjectName}, objectType)
++		}
++	}
++
+ 	// Filter objects by project.
+ 	return func(object Object) bool {
+ 		// Allow if the project is in the allowed set.
+@@ -180,19 +227,7 @@ func (t *TLS) GetPermissionChecker(ctx context.Context, r *http.Request, entitle
+ 		}
+ 
+ 		// Also allow read-only access to inherited resources.
+-		if object.Project() != api.ProjectDefaultName {
+-			return false
+-		}
+-
+-		if entitlement != EntitlementCanView {
+-			return false
+-		}
+-
+-		if !slices.Contains([]ObjectType{ObjectTypeImage, ObjectTypeProfile, ObjectTypeStorageVolume, ObjectTypeStorageBucket, ObjectTypeNetwork, ObjectTypeNetworkZone}, objectType) {
+-			return false
+-		}
+-
+-		return true
++		return inherited && object.Project() == api.ProjectDefaultName
+ 	}, nil
+ }
+ 
+diff --git a/internal/server/auth/router.go b/internal/server/auth/router.go
+index e5bcfbed4f..72a1533f44 100644
+--- a/internal/server/auth/router.go
++++ b/internal/server/auth/router.go
+@@ -75,7 +75,7 @@ type Router struct {
+ var baseDrivers = []string{DriverAllow, DriverDeny, DriverTLS}
+ 
+ // NewRouter returns a Router with the base drivers loaded.
+-func NewRouter(ctx context.Context, l logger.Logger, certificateCache *certificate.Cache) (*Router, error) {
++func NewRouter(ctx context.Context, l logger.Logger, certificateCache *certificate.Cache, options ...func(opts *Opts)) (*Router, error) {
+ 	rt := &Router{certificates: certificateCache}
+ 
+ 	err := rt.init("router", l)
+@@ -87,7 +87,7 @@ func NewRouter(ctx context.Context, l logger.Logger, certificateCache *certifica
+ 	// reconfigurations and never stopped.
+ 	drivers := make(map[string]Authorizer, len(baseDrivers))
+ 	for _, name := range baseDrivers {
+-		driver, err := LoadAuthorizer(ctx, name, l, certificateCache)
++		driver, err := LoadAuthorizer(ctx, name, l, certificateCache, options...)
+ 		if err != nil {
+ 			return nil, err
+ 		}

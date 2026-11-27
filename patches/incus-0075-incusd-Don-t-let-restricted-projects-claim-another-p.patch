@@ -1,0 +1,53 @@
+From 3178dbc3bd3472f31f9d2b781a2d89cb0becfb0a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:36:17 -0500
+Subject: [PATCH] incusd: Don't let restricted projects claim another project's
+ volume as dependent
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A dependent disk flags the volume and deletes it with the instance,
+which a restricted project could do to volumes it may only view, and
+to volumes other instances still use.
+
+This addresses GHSA-8m9x-vx2q-7f9q (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 33f53e108855d0bf413f62e5cda093e0e695fca7)
+---
+ internal/server/device/disk.go         | 4 ++--
+ internal/server/project/permissions.go | 5 +++++
+ 2 files changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/internal/server/device/disk.go b/internal/server/device/disk.go
+index 3392ac52e0..be1a295037 100644
+--- a/internal/server/device/disk.go
++++ b/internal/server/device/disk.go
+@@ -760,8 +760,8 @@ func (d *disk) validateConfig(instConf instance.ConfigReader, partialValidation
+ 				return err
+ 			}
+ 
+-			// Check that the dependent disk is attached to exactly one instance.
+-			if util.IsTrue(dbVolume.Config["dependent"]) {
++			// Check that the dependent disk is attached to exactly one instance, including when claimed here.
++			if util.IsTrue(dbVolume.Config["dependent"]) || util.IsTrue(d.config["dependent"]) {
+ 				count, err := d.getAttachedInstanceCount(storageProjectName, dbVolume)
+ 				if err != nil {
+ 					return err
+diff --git a/internal/server/project/permissions.go b/internal/server/project/permissions.go
+index 4246496498..69ad18682c 100644
+--- a/internal/server/project/permissions.go
++++ b/internal/server/project/permissions.go
+@@ -996,6 +996,11 @@ func checkRestrictions(project api.Project, instances []api.Instance, profiles [
+ 					return fmt.Errorf("Storage pool %q is not accessible from this project", device["pool"])
+ 				}
+ 
++				// A dependent volume is deleted with the instance, so it can't be borrowed from another project.
++				if device["pool"] != "" && util.IsTrue(device["dependent"]) && StorageVolumeProjectFromRecord(&project, db.StoragePoolVolumeTypeCustom) != project.Name {
++					return errors.New("Dependent disks are forbidden when using the storage volumes of another project")
++				}
++
+ 				return nil
+ 			}
+ 

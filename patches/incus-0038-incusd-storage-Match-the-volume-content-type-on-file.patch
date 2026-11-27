@@ -1,0 +1,118 @@
+From 4e03fc5d9a2fdc4ceb63d8176101893b7b6c536d Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Sat, 24 Oct 2026 00:11:33 -0400
+Subject: [PATCH] incusd/storage: Match the volume content type on file, SFTP
+ and NBD
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The file and SFTP endpoints served any custom volume as a filesystem
+volume, exposing a block volume's root.img directory to the client; the
+NBD endpoint did the reverse, running qemu-nbd on a filesystem volume's
+user-controlled path. A planted symlink then let the client read or
+overwrite host files as root.
+
+Reject non-filesystem volumes on file/SFTP and non-block on NBD, and
+refuse a block volume disk path that isn't a regular file.
+
+This addresses GHSA-42x8-664j-84w8 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit b95d8a8052ac0098f7c5955264e419c70887354c)
+---
+ cmd/incusd/storage_volumes_file.go             |  6 ++++++
+ cmd/incusd/storage_volumes_sftp.go             |  6 ++++++
+ internal/server/storage/backend.go             |  5 +++++
+ internal/server/storage/drivers/generic_vfs.go | 14 +++++++++++++-
+ 4 files changed, 30 insertions(+), 1 deletion(-)
+
+diff --git a/cmd/incusd/storage_volumes_file.go b/cmd/incusd/storage_volumes_file.go
+index de2aacd546..4292205e95 100644
+--- a/cmd/incusd/storage_volumes_file.go
++++ b/cmd/incusd/storage_volumes_file.go
+@@ -6,6 +6,7 @@ import (
+ 	"net/http"
+ 	"slices"
+ 
++	"github.com/lxc/incus/v7/internal/server/db"
+ 	"github.com/lxc/incus/v7/internal/server/lifecycle"
+ 	"github.com/lxc/incus/v7/internal/server/project"
+ 	"github.com/lxc/incus/v7/internal/server/request"
+@@ -75,6 +76,11 @@ func storagePoolVolumeTypeFileHandler(d *Daemon, r *http.Request) response.Respo
+ 		return response.SmartError(err)
+ 	}
+ 
++	// Only filesystem volumes have a file tree; the mount path of other content types holds the disk image.
++	if volumeDB.ContentType != db.StoragePoolVolumeContentTypeNameFS {
++		return response.BadRequest(errors.New("Only filesystem volumes support file access"))
++	}
++
+ 	diskVolName := project.StorageVolume(volumeProjectName, volumeName)
+ 	vol := pool.GetVolume(storageDrivers.VolumeTypeCustom, storageDrivers.ContentTypeFS, diskVolName, volumeDB.Config)
+ 
+diff --git a/cmd/incusd/storage_volumes_sftp.go b/cmd/incusd/storage_volumes_sftp.go
+index f8d85ef3ce..f028d2706a 100644
+--- a/cmd/incusd/storage_volumes_sftp.go
++++ b/cmd/incusd/storage_volumes_sftp.go
+@@ -7,6 +7,7 @@ import (
+ 	"slices"
+ 
+ 	"github.com/lxc/incus/v7/internal/server/cluster"
++	"github.com/lxc/incus/v7/internal/server/db"
+ 	"github.com/lxc/incus/v7/internal/server/project"
+ 	"github.com/lxc/incus/v7/internal/server/request"
+ 	"github.com/lxc/incus/v7/internal/server/response"
+@@ -120,6 +121,11 @@ func storagePoolVolumeTypeSFTPHandler(d *Daemon, r *http.Request) response.Respo
+ 			return response.SmartError(err)
+ 		}
+ 
++		// Only filesystem volumes have a file tree; the mount path of other content types holds the disk image.
++		if volumeDB.ContentType != db.StoragePoolVolumeContentTypeNameFS {
++			return response.SmartError(api.StatusErrorf(http.StatusBadRequest, "Only filesystem volumes support file access"))
++		}
++
+ 		diskVolName := project.StorageVolume(volumeProjectName, volumeName)
+ 		vol := pool.GetVolume(storageDrivers.VolumeTypeCustom, storageDrivers.ContentTypeFS, diskVolName, volumeDB.Config)
+ 
+diff --git a/internal/server/storage/backend.go b/internal/server/storage/backend.go
+index 2e16c71af3..b72ead63fc 100644
+--- a/internal/server/storage/backend.go
++++ b/internal/server/storage/backend.go
+@@ -10545,6 +10545,11 @@ func (b *backend) GetCustomVolumeNBD(projectName string, volName string, writabl
+ 		return nil, nil, err
+ 	}
+ 
++	// Only block volumes have a disk image; on a filesystem volume the path would be under user control.
++	if dbVol.ContentType == db.StoragePoolVolumeContentTypeNameFS {
++		return nil, nil, api.StatusErrorf(http.StatusBadRequest, "Only block volumes support NBD access")
++	}
++
+ 	volStorageName := project.StorageVolume(projectName, volName)
+ 	vol := b.GetVolume(drivers.VolumeTypeCustom, drivers.ContentTypeBlock, volStorageName, nil)
+ 
+diff --git a/internal/server/storage/drivers/generic_vfs.go b/internal/server/storage/drivers/generic_vfs.go
+index 13e69a65ca..6c8125eadc 100644
+--- a/internal/server/storage/drivers/generic_vfs.go
++++ b/internal/server/storage/drivers/generic_vfs.go
+@@ -527,7 +527,19 @@ func genericVFSGetVolumeDiskPath(vol Volume) (string, error) {
+ 		return "", ErrNotSupported
+ 	}
+ 
+-	return filepath.Join(vol.MountPath(), genericVolumeDiskFile), nil
++	diskPath := filepath.Join(vol.MountPath(), genericVolumeDiskFile)
++
++	// The disk file gets opened by path as root, so never hand out something that leads outside the volume.
++	fi, err := os.Lstat(diskPath)
++	if err != nil && !errors.Is(err, fs.ErrNotExist) {
++		return "", err
++	}
++
++	if err == nil && !fi.Mode().IsRegular() {
++		return "", fmt.Errorf("Block volume file %q isn't a regular file", diskPath)
++	}
++
++	return diskPath, nil
+ }
+ 
+ // genericVFSBackupVolume is a generic BackupVolume implementation for VFS-only drivers.

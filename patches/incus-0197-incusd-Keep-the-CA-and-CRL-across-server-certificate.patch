@@ -1,0 +1,79 @@
+From c3ce9fecc0e55a3115c26c81b72abf0aec555469 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:02:06 -0500
+Subject: [PATCH] incusd: Keep the CA and CRL across server certificate updates
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The certificate installed after a manual or ACME renewal was built from
+the raw key pair, so the CA and revocation list were dropped until the
+next restart and revoked certificates were trusted again.
+
+This addresses GHSA-9m5m-cr24-m367 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 5122c624b3142db22bd1d58b6e6e2a043ac1fec6)
+---
+ cmd/incusd/api_acme.go     | 12 +++++++++---
+ cmd/incusd/api_internal.go |  8 +++++++-
+ 2 files changed, 16 insertions(+), 4 deletions(-)
+
+diff --git a/cmd/incusd/api_acme.go b/cmd/incusd/api_acme.go
+index c580322055..f86f8c47b2 100644
+--- a/cmd/incusd/api_acme.go
++++ b/cmd/incusd/api_acme.go
+@@ -256,18 +256,24 @@ func autoRenewCertificate(ctx context.Context, d *Daemon, force bool) error {
+ 			return nil
+ 		}
+ 
+-		cert, err := localtls.KeyPairFromRaw(newCert.Certificate, newCert.PrivateKey)
++		_, err = localtls.KeyPairFromRaw(newCert.Certificate, newCert.PrivateKey)
+ 		if err != nil {
+ 			return err
+ 		}
+ 
+-		s.Endpoints.NetworkUpdateCert(cert)
+-
+ 		err = util.WriteCert(s.OS.VarDir, "server", newCert.Certificate, newCert.PrivateKey, nil)
+ 		if err != nil {
+ 			return err
+ 		}
+ 
++		// Load it back from disk so the CA and CRL come along.
++		cert, err := util.LoadServerCert(s.OS.VarDir)
++		if err != nil {
++			return err
++		}
++
++		s.Endpoints.NetworkUpdateCert(cert)
++
+ 		return nil
+ 	}
+ 
+diff --git a/cmd/incusd/api_internal.go b/cmd/incusd/api_internal.go
+index c8b0699401..323e080fca 100644
+--- a/cmd/incusd/api_internal.go
++++ b/cmd/incusd/api_internal.go
+@@ -384,7 +384,7 @@ func internalServerCertificatePut(d *Daemon, r *http.Request) response.Response
+ 		return response.BadRequest(errors.New("Private key must be a PEM encoded key"))
+ 	}
+ 
+-	cert, err := localtls.KeyPairFromRaw(certBytes, keyBytes)
++	_, err = localtls.KeyPairFromRaw(certBytes, keyBytes)
+ 	if err != nil {
+ 		return response.BadRequest(fmt.Errorf("Invalid certificate or key: %w", err))
+ 	}
+@@ -397,6 +397,12 @@ func internalServerCertificatePut(d *Daemon, r *http.Request) response.Response
+ 		return response.SmartError(fmt.Errorf("Failed to write new server certificate: %w", err))
+ 	}
+ 
++	// Load it back from disk so the CA and CRL come along.
++	cert, err := internalUtil.LoadServerCert(s.OS.VarDir)
++	if err != nil {
++		return response.SmartError(err)
++	}
++
+ 	s.Endpoints.NetworkUpdateCert(cert)
+ 
+ 	return response.EmptySyncResponse

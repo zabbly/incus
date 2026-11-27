@@ -1,0 +1,85 @@
+From d30d79a8d4d47b409ffc9b5a6a898a9bb32aac57 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:00:52 -0500
+Subject: [PATCH] incusd: Keep other projects' instances out of profile update
+ errors
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This addresses GHSA-44g3-g988-46rg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 5598820be5e80cc15c8fc2507831604e4044ff24)
+---
+ cmd/incusd/profiles_utils.go | 39 ++++++++++++++++++++++++------------
+ 1 file changed, 26 insertions(+), 13 deletions(-)
+
+diff --git a/cmd/incusd/profiles_utils.go b/cmd/incusd/profiles_utils.go
+index beb4ed2b06..c3bb40ed4c 100644
+--- a/cmd/incusd/profiles_utils.go
++++ b/cmd/incusd/profiles_utils.go
+@@ -18,6 +18,7 @@ import (
+ 	"github.com/lxc/incus/v7/internal/server/project"
+ 	"github.com/lxc/incus/v7/internal/server/state"
+ 	"github.com/lxc/incus/v7/shared/api"
++	"github.com/lxc/incus/v7/shared/logger"
+ )
+ 
+ func doProfileUpdate(ctx context.Context, s *state.State, p api.Project, profileName string, profile *api.Profile, req api.ProfilePut) error {
+@@ -198,16 +199,34 @@ func doProfileUpdate(ctx context.Context, s *state.State, p api.Project, profile
+ 	}
+ 
+ 	if len(failures) != 0 {
+-		var msg strings.Builder
+-		msg.WriteString("The following instances failed to update (profile change still saved):\n")
+-		for inst, err := range failures {
+-			fmt.Fprintf(&msg, " - Project: %s, Instance: %s: %v\n", inst.Project, inst.Name, err)
++		return profileUpdateError(p.Name, failures)
++	}
++
++	return nil
++}
++
++// profileUpdateError reports the instances a profile update couldn't be applied to.
++func profileUpdateError(projectName string, failures map[*db.InstanceArgs]error) error {
++	var msg strings.Builder
++	msg.WriteString("The following instances failed to update (profile change still saved):\n")
++
++	others := 0
++	for inst, err := range failures {
++		// Only name instances of the profile's own project, the caller may not be allowed to see the others.
++		if inst.Project != projectName {
++			logger.Warn("Failed to apply profile update to instance", logger.Ctx{"project": inst.Project, "instance": inst.Name, "err": err})
++			others++
++			continue
+ 		}
+ 
+-		return fmt.Errorf("%s", msg.String())
++		fmt.Fprintf(&msg, " - Project: %s, Instance: %s: %v\n", inst.Project, inst.Name, err)
+ 	}
+ 
+-	return nil
++	if others > 0 {
++		fmt.Fprintf(&msg, " - %d instance(s) in other projects (see the server log)\n", others)
++	}
++
++	return errors.New(msg.String())
+ }
+ 
+ // Like doProfileUpdate but does not update the database, since it was already
+@@ -244,13 +263,7 @@ func doProfileUpdateCluster(ctx context.Context, s *state.State, projectName str
+ 	}
+ 
+ 	if len(failures) != 0 {
+-		var msg strings.Builder
+-		msg.WriteString("The following instances failed to update (profile change still saved):\n")
+-		for inst, err := range failures {
+-			fmt.Fprintf(&msg, " - Project: %s, Instance: %s: %v\n", inst.Project, inst.Name, err)
+-		}
+-
+-		return fmt.Errorf("%s", msg.String())
++		return profileUpdateError(projectName, failures)
+ 	}
+ 
+ 	return nil

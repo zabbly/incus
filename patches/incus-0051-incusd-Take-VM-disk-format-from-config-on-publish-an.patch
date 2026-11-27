@@ -1,0 +1,146 @@
+From cadb8f909107b2373351d498931db64742c3e8ab Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Sat, 24 Oct 2026 00:42:59 -0400
+Subject: [PATCH] incusd: Take VM disk format from config on publish and NBD
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Publishing a VM and the offline NBD endpoint let QEMU tools guess the
+disk format from the disk's own bytes, so a tenant-crafted qcow2 header
+naming a host path as backing or data file made incusd read that host
+file as root.
+
+Take the format from the volume config instead, and pass an explicit
+format to qemu-nbd.
+
+This addresses GHSA-4375-qwr5-8vjj (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit c8bff2c4c3fce2efdb4d8850f4500a7a557e2234)
+---
+ .../server/instance/drivers/driver_qemu.go    |  8 ++---
+ internal/server/storage/backend.go            | 33 ++++++++++++++-----
+ internal/server/storage/pool_interface.go     |  1 +
+ 3 files changed, 28 insertions(+), 14 deletions(-)
+
+diff --git a/internal/server/instance/drivers/driver_qemu.go b/internal/server/instance/drivers/driver_qemu.go
+index db0a19f9ec..3ba8d51e93 100644
+--- a/internal/server/instance/drivers/driver_qemu.go
++++ b/internal/server/instance/drivers/driver_qemu.go
+@@ -8748,13 +8748,9 @@ func (d *qemu) Export(metaWriter io.Writer, rootfsWriter io.Writer, properties m
+ 	fPath := fmt.Sprintf("%s/rootfs.img", tmpPath)
+ 
+ 	// On some storage drivers (lvmcluster), the volume holds a qcow2 container rather than raw data.
++	// Take the format from the volume config, never from the disk's own (tenant-controlled) content.
+ 	srcFormat := "raw"
+-	isQcow2, err := d.isQCOW2(mountInfo.DiskPath)
+-	if err != nil {
+-		return nil, fmt.Errorf("Failed checking disk format: %w", err)
+-	}
+-
+-	if isQcow2 {
++	if mountInfo.Qcow2 {
+ 		srcFormat = storageDrivers.BlockVolumeTypeQcow2
+ 	}
+ 
+diff --git a/internal/server/storage/backend.go b/internal/server/storage/backend.go
+index 35d02bb8ba..97c41dfed5 100644
+--- a/internal/server/storage/backend.go
++++ b/internal/server/storage/backend.go
+@@ -3469,6 +3469,7 @@ func (b *backend) MountInstance(inst instance.Instance, op *operations.Operation
+ 	mountInfo := &MountInfo{
+ 		DiskPath:    diskPath,
+ 		BackingPath: backingPaths,
++		Qcow2:       drivers.IsQcow2Block(vol),
+ 	}
+ 
+ 	reverter.Success() // From here on it is up to caller to call UnmountInstance() when done.
+@@ -4319,6 +4320,7 @@ func (b *backend) MountInstanceSnapshot(inst instance.Instance, op *operations.O
+ 
+ 	mountInfo := &MountInfo{
+ 		DiskPath: diskPath,
++		Qcow2:    drivers.IsQcow2Block(vol),
+ 	}
+ 
+ 	return mountInfo, nil
+@@ -6912,7 +6914,7 @@ func (b *backend) MountCustomVolume(projectName, volName string, op *operations.
+ 	vol := b.GetVolume(drivers.VolumeTypeCustom, drivers.ContentType(volume.ContentType), volStorageName, volume.Config)
+ 
+ 	// Perform the mount.
+-	mountInfo := &MountInfo{}
++	mountInfo := &MountInfo{Qcow2: drivers.IsQcow2Block(vol)}
+ 	err = b.driver.MountVolume(vol, op)
+ 	if err != nil {
+ 		return nil, err
+@@ -10533,8 +10535,14 @@ func (b *backend) GetInstanceNBD(inst instance.Instance, writable bool) (net.Con
+ 		return nil, nil, err
+ 	}
+ 
++	// Load the volume config so the disk format comes from it rather than from the disk's own bytes.
++	dbVol, err := VolumeDBGet(b, inst.Project().Name, inst.Name(), drivers.VolumeTypeVM)
++	if err != nil {
++		return nil, nil, err
++	}
++
+ 	volStorageName := project.Instance(inst.Project().Name, inst.Name())
+-	vol := b.GetVolume(drivers.VolumeTypeVM, drivers.ContentTypeBlock, volStorageName, nil)
++	vol := b.GetVolume(drivers.VolumeTypeVM, drivers.ContentTypeBlock, volStorageName, dbVol.Config)
+ 
+ 	unlock, err := nbdOperationLock(inst.Project().Name, inst.Name())
+ 	if err != nil {
+@@ -10647,7 +10655,7 @@ func (b *backend) GetCustomVolumeNBD(projectName string, volName string, writabl
+ 	}
+ 
+ 	volStorageName := project.StorageVolume(projectName, volName)
+-	vol := b.GetVolume(drivers.VolumeTypeCustom, drivers.ContentTypeBlock, volStorageName, nil)
++	vol := b.GetVolume(drivers.VolumeTypeCustom, drivers.ContentTypeBlock, volStorageName, dbVol.Config)
+ 
+ 	// Convert the volume type name to our internal integer representation.
+ 	volumeDbType, err := VolumeTypeNameToDBType(dbVol.Type)
+@@ -10705,6 +10713,14 @@ func (b *backend) connectOfflineNBD(vol drivers.Volume, writable bool) (net.Conn
+ 		cmd.Args = append(cmd.Args, "--read-only")
+ 	}
+ 
++	// Set the format from the volume config so qemu-nbd can't auto-detect a tenant-crafted header.
++	nbdFormat := "raw"
++	if drivers.IsQcow2Block(vol) {
++		nbdFormat = drivers.BlockVolumeTypeQcow2
++	}
++
++	cmd.Args = append(cmd.Args, fmt.Sprintf("--format=%s", nbdFormat))
++
+ 	// Share the qemu-nbd process safely between the worker and this goroutine.
+ 	var procMu sync.Mutex
+ 	var proc *os.Process
+@@ -10720,12 +10736,13 @@ func (b *backend) connectOfflineNBD(vol drivers.Volume, writable bool) (net.Conn
+ 				return err
+ 			}
+ 
+-			imgInfo, err := drivers.Qcow2Info(volDiskPath)
+-			if err != nil {
+-				return err
+-			}
++			// Only probe for bitmaps on a volume the config says is qcow2.
++			if drivers.IsQcow2Block(vol) {
++				imgInfo, err := drivers.Qcow2Info(volDiskPath)
++				if err != nil {
++					return err
++				}
+ 
+-			if imgInfo.Format == "qcow2" && len(imgInfo.FormatSpecific.Data.Bitmaps) > 0 {
+ 				for _, b := range imgInfo.FormatSpecific.Data.Bitmaps {
+ 					cmd.Args = append(cmd.Args, fmt.Sprintf("--bitmap=%s", b.Name))
+ 				}
+diff --git a/internal/server/storage/pool_interface.go b/internal/server/storage/pool_interface.go
+index a5989fe5be..5f142ef31b 100644
+--- a/internal/server/storage/pool_interface.go
++++ b/internal/server/storage/pool_interface.go
+@@ -29,6 +29,7 @@ type MountInfo struct {
+ 	DiskPath    string                               // The location of the block disk (if supported).
+ 	BackingPath []string                             // The location of the block disk (backing disk for qcow2).
+ 	PostHooks   []func(inst instance.Instance) error // Hooks to be called following a mount.
++	Qcow2       bool                                 // Whether the disk is qcow2 formatted (from the volume config, not its content).
+ }
+ 
+ // Type represents an Incus storage pool type.

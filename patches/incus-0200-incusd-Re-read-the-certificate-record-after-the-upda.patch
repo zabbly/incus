@@ -1,0 +1,50 @@
+From a168ae7d3fca9fcf9b250a95fc85981ab7a537a9 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:03:43 -0500
+Subject: [PATCH] incusd: Re-read the certificate record after the update body
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The record was loaded before the request body was decoded and written
+back afterwards, so a client holding the body open could revert an
+administrator's change to its projects or restricted flag in between.
+
+This addresses GHSA-9m5m-cr24-m367 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit f4bb5b8c803feed45ad94abcc3e21eaa881a8e9e)
+---
+ cmd/incusd/certificates.go | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
+
+diff --git a/cmd/incusd/certificates.go b/cmd/incusd/certificates.go
+index 17ca5f3cb6..e623de1432 100644
+--- a/cmd/incusd/certificates.go
++++ b/cmd/incusd/certificates.go
+@@ -1123,6 +1123,25 @@ func doCertificateUpdate(d *Daemon, dbInfo api.Certificate, req api.CertificateP
+ 	s := d.State()
+ 
+ 	if clientType == clusterRequest.ClientTypeNormal {
++		// The record was loaded before the body was read, which the client controls the timing of.
++		err := s.DB.Cluster.Transaction(r.Context(), func(ctx context.Context, tx *db.ClusterTx) error {
++			dbCert, err := dbCluster.GetCertificate(ctx, tx.Tx(), dbInfo.Fingerprint)
++			if err != nil {
++				return err
++			}
++
++			current, err := dbCert.ToAPI(ctx, tx.Tx())
++			if err != nil {
++				return err
++			}
++
++			dbInfo = *current
++			return nil
++		})
++		if err != nil {
++			return response.SmartError(err)
++		}
++
+ 		// Prevent any type change.
+ 		if dbInfo.Type != req.Type {
+ 			return response.BadRequest(errors.New("The certificate type cannot be changed"))

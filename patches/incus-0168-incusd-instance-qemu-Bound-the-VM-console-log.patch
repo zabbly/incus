@@ -1,0 +1,131 @@
+From 52caae1d784ab3cb0f3e07a898ba3fdf083c14f6 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:02:05 -0500
+Subject: [PATCH] incusd/instance/qemu: Bound the VM console log
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The ring buffer was drained until a read came back empty, so a guest
+writing faster than the daemon reads kept the loop going, and the log
+file it fed grew without bound and was read whole on every request.
+
+This addresses GHSA-23fc-ggg4-5r2r (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit eee66bfdcb180e2cc142e3454ee52052d99956d7)
+---
+ .../server/instance/drivers/driver_qemu.go    | 47 +++++++++++++++++--
+ .../server/instance/drivers/qmp/commands.go   |  5 +-
+ .../server/instance/drivers/qmp/monitor.go    |  3 ++
+ 3 files changed, 49 insertions(+), 6 deletions(-)
+
+diff --git a/internal/server/instance/drivers/driver_qemu.go b/internal/server/instance/drivers/driver_qemu.go
+index 83ae65b904..fc4f9932ab 100644
+--- a/internal/server/instance/drivers/driver_qemu.go
++++ b/internal/server/instance/drivers/driver_qemu.go
+@@ -12482,7 +12482,10 @@ func (d *qemu) postCPUHotplug(monitor *qmp.Monitor) error {
+ 	return nil
+ }
+ 
+-// ConsoleLog returns all output sent to the instance's console's ring buffer since startup.
++// qemuConsoleLogMaxSize bounds the console log kept while the VM runs.
++const qemuConsoleLogMaxSize = 8 * 1024 * 1024
++
++// ConsoleLog returns the most recent output sent to the instance's console's ring buffer.
+ func (d *qemu) ConsoleLog() (string, error) {
+ 	// Setup a new operation, retrying if a concurrent retrieval just completed.
+ 	var op *operationlock.InstanceOperation
+@@ -12531,8 +12534,8 @@ func (d *qemu) ConsoleLog() (string, error) {
+ 		}
+ 	}
+ 
+-	// Read and return the complete log for this instance.
+-	fullLog, err := os.ReadFile(d.ConsoleBufferLogPath())
++	// Read and return the end of the log for this instance.
++	fullLog, err := d.consoleLogTail()
+ 	if err != nil {
+ 		if errors.Is(err, fs.ErrNotExist) {
+ 			// If there's no log file yet, such as right at VM creation, return an empty string.
+@@ -12542,7 +12545,43 @@ func (d *qemu) ConsoleLog() (string, error) {
+ 		return "", err
+ 	}
+ 
+-	return string(fullLog), nil
++	return fullLog, nil
++}
++
++// consoleLogTail returns the last qemuConsoleLogMaxSize bytes of the console log, trimming the file to them.
++func (d *qemu) consoleLogTail() (string, error) {
++	logFile, err := os.OpenFile(d.ConsoleBufferLogPath(), os.O_RDWR, 0)
++	if err != nil {
++		return "", err
++	}
++
++	defer logger.WarnOnError(logFile.Close, "Failed to close log file")
++
++	fi, err := logFile.Stat()
++	if err != nil {
++		return "", err
++	}
++
++	offset := max(fi.Size()-qemuConsoleLogMaxSize, 0)
++	tail, err := io.ReadAll(io.NewSectionReader(logFile, offset, qemuConsoleLogMaxSize))
++	if err != nil {
++		return "", err
++	}
++
++	// Keep the file itself bounded too, it isn't rotated while the VM runs.
++	if offset > 0 {
++		err = logFile.Truncate(0)
++		if err != nil {
++			return "", err
++		}
++
++		_, err = logFile.WriteAt(tail, 0)
++		if err != nil {
++			return "", err
++		}
++	}
++
++	return string(tail), nil
+ }
+ 
+ // consoleSwapRBWithSocket swaps the qemu backend for the instance's console to a unix socket.
+diff --git a/internal/server/instance/drivers/qmp/commands.go b/internal/server/instance/drivers/qmp/commands.go
+index 345eb0812a..e4d0aa4683 100644
+--- a/internal/server/instance/drivers/qmp/commands.go
++++ b/internal/server/instance/drivers/qmp/commands.go
+@@ -1854,7 +1854,8 @@ func (m *Monitor) RingbufRead(device string) (string, error) {
+ 
+ 	var sb strings.Builder
+ 
+-	for {
++	// Stop after a ring buffer's worth, the guest can refill it faster than it's drained.
++	for sb.Len() < ConsoleRingbufSize {
+ 		err := m.Run("ringbuf-read", args, &readResp)
+ 		if err != nil {
+ 			// The device may have been swapped to a socket since the check above, return what was read.
+@@ -1931,7 +1932,7 @@ func (m *Monitor) ChardevChange(device string, info ChardevChangeInfo) error {
+ 
+ 		args.ID = device
+ 		args.Backend.Type = info.Type
+-		args.Backend.Data.Size = 1048576
++		args.Backend.Data.Size = ConsoleRingbufSize
+ 
+ 		return m.Run("chardev-change", args, nil)
+ 	}
+diff --git a/internal/server/instance/drivers/qmp/monitor.go b/internal/server/instance/drivers/qmp/monitor.go
+index fc13f4eab1..4b2f06c12a 100644
+--- a/internal/server/instance/drivers/qmp/monitor.go
++++ b/internal/server/instance/drivers/qmp/monitor.go
+@@ -26,6 +26,9 @@ var (
+ // RingbufSize is the size of the agent serial ringbuffer in bytes.
+ var RingbufSize = 1024 * 16
+ 
++// ConsoleRingbufSize is the size of the console ringbuffer in bytes.
++const ConsoleRingbufSize = 1024 * 1024
++
+ // EventAgentStarted is the event sent once the agent has started.
+ var EventAgentStarted = "AGENT-STARTED"
+ 

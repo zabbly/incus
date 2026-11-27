@@ -1,0 +1,53 @@
+From 4497885a88d5c1728325c0270cce224d733dbf7d Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:03:59 -0500
+Subject: [PATCH] incusd/endpoints: Keep accepting on the local socket after a
+ failed accept
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A transient accept error such as EMFILE ended the accept loop for good,
+so the local socket stayed dead once descriptors were free again.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit b1035720293d8287a9b8a743af4c8517178803bc)
+---
+ internal/server/endpoints/listeners/starttls.go | 17 ++++++++++++++---
+ 1 file changed, 14 insertions(+), 3 deletions(-)
+
+diff --git a/internal/server/endpoints/listeners/starttls.go b/internal/server/endpoints/listeners/starttls.go
+index a20497fb77..fe1b208955 100644
+--- a/internal/server/endpoints/listeners/starttls.go
++++ b/internal/server/endpoints/listeners/starttls.go
+@@ -42,14 +42,25 @@ func NewSTARTTLSListener(inner net.Listener, cert *localtls.CertInfo) *StarttlsL
+ // acceptLoop accepts connections and classifies each one in its own goroutine,
+ // so a client that hasn't sent anything yet can't hold up the others.
+ func (l *StarttlsListener) acceptLoop() {
++	var delay time.Duration
++
+ 	for {
+ 		c, err := l.Listener.Accept()
+ 		if err != nil {
+-			l.err = err
+-			close(l.done)
+-			return
++			// Only a closed listener is final, anything else is retried like net/http does.
++			if errors.Is(err, net.ErrClosed) {
++				l.err = err
++				close(l.done)
++				return
++			}
++
++			delay = max(min(delay*2, time.Second), 5*time.Millisecond)
++			time.Sleep(delay)
++			continue
+ 		}
+ 
++		delay = 0
++
+ 		go func() {
+ 			conn, err := l.classify(c)
+ 			if err != nil {

@@ -1,0 +1,166 @@
+From 4ed984f665f6213727524406fb133ba420236328 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:06:06 -0500
+Subject: [PATCH] incusd: Contact the image server outside of the database
+ transaction
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+On a clustered server the architecture lookup for a remote image ran
+inside the cluster database transaction, so a silent image server held
+the only database connection, and it ran ahead of the
+restricted.images.servers check.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit ef4e92fe73f7a902f23ac02f9f24a93e458ec327)
+---
+ cmd/incusd/instances_post.go               | 77 ++++++++++++----------
+ internal/server/instance/instance_utils.go | 13 +++-
+ 2 files changed, 52 insertions(+), 38 deletions(-)
+
+diff --git a/cmd/incusd/instances_post.go b/cmd/incusd/instances_post.go
+index 1df4d3e203..0bc1d2cf31 100644
+--- a/cmd/incusd/instances_post.go
++++ b/cmd/incusd/instances_post.go
+@@ -1426,6 +1426,8 @@ func instancesPost(d *Daemon, r *http.Request) response.Response {
+ 		}
+ 	}
+ 
++	var allMembers []db.NodeInfo
++
+ 	err = s.DB.Cluster.Transaction(r.Context(), func(ctx context.Context, tx *db.ClusterTx) error {
+ 		dbProject, err := dbCluster.GetProject(ctx, tx.Tx(), targetProjectName)
+ 		if err != nil {
+@@ -1437,8 +1439,6 @@ func instancesPost(d *Daemon, r *http.Request) response.Response {
+ 			return err
+ 		}
+ 
+-		var allMembers []db.NodeInfo
+-
+ 		if s.ServerClustered && !clusterNotification {
+ 			allMembers, err = tx.GetNodes(ctx)
+ 			if err != nil {
+@@ -1609,40 +1609,6 @@ func instancesPost(d *Daemon, r *http.Request) response.Response {
+ 			}
+ 		}
+ 
+-		if s.ServerClustered && !clusterNotification && targetMemberInfo == nil {
+-			architectures, err := instance.SuitableArchitectures(ctx, s, tx, targetProjectName, sourceInst, sourceImageRef, req)
+-			if err != nil {
+-				return err
+-			}
+-
+-			// Use the default architecture from project or global config when the source
+-			// doesn't dictate one or offers several (multi-architecture image aliases).
+-			defaultArch := targetProject.Config["images.default_architecture"]
+-			if defaultArch == "" {
+-				defaultArch = s.GlobalConfig.ImagesDefaultArchitecture()
+-			}
+-
+-			if defaultArch != "" {
+-				defaultArchID, err := osarch.ArchitectureID(defaultArch)
+-				if err != nil {
+-					return err
+-				}
+-
+-				if len(architectures) < 1 || slices.Contains(architectures, defaultArchID) {
+-					architectures = []int{defaultArchID}
+-				}
+-			} else if len(architectures) < 1 {
+-				architectures = nil // Don't exclude candidate members based on architecture.
+-			}
+-
+-			clusterGroupsAllowed := project.GetRestrictedClusterGroups(targetProject)
+-
+-			candidateMembers, err = tx.GetCandidateMembers(ctx, allMembers, architectures, targetGroupName, clusterGroupsAllowed, s.GlobalConfig.OfflineThreshold())
+-			if err != nil {
+-				return err
+-			}
+-		}
+-
+ 		if !clusterNotification {
+ 			// Check that the project's limits are not violated. Note this check is performed after
+ 			// automatically generated config values (such as ones from an InstanceType) have been set.
+@@ -1658,6 +1624,45 @@ func instancesPost(d *Daemon, r *http.Request) response.Response {
+ 		return response.SmartError(err)
+ 	}
+ 
++	// Contact the image server outside of the transaction, after the project checks.
++	if s.ServerClustered && !clusterNotification && targetMemberInfo == nil {
++		architectures, err := instance.SuitableArchitectures(r.Context(), s, targetProjectName, sourceInst, sourceImageRef, req)
++		if err != nil {
++			return response.SmartError(err)
++		}
++
++		// Use the default architecture from project or global config when the source
++		// doesn't dictate one or offers several (multi-architecture image aliases).
++		defaultArch := targetProject.Config["images.default_architecture"]
++		if defaultArch == "" {
++			defaultArch = s.GlobalConfig.ImagesDefaultArchitecture()
++		}
++
++		if defaultArch != "" {
++			defaultArchID, err := osarch.ArchitectureID(defaultArch)
++			if err != nil {
++				return response.SmartError(err)
++			}
++
++			if len(architectures) < 1 || slices.Contains(architectures, defaultArchID) {
++				architectures = []int{defaultArchID}
++			}
++		} else if len(architectures) < 1 {
++			architectures = nil // Don't exclude candidate members based on architecture.
++		}
++
++		clusterGroupsAllowed := project.GetRestrictedClusterGroups(targetProject)
++
++		err = s.DB.Cluster.Transaction(r.Context(), func(ctx context.Context, tx *db.ClusterTx) error {
++			candidateMembers, err = tx.GetCandidateMembers(ctx, allMembers, architectures, targetGroupName, clusterGroupsAllowed, s.GlobalConfig.OfflineThreshold())
++
++			return err
++		})
++		if err != nil {
++			return response.SmartError(err)
++		}
++	}
++
+ 	// A local image may only be used by a caller allowed to view it.
+ 	if sourceImage != nil && req.Source.Server == "" {
+ 		err = s.Authorizer.CheckPermission(r.Context(), r, auth.ObjectImage(targetProjectName, sourceImage.Fingerprint), auth.EntitlementCanView)
+diff --git a/internal/server/instance/instance_utils.go b/internal/server/instance/instance_utils.go
+index 53ce7a1f05..473b554277 100644
+--- a/internal/server/instance/instance_utils.go
++++ b/internal/server/instance/instance_utils.go
+@@ -558,10 +558,11 @@ func ResolveImage(ctx context.Context, tx *db.ClusterTx, projectName string, sou
+ }
+ 
+ // SuitableArchitectures returns a slice of architecture ids based on an instance create request.
++// It may contact a remote image server, so it must not be called from within a transaction.
+ //
+ // An empty list indicates that the request may be handled by any architecture.
+ // A nil list indicates that we can't tell at this stage, typically for private images.
+-func SuitableArchitectures(ctx context.Context, s *state.State, tx *db.ClusterTx, projectName string, sourceInst *cluster.Instance, sourceImageRef string, req api.InstancesPost) ([]int, error) {
++func SuitableArchitectures(ctx context.Context, s *state.State, projectName string, sourceInst *cluster.Instance, sourceImageRef string, req api.InstancesPost) ([]int, error) {
+ 	// Handle cases where the architecture is already provided.
+ 	if slices.Contains([]string{"migration", "none"}, req.Source.Type) && req.Architecture != "" {
+ 		id, err := osarch.ArchitectureID(req.Architecture)
+@@ -591,7 +592,15 @@ func SuitableArchitectures(ctx context.Context, s *state.State, tx *db.ClusterTx
+ 	if req.Source.Type == "image" {
+ 		// Handle local images.
+ 		if req.Source.Server == "" {
+-			_, img, err := tx.GetImageByFingerprintPrefix(ctx, sourceImageRef, cluster.ImageFilter{Project: &projectName})
++			var img *api.Image
++
++			err := s.DB.Cluster.Transaction(ctx, func(ctx context.Context, tx *db.ClusterTx) error {
++				var err error
++
++				_, img, err = tx.GetImageByFingerprintPrefix(ctx, sourceImageRef, cluster.ImageFilter{Project: &projectName})
++
++				return err
++			})
+ 			if err != nil {
+ 				return nil, err
+ 			}

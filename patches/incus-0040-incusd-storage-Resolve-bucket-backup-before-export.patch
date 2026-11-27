@@ -1,0 +1,40 @@
+From a679fdc046d9005e97780eed9dab61075618d163 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Sat, 24 Oct 2026 00:14:11 -0400
+Subject: [PATCH] incusd/storage: Resolve bucket backup before export
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The bucket backup export handler built the file path from the backup
+name in the URL without looking the backup up, so a traversal name
+streamed any root-readable host file.
+
+Load the backup from the database first, as the instance and volume
+export handlers do.
+
+This addresses GHSA-42x8-664j-84w8 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit e222ae41c7957f433a450d668b593e938a204cc7)
+---
+ cmd/incusd/storage_buckets_backup.go | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/cmd/incusd/storage_buckets_backup.go b/cmd/incusd/storage_buckets_backup.go
+index 1461554853..249bd43ccd 100644
+--- a/cmd/incusd/storage_buckets_backup.go
++++ b/cmd/incusd/storage_buckets_backup.go
+@@ -1005,6 +1005,12 @@ func storagePoolBucketBackupExportGet(d *Daemon, r *http.Request) response.Respo
+ 		return response.SmartError(err)
+ 	}
+ 
++	// Resolve the backup in the database so a traversal name can't build a path outside the backup directory.
++	_, err = storagePoolBucketBackupLoadByName(r.Context(), s, projectName, poolName, fullName)
++	if err != nil {
++		return response.SmartError(err)
++	}
++
+ 	ent := response.FileResponseEntry{
+ 		Path: internalUtil.VarPath("backups", "buckets", poolName, project.StorageBucket(projectName, fullName)),
+ 	}

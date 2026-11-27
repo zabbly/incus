@@ -1,0 +1,42 @@
+From 021530554d38a9afd6e03d84e81eba077f84d6a2 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Fri, 20 Nov 2026 15:02:36 -0500
+Subject: [PATCH] incusd/util: Stop the rendering of a template past the output
+ limit
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The renderer ignores write errors, so the limit only truncated the
+output.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+---
+ internal/util/template.go | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/internal/util/template.go b/internal/util/template.go
+index f621d15518..a049abd681 100644
+--- a/internal/util/template.go
++++ b/internal/util/template.go
+@@ -39,7 +39,7 @@ func newTemplateSet() (*pongo2.TemplateSet, error) {
+ 	return custom, nil
+ }
+ 
+-// boundedWriter fails once more than templateMaxOutput bytes have been written.
++// boundedWriter stops the rendering once more than templateMaxOutput bytes have been written.
+ type boundedWriter struct {
+ 	w io.Writer
+ 	n int
+@@ -48,7 +48,8 @@ type boundedWriter struct {
+ func (b *boundedWriter) Write(p []byte) (int, error) {
+ 	b.n += len(p)
+ 	if b.n > templateMaxOutput {
+-		return 0, errors.New("Template output is too large")
++		// The renderer ignores write errors, executeTemplate recovers this.
++		panic("Template output is too large")
+ 	}
+ 
+ 	return b.w.Write(p)

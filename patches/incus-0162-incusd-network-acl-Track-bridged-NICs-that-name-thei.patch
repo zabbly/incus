@@ -1,0 +1,154 @@
+From ee08c43a885fc27b9bb549ff68822b73481226e4 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:12:09 -0500
+Subject: [PATCH] incusd/network/acl: Track bridged NICs that name their bridge
+ as parent
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Such NICs enforce security.acls but were left out of the ACL usage,
+so ACL changes weren't applied to them and the ACL could be renamed or
+deleted while in use.
+
+This addresses GHSA-fg2p-r659-c4q8 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 8599edb6196e5c9c3fe59a012bfd148b903dcfe8)
+---
+ internal/server/network/acl/acl_load.go       | 27 +++++++++++++++++--
+ internal/server/network/acl/acl_ovn.go        | 10 +++++++
+ .../network/address-set/address_set_load.go   | 26 ++++++++++++++++--
+ 3 files changed, 59 insertions(+), 4 deletions(-)
+
+diff --git a/internal/server/network/acl/acl_load.go b/internal/server/network/acl/acl_load.go
+index 5cdd234258..2c1cf2efd4 100644
+--- a/internal/server/network/acl/acl_load.go
++++ b/internal/server/network/acl/acl_load.go
+@@ -318,8 +318,8 @@ func UsedBy(s *state.State, aclProjectName string, usageFunc func(ctx context.Co
+ func isInUseByDevice(d deviceConfig.Device, matchACLNames ...string) []string {
+ 	matchedACLNames := []string{}
+ 
+-	// Only NICs linked to managed networks can use network ACLs.
+-	if d["type"] != "nic" || d["network"] == "" {
++	// Only NICs linked to managed networks and bridged NICs can use network ACLs.
++	if d["type"] != "nic" || (d["network"] == "" && d["nictype"] != "bridged") {
+ 		return matchedACLNames
+ 	}
+ 
+@@ -351,6 +351,11 @@ func NetworkUsage(s *state.State, aclProjectName string, aclNames []string, aclN
+ 	err := UsedBy(s, aclProjectName, func(ctx context.Context, tx *db.ClusterTx, matchedACLNames []string, usageType any, devName string, nicConfig map[string]string) error {
+ 		switch u := usageType.(type) {
+ 		case cluster.Profile:
++			// Bridged NICs that aren't linked to a managed network are tracked through the instances using the profile.
++			if nicConfig["network"] == "" {
++				return nil
++			}
++
+ 			networkID, network, _, err := tx.GetNetworkInAnyState(ctx, aclProjectName, nicConfig["network"])
+ 			if err != nil {
+ 				return fmt.Errorf("Failed to load network %q: %w", nicConfig["network"], err)
+@@ -369,6 +374,24 @@ func NetworkUsage(s *state.State, aclProjectName string, aclNames []string, aclN
+ 			}
+ 
+ 		case db.InstanceArgs:
++			// Bridged NICs that aren't linked to a managed network have no network record, record the NIC usage only.
++			if nicConfig["network"] == "" {
++				key := fmt.Sprintf("%s/%s/%s/%s", nicConfig["parent"], u.Project, u.Name, devName)
++
++				_, found := aclNets[key]
++				if !found {
++					aclNets[key] = NetworkACLUsage{
++						Name:            nicConfig["parent"],
++						Type:            "bridge",
++						InstanceProject: u.Project,
++						InstanceName:    u.Name,
++						DeviceName:      devName,
++					}
++				}
++
++				return nil
++			}
++
+ 			networkID, network, _, err := tx.GetNetworkInAnyState(ctx, aclProjectName, nicConfig["network"])
+ 			if err != nil {
+ 				return fmt.Errorf("Failed to load network %q: %w", nicConfig["network"], err)
+diff --git a/internal/server/network/acl/acl_ovn.go b/internal/server/network/acl/acl_ovn.go
+index 526ab5c195..37dfa847bf 100644
+--- a/internal/server/network/acl/acl_ovn.go
++++ b/internal/server/network/acl/acl_ovn.go
+@@ -1148,6 +1148,11 @@ func OVNPortGroupDeleteIfUnused(s *state.State, l logger.Logger, client *ovn.NB,
+ 				return nil
+ 			}
+ 
++			// NICs that aren't linked to a managed network can't be using an OVN network.
++			if nicConfig["network"] == "" {
++				return nil
++			}
++
+ 			netID, network, _, err := tx.GetNetworkInAnyState(ctx, aclProjectName, nicConfig["network"])
+ 			if err != nil {
+ 				return fmt.Errorf("Failed to load network %q: %w", nicConfig["network"], err)
+@@ -1208,6 +1213,11 @@ func OVNPortGroupDeleteIfUnused(s *state.State, l logger.Logger, client *ovn.NB,
+ 				return nil
+ 			}
+ 
++			// NICs that aren't linked to a managed network can't be using an OVN network.
++			if nicConfig["network"] == "" {
++				return nil
++			}
++
+ 			netID, network, _, err := tx.GetNetworkInAnyState(ctx, aclProjectName, nicConfig["network"])
+ 			if err != nil {
+ 				return fmt.Errorf("Failed to load network %q: %w", nicConfig["network"], err)
+diff --git a/internal/server/network/address-set/address_set_load.go b/internal/server/network/address-set/address_set_load.go
+index 92926dd7ea..ff799bade4 100644
+--- a/internal/server/network/address-set/address_set_load.go
++++ b/internal/server/network/address-set/address_set_load.go
+@@ -309,8 +309,8 @@ func GetAddressSetsForACLs(s *state.State, projectName string, ACLNames []string
+ func ACLisInUseByDevice(d deviceConfig.Device, matchACLNames ...string) []string {
+ 	matchedACLNames := []string{}
+ 
+-	// Only NICs linked to managed networks can use network ACLs.
+-	if d["type"] != "nic" || d["network"] == "" {
++	// Only NICs linked to managed networks and bridged NICs can use network ACLs.
++	if d["type"] != "nic" || (d["network"] == "" && d["nictype"] != "bridged") {
+ 		return matchedACLNames
+ 	}
+ 
+@@ -521,6 +521,11 @@ func ACLNetworkUsage(s *state.State, aclProjectName string, aclNames []string, a
+ 	err := ACLUsedBy(s, aclProjectName, func(ctx context.Context, tx *db.ClusterTx, matchedACLNames []string, usageType any, devName string, nicConfig map[string]string) error {
+ 		switch u := usageType.(type) {
+ 		case dbCluster.Profile:
++			// Bridged NICs that aren't linked to a managed network are tracked through the instances using the profile.
++			if nicConfig["network"] == "" {
++				return nil
++			}
++
+ 			networkID, network, _, err := tx.GetNetworkInAnyState(ctx, aclProjectName, nicConfig["network"])
+ 			if err != nil {
+ 				return fmt.Errorf("Failed to load network %q: %w", nicConfig["network"], err)
+@@ -539,6 +544,23 @@ func ACLNetworkUsage(s *state.State, aclProjectName string, aclNames []string, a
+ 			}
+ 
+ 		case db.InstanceArgs:
++			// Bridged NICs that aren't linked to a managed network have no network record, record the NIC usage only.
++			if nicConfig["network"] == "" {
++				key := fmt.Sprintf("%s/%s/%s", nicConfig["parent"], u.Name, devName)
++
++				_, found := aclNets[key]
++				if !found {
++					aclNets[key] = NetworkACLUsage{
++						Name:         nicConfig["parent"],
++						Type:         "bridge",
++						InstanceName: u.Name,
++						DeviceName:   devName,
++					}
++				}
++
++				return nil
++			}
++
+ 			networkID, network, _, err := tx.GetNetworkInAnyState(ctx, aclProjectName, nicConfig["network"])
+ 			if err != nil {
+ 				return fmt.Errorf("Failed to load network %q: %w", nicConfig["network"], err)

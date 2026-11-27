@@ -1,0 +1,145 @@
+From 1ee0129cd3f8d80c4e6a2af53b23229811eecb10 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Sat, 24 Oct 2026 00:44:50 -0400
+Subject: [PATCH] incusd/storage: Reject non-self-contained VM images on unpack
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A VM image's qcow2 root disk could name a host path as a backing file or
+external data file, which qemu-img opens as root during unpack, copying
+that host file onto the new VM's disk.
+
+Reject a root disk that isn't a regular file or that refers to a backing
+or external data file before handing it to qemu-img.
+
+This addresses GHSA-4375-qwr5-8vjj (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 998fbcec79d0d3e9a00c43fc0a8dc0f6a374c03f)
+---
+ .../server/storage/drivers/utils_qcow2.go     | 40 +++++++++++++++++++
+ internal/server/storage/utils.go              | 35 ++++++++++++++++
+ 2 files changed, 75 insertions(+)
+
+diff --git a/internal/server/storage/drivers/utils_qcow2.go b/internal/server/storage/drivers/utils_qcow2.go
+index bf19ebcb7e..bae4b98cce 100644
+--- a/internal/server/storage/drivers/utils_qcow2.go
++++ b/internal/server/storage/drivers/utils_qcow2.go
+@@ -1,9 +1,11 @@
+ package drivers
+ 
+ import (
++	"encoding/binary"
+ 	"encoding/json"
+ 	"errors"
+ 	"fmt"
++	"io"
+ 	"io/fs"
+ 	"os"
+ 	"path/filepath"
+@@ -150,6 +152,44 @@ func Qcow2Commit(path string) error {
+ 	return nil
+ }
+ 
++// Qcow2IsStandalone reports whether a qcow2 file refers to no external file. It parses the header
++// itself rather than trusting qemu-img, which would already open an external data file.
++func Qcow2IsStandalone(path string) (bool, error) {
++	f, err := os.Open(path)
++	if err != nil {
++		return false, err
++	}
++
++	defer func() { _ = f.Close() }()
++
++	// Read the fixed part of the qcow2 v3 header.
++	hdr := make([]byte, 80)
++	_, err = io.ReadFull(f, hdr)
++	if err != nil {
++		return false, err
++	}
++
++	if string(hdr[0:4]) != "QFI\xfb" {
++		return false, fmt.Errorf("Not a qcow2 image: %q", path)
++	}
++
++	// A non-zero backing file offset means the image has a backing file.
++	if binary.BigEndian.Uint64(hdr[8:16]) != 0 {
++		return false, nil
++	}
++
++	// From version 3, incompatible feature bit 2 marks an external data file.
++	version := binary.BigEndian.Uint32(hdr[4:8])
++	if version >= 3 {
++		incompatibleFeatures := binary.BigEndian.Uint64(hdr[72:80])
++		if incompatibleFeatures&(1<<2) != 0 {
++			return false, nil
++		}
++	}
++
++	return true, nil
++}
++
+ // Qcow2Info returns information about a qcow2 image.
+ func Qcow2Info(path string) (*ImageInfo, error) {
+ 	imgJSON, err := subprocess.RunCommand("qemu-img", "info", "-U", "--output=json", path)
+diff --git a/internal/server/storage/utils.go b/internal/server/storage/utils.go
+index 132c190517..86fc6c0b4f 100644
+--- a/internal/server/storage/utils.go
++++ b/internal/server/storage/utils.go
+@@ -690,6 +690,31 @@ func ImageUnpack(imageFile string, vol drivers.Volume, destBlockFile string, sys
+ 
+ 	// convertBlockImage converts the qcow2 block image file into a raw block device. If needed it will attempt
+ 	// to enlarge the destination volume to accommodate the unpacked qcow2 image file.
++	// checkBlockImage refuses a root disk that qemu-img could follow to another file.
++	checkBlockImage := func(imgPath string) error {
++		// Reject a root disk symlink, which could point qemu-img at a host file.
++		imgStat, err := os.Lstat(imgPath)
++		if err != nil {
++			return err
++		}
++
++		if !imgStat.Mode().IsRegular() {
++			return fmt.Errorf("Image root disk isn't a regular file: %s", imageFile)
++		}
++
++		// The image must be self-contained, as qemu-img opens any backing or external data file it refers to.
++		standalone, err := drivers.Qcow2IsStandalone(imgPath)
++		if err != nil {
++			return fmt.Errorf("Failed reading image header %q: %w", imgPath, err)
++		}
++
++		if !standalone {
++			return errors.New("Image refers to a backing file or to an external data file")
++		}
++
++		return nil
++	}
++
+ 	convertBlockImage := func(v drivers.Volume, imgPath string, dstPath string, tracker *ioprogress.ProgressTracker) (int64, error) {
+ 		// The metadata stream may have replaced the block file inside the volume with a symlink.
+ 		if strings.HasPrefix(dstPath, internalUtil.AddSlash(destPath)) {
+@@ -846,6 +871,11 @@ func ImageUnpack(imageFile string, vol drivers.Volume, destBlockFile string, sys
+ 		}
+ 
+ 		// Convert the qcow2 format to a raw block device.
++		err = checkBlockImage(imageRootfsFile)
++		if err != nil {
++			return -1, err
++		}
++
+ 		imgSize, err = convertBlockImage(vol, imageRootfsFile, destBlockFile, tracker)
+ 		if err != nil {
+ 			return -1, err
+@@ -868,6 +898,11 @@ func ImageUnpack(imageFile string, vol drivers.Volume, destBlockFile string, sys
+ 		imgPath := filepath.Join(tempDir, "rootfs.img")
+ 
+ 		// Convert the qcow2 format to a raw block device.
++		err = checkBlockImage(imgPath)
++		if err != nil {
++			return -1, err
++		}
++
+ 		imgSize, err = convertBlockImage(vol, imgPath, destBlockFile, tracker)
+ 		if err != nil {
+ 			return -1, err

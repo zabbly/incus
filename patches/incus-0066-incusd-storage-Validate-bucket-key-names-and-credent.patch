@@ -1,0 +1,51 @@
+From 55564a4c4ee491564912505e51618c7128faf799 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:32:45 -0500
+Subject: [PATCH] incusd/storage: Validate bucket key names and credentials
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+They are passed as arguments to radosgw-admin on cephobject pools.
+
+This addresses GHSA-44g3-g988-46rg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 41501d383e5c2edf86000a24c737b544fc7f5c4b)
+---
+ internal/server/storage/drivers/driver_common.go | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/internal/server/storage/drivers/driver_common.go b/internal/server/storage/drivers/driver_common.go
+index 93a8e20a80..3ff3b5bba4 100644
+--- a/internal/server/storage/drivers/driver_common.go
++++ b/internal/server/storage/drivers/driver_common.go
+@@ -533,12 +533,28 @@ func (d *common) UpdateBucket(bucket Volume, changedConfig map[string]string) er
+ 	return ErrNotSupported
+ }
+ 
++// bucketKeyValueRegex matches bucket key names and credentials, which may not start with a dash.
++var bucketKeyValueRegex = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9+/=._-]*$`)
++
+ // ValidateBucketKey validates the supplied bucket key config.
+ func (d *common) ValidateBucketKey(keyName string, creds S3Credentials, roleName string) error {
+ 	if keyName == "" {
+ 		return errors.New("Key name is required")
+ 	}
+ 
++	// The values end up on command lines, keep them to plain words.
++	if !bucketKeyValueRegex.MatchString(keyName) {
++		return errors.New("Invalid key name")
++	}
++
++	if creds.AccessKey != "" && !bucketKeyValueRegex.MatchString(creds.AccessKey) {
++		return errors.New("Invalid access key")
++	}
++
++	if creds.SecretKey != "" && !bucketKeyValueRegex.MatchString(creds.SecretKey) {
++		return errors.New("Invalid secret key")
++	}
++
+ 	validRoles := []string{"admin", "read-only"}
+ 	if !slices.Contains(validRoles, roleName) {
+ 		return errors.New("Invalid key role")

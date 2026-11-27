@@ -1,0 +1,85 @@
+From 7590a7bece90b33d3816cc592d688464449bd046 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:34:09 -0500
+Subject: [PATCH] incusd: Serve the targeted member's volume on the file and
+ SFTP endpoints
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The permission is checked on the volume of the member named by the
+target parameter, but the file handler never forwarded there and the
+SFTP handler ignored the parameter, so the same-named volume on another
+member was served instead.
+
+This addresses GHSA-8m9x-vx2q-7f9q (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 383f1627a5ad91567018925a59346d1c4e011b14)
+---
+ cmd/incusd/storage_volumes_file.go |  3 ++-
+ cmd/incusd/storage_volumes_sftp.go | 19 +++++++++++++++----
+ 2 files changed, 17 insertions(+), 5 deletions(-)
+
+diff --git a/cmd/incusd/storage_volumes_file.go b/cmd/incusd/storage_volumes_file.go
+index e3f3fe0fe4..8be6d088ea 100644
+--- a/cmd/incusd/storage_volumes_file.go
++++ b/cmd/incusd/storage_volumes_file.go
+@@ -55,11 +55,12 @@ func storagePoolVolumeTypeFileHandler(d *Daemon, r *http.Request) response.Respo
+ 	}
+ 
+ 	// Redirect to correct server if needed.
+-	resp := forwardedResponseIfVolumeIsRemote(s, r, poolName, volumeProjectName, volumeName, volumeType)
++	resp := forwardedResponseIfTargetIsRemote(s, r)
+ 	if resp != nil {
+ 		return resp
+ 	}
+ 
++	resp = forwardedResponseIfVolumeIsRemote(s, r, poolName, volumeProjectName, volumeName, volumeType)
+ 	if resp != nil {
+ 		return resp
+ 	}
+diff --git a/cmd/incusd/storage_volumes_sftp.go b/cmd/incusd/storage_volumes_sftp.go
+index e1f8b1dc01..f4cd67bbdf 100644
+--- a/cmd/incusd/storage_volumes_sftp.go
++++ b/cmd/incusd/storage_volumes_sftp.go
+@@ -1,10 +1,12 @@
+ package main
+ 
+ import (
++	"errors"
+ 	"fmt"
+ 	"net"
+ 	"net/http"
+ 
++	incus "github.com/lxc/incus/v7/client"
+ 	"github.com/lxc/incus/v7/internal/server/cluster"
+ 	"github.com/lxc/incus/v7/internal/server/db"
+ 	"github.com/lxc/incus/v7/internal/server/project"
+@@ -95,13 +97,22 @@ func storagePoolVolumeTypeSFTPHandler(d *Daemon, r *http.Request) response.Respo
+ 		return response.SmartError(err)
+ 	}
+ 
++	// The permission was checked on the targeted member's volume, so only serve that one.
++	target := request.QueryParam(r, "target")
++	if target != "" && target != s.ServerName {
++		return response.BadRequest(errors.New("Targeting another cluster member isn't supported on this endpoint"))
++	}
++
+ 	// Redirect to correct server if needed.
+ 	var conn net.Conn
++	var client incus.InstanceServer
+ 
+-	// Forward the request if the instance is remote.
+-	client, err := cluster.ConnectIfVolumeIsRemote(s, poolName, volumeProjectName, volumeName, volumeType, s.Endpoints.NetworkCert(), s.ServerCert(), r)
+-	if err != nil {
+-		return response.SmartError(err)
++	// Forward the request if the volume is remote.
++	if target == "" {
++		client, err = cluster.ConnectIfVolumeIsRemote(s, poolName, volumeProjectName, volumeName, volumeType, s.Endpoints.NetworkCert(), s.ServerCert(), r)
++		if err != nil {
++			return response.SmartError(err)
++		}
+ 	}
+ 
+ 	if client != nil {

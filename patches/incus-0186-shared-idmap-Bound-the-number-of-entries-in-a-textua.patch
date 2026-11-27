@@ -1,0 +1,46 @@
+From 56f00508b5a84c28b9a25ae643ccba989f49c623 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:04:50 -0500
+Subject: [PATCH] shared/idmap: Bound the number of entries in a textual ID map
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Every entry is checked against all the others, so a map with tens of
+thousands of lines took tens of seconds to parse, inside a database
+transaction when it came from an instance or profile update.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 270ae7ca66aebadd01744456939ee9a9a01260ee)
+---
+ shared/idmap/set_load.go | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/shared/idmap/set_load.go b/shared/idmap/set_load.go
+index ce43ac0593..37403b5107 100644
+--- a/shared/idmap/set_load.go
++++ b/shared/idmap/set_load.go
+@@ -42,6 +42,9 @@ func NewSetFromJSON(data string) (*Set, error) {
+ 	return ret, nil
+ }
+ 
++// maxIDMapEntries bounds the entries accepted from a textual ID map.
++const maxIDMapEntries = 1024
++
+ // NewSetFromIncusIDMap parses an Incus raw.idmap into a new idmap Set.
+ func NewSetFromIncusIDMap(value string) (*Set, error) {
+ 	getRange := func(r string) (int64, int64, error) {
+@@ -76,6 +79,11 @@ func NewSetFromIncusIDMap(value string) (*Set, error) {
+ 			continue
+ 		}
+ 
++		// Each entry is checked against all the others, keep the map small.
++		if len(ret.Entries) >= maxIDMapEntries {
++			return nil, fmt.Errorf("Too many ID map entries, at most %d are allowed", maxIDMapEntries)
++		}
++
+ 		entries := strings.Split(line, " ")
+ 		if len(entries) != 3 {
+ 			return nil, fmt.Errorf("Invalid ID map line: %s", line)

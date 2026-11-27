@@ -1,0 +1,50 @@
+From e5f06c10c552ae69d5622a54e6f4aeade1429416 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:02:21 -0500
+Subject: [PATCH] incusd/instance/qemu: Copy the recorded instance state on
+ read
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Callers modify the state they get, so handing out the monitor's own
+record let concurrent state requests race on its maps.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 0f455ae4faf0e3f7c91dccebb0127a22ba4e6ba4)
+---
+ internal/server/instance/drivers/qmp/monitor.go | 12 +++++++++++-
+ 1 file changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/internal/server/instance/drivers/qmp/monitor.go b/internal/server/instance/drivers/qmp/monitor.go
+index 8a87638af0..fc13f4eab1 100644
+--- a/internal/server/instance/drivers/qmp/monitor.go
++++ b/internal/server/instance/drivers/qmp/monitor.go
+@@ -5,6 +5,7 @@ import (
+ 	"encoding/json"
+ 	"errors"
+ 	"fmt"
++	"maps"
+ 	"path/filepath"
+ 	"slices"
+ 	"strings"
+@@ -496,7 +497,16 @@ func (m *Monitor) GetInstanceState() *api.InstanceState {
+ 	m.stateMu.Lock()
+ 	defer m.stateMu.Unlock()
+ 
+-	return m.instanceState
++	if m.instanceState == nil {
++		return nil
++	}
++
++	// Callers modify the state, so give each of them its own copy.
++	state := *m.instanceState
++	state.Disk = maps.Clone(state.Disk)
++	state.Network = maps.Clone(state.Network)
++
++	return &state
+ }
+ 
+ // SetInstanceState updates the recorded instance state.

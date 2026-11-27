@@ -1,0 +1,146 @@
+From f0049c9c4b1e1592038ce11b863c2d620e09c31b Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:34:28 -0500
+Subject: [PATCH] incusd: Require edit access to migrate a snapshot
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Snapshot migration only needed the snapshot management entitlement
+while migrating the parent requires edit access.
+
+This addresses GHSA-8553-6xmq-7g3g (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 9257fbffdf8649ff3c8ac9e90e9b38c271975a16)
+---
+ cmd/incusd/instance.go                 | 26 +-------------------------
+ cmd/incusd/instance_snapshot.go        |  7 +++++++
+ cmd/incusd/storage_volumes.go          | 26 ++++++++++++++++++++++++++
+ cmd/incusd/storage_volumes_snapshot.go |  7 +++++++
+ 4 files changed, 41 insertions(+), 25 deletions(-)
+
+diff --git a/cmd/incusd/instance.go b/cmd/incusd/instance.go
+index 6478b0ce52..e1dac86d3d 100644
+--- a/cmd/incusd/instance.go
++++ b/cmd/incusd/instance.go
+@@ -29,7 +29,6 @@ import (
+ 	"github.com/lxc/incus/v7/internal/server/locking"
+ 	"github.com/lxc/incus/v7/internal/server/operations"
+ 	"github.com/lxc/incus/v7/internal/server/project"
+-	"github.com/lxc/incus/v7/internal/server/response"
+ 	"github.com/lxc/incus/v7/internal/server/state"
+ 	storagePools "github.com/lxc/incus/v7/internal/server/storage"
+ 	"github.com/lxc/incus/v7/internal/server/task"
+@@ -951,30 +950,7 @@ func checkAttachedAccess(s *state.State, r *http.Request, projectName string, pr
+ 		}
+ 
+ 		volName, _, _ := api.GetParentAndSnapshotName(dev["source"])
+-
+-		// Only a volume on a single member carries a location.
+-		var location string
+-		if s.ServerClustered {
+-			var nodes []db.NodeInfo
+-
+-			err = s.DB.Cluster.Transaction(r.Context(), func(ctx context.Context, tx *db.ClusterTx) error {
+-				poolID, err := tx.GetStoragePoolID(ctx, dev["pool"])
+-				if err != nil {
+-					return err
+-				}
+-
+-				nodes, err = tx.GetStorageVolumeNodes(ctx, poolID, volProject, volName, db.StoragePoolVolumeTypeCustom)
+-
+-				return err
+-			})
+-			if err != nil && !response.IsNotFoundError(err) {
+-				return err
+-			}
+-
+-			if len(nodes) == 1 {
+-				location = nodes[0].Name
+-			}
+-		}
++		location := storageVolumeAuthLocation(r.Context(), s, dev["pool"], volProject, volName, db.StoragePoolVolumeTypeCustom)
+ 
+ 		err = s.Authorizer.CheckPermission(r.Context(), r, auth.ObjectStorageVolume(volProject, dev["pool"], db.StoragePoolVolumeTypeNameCustom, volName, location), auth.EntitlementCanView)
+ 		if err != nil {
+diff --git a/cmd/incusd/instance_snapshot.go b/cmd/incusd/instance_snapshot.go
+index 1aa01b1fc5..b78875b779 100644
+--- a/cmd/incusd/instance_snapshot.go
++++ b/cmd/incusd/instance_snapshot.go
+@@ -13,6 +13,7 @@ import (
+ 
+ 	internalInstance "github.com/lxc/incus/v7/internal/instance"
+ 	"github.com/lxc/incus/v7/internal/jmap"
++	"github.com/lxc/incus/v7/internal/server/auth"
+ 	"github.com/lxc/incus/v7/internal/server/db"
+ 	"github.com/lxc/incus/v7/internal/server/db/cluster"
+ 	"github.com/lxc/incus/v7/internal/server/db/operationtype"
+@@ -745,6 +746,12 @@ func snapshotPost(s *state.State, r *http.Request, snapInst instance.Instance) r
+ 			return response.BadRequest(err)
+ 		}
+ 
++		// Migrating a snapshot exposes the instance content.
++		err = s.Authorizer.CheckPermission(r.Context(), r, auth.ObjectInstance(snapInst.Project().Name, parentName), auth.EntitlementCanEdit)
++		if err != nil {
++			return response.SmartError(err)
++		}
++
+ 		if reqNew.Live {
+ 			if parentName != reqNew.Name {
+ 				return response.BadRequest(fmt.Errorf("Instance name cannot be changed during stateful copy (%q to %q)", parentName, reqNew.Name))
+diff --git a/cmd/incusd/storage_volumes.go b/cmd/incusd/storage_volumes.go
+index f2a21f9a39..fdaa1f9bb3 100644
+--- a/cmd/incusd/storage_volumes.go
++++ b/cmd/incusd/storage_volumes.go
+@@ -94,6 +94,32 @@ var storagePoolVolumeTypeFileCmd = APIEndpoint{
+ 	Post:   APIEndpointAction{Handler: storagePoolVolumeTypeFileHandler, AccessHandler: allowPermission(auth.ObjectTypeStorageVolume, auth.EntitlementCanAccessFiles, "poolName", "type", "volumeName", "location"), LargeRequest: true},
+ }
+ 
++// storageVolumeAuthLocation returns the location used in a volume's authorization object.
++func storageVolumeAuthLocation(ctx context.Context, s *state.State, poolName string, projectName string, volumeName string, volumeType int) string {
++	// The location is only relevant in clusters.
++	if !s.ServerClustered {
++		return ""
++	}
++
++	var nodes []db.NodeInfo
++
++	err := s.DB.Cluster.Transaction(ctx, func(ctx context.Context, tx *db.ClusterTx) error {
++		poolID, err := tx.GetStoragePoolID(ctx, poolName)
++		if err != nil {
++			return err
++		}
++
++		nodes, err = tx.GetStorageVolumeNodes(ctx, poolID, projectName, volumeName, volumeType)
++
++		return err
++	})
++	if err != nil || len(nodes) != 1 {
++		return ""
++	}
++
++	return nodes[0].Name
++}
++
+ // swagger:operation GET /1.0/storage-pools/{poolName}/volumes storage storage_pool_volumes_get
+ //
+ //  Get the storage volumes
+diff --git a/cmd/incusd/storage_volumes_snapshot.go b/cmd/incusd/storage_volumes_snapshot.go
+index 47b2d19214..6b5169b2dc 100644
+--- a/cmd/incusd/storage_volumes_snapshot.go
++++ b/cmd/incusd/storage_volumes_snapshot.go
+@@ -701,6 +701,13 @@ func storagePoolVolumeSnapshotTypePost(d *Daemon, r *http.Request) response.Resp
+ 
+ 	// This is a migration request so send back requested secrets.
+ 	if req.Migration {
++		// Migrating a snapshot exposes the volume content.
++		location := storageVolumeAuthLocation(r.Context(), s, poolName, projectName, volumeName, volumeType)
++		err = s.Authorizer.CheckPermission(r.Context(), r, auth.ObjectStorageVolume(projectName, poolName, db.StoragePoolVolumeTypeNameCustom, volumeName, location), auth.EntitlementCanEdit)
++		if err != nil {
++			return response.SmartError(err)
++		}
++
+ 		req := api.StorageVolumePost{
+ 			Name:   req.Name,
+ 			Target: req.Target,

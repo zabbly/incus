@@ -1,0 +1,91 @@
+From 0af3d37c9cadf89183bd142da2fda94bab76421d Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Sat, 24 Oct 2026 00:13:22 -0400
+Subject: [PATCH] incusd/storage: Reject a custom volume refresh that changes
+ content type
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A refresh never compared the content type recorded for the target volume
+with the incoming one, so a block volume could be refreshed as a
+filesystem volume (or the reverse), mixing the two layouts and leaving a
+client-controlled root.img that the daemon then opens by path as root.
+
+Compare the content types before any data moves, in both the copy and
+migration refresh paths, and before deleting the target's snapshots.
+
+This addresses GHSA-42x8-664j-84w8 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit cf50f5a968fa0ea68ffc6cdd426d9ace3b4dc92f)
+---
+ cmd/incusd/migrate_storage_volumes.go | 14 ++++++++++++++
+ internal/server/storage/backend.go    | 15 +++++++++++++++
+ 2 files changed, 29 insertions(+)
+
+diff --git a/cmd/incusd/migrate_storage_volumes.go b/cmd/incusd/migrate_storage_volumes.go
+index de5b05b35d..8b53e2e452 100644
+--- a/cmd/incusd/migrate_storage_volumes.go
++++ b/cmd/incusd/migrate_storage_volumes.go
+@@ -14,6 +14,7 @@ import (
+ 	localMigration "github.com/lxc/incus/v7/internal/server/migration"
+ 	"github.com/lxc/incus/v7/internal/server/operations"
+ 	"github.com/lxc/incus/v7/internal/server/project"
++	"github.com/lxc/incus/v7/internal/server/response"
+ 	"github.com/lxc/incus/v7/internal/server/state"
+ 	storagePools "github.com/lxc/incus/v7/internal/server/storage"
+ 	storageDrivers "github.com/lxc/incus/v7/internal/server/storage/drivers"
+@@ -392,6 +393,19 @@ func (c *migrationSink) DoStorage(st *state.State, projectName string, poolName
+ 	}
+ 
+ 	if c.refresh {
++		// Reject a refresh that would change the content type before deleting any target snapshots.
++		dbVol, err := storagePools.VolumeDBGet(pool, projectName, req.Name, storageDrivers.VolumeTypeCustom)
++		if err != nil && !response.IsNotFoundError(err) {
++			c.sendControl(err)
++			return err
++		}
++
++		if dbVol != nil && dbVol.ContentType != req.ContentType {
++			err := fmt.Errorf("Volume of content type %q cannot be refreshed from a volume of content type %q", dbVol.ContentType, req.ContentType)
++			c.sendControl(err)
++			return err
++		}
++
+ 		// Get the remote snapshots on the source.
+ 		sourceSnapshots := offerHeader.GetSnapshots()
+ 		sourceSnapshotComparable := make([]storagePools.ComparableSnapshot, 0, len(sourceSnapshots))
+diff --git a/internal/server/storage/backend.go b/internal/server/storage/backend.go
+index b72ead63fc..b9b79753e5 100644
+--- a/internal/server/storage/backend.go
++++ b/internal/server/storage/backend.go
+@@ -1528,6 +1528,16 @@ func (b *backend) RefreshCustomVolume(projectName string, srcProjectName string,
+ 		return fmt.Errorf("Volume of content type %q cannot be refreshed", contentType)
+ 	}
+ 
++	// A refresh must not change the target's content type, otherwise the two layouts get mixed.
++	dbVol, err := VolumeDBGet(b, projectName, volName, drivers.VolumeTypeCustom)
++	if err != nil && !response.IsNotFoundError(err) {
++		return err
++	}
++
++	if dbVol != nil && dbVol.ContentType != srcConfig.Volume.ContentType {
++		return fmt.Errorf("Volume of content type %q cannot be refreshed from a volume of content type %q", dbVol.ContentType, srcConfig.Volume.ContentType)
++	}
++
+ 	storagePoolSupported := slices.Contains(b.Driver().Info().VolumeTypes, drivers.VolumeTypeCustom)
+ 	if !storagePoolSupported {
+ 		return errors.New("Storage pool does not support custom volume type")
+@@ -6031,6 +6041,11 @@ func (b *backend) CreateCustomVolumeFromMigration(projectName string, conn io.Re
+ 		return err
+ 	}
+ 
++	// A refresh must not change an existing volume's content type, otherwise the two layouts get mixed.
++	if dbVol != nil && dbVol.ContentType != args.ContentType {
++		return fmt.Errorf("Volume of content type %q cannot be refreshed from a volume of content type %q", dbVol.ContentType, args.ContentType)
++	}
++
+ 	// Prefer using existing volume config (to allow mounting existing volume correctly).
+ 	if dbVol != nil {
+ 		volumeConfig = dbVol.Config

@@ -1,0 +1,58 @@
+From d553b640163f3ba4d331d26f555fafff5eff85bb Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:07:11 -0500
+Subject: [PATCH] incusd/network: Bound port range expansion
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Port ranges accepted any 64-bit number and repeated ranges expanded
+without limit, so a profile with a proxy device could exhaust the
+daemon's memory before the project restrictions were checked.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit b978404769f8eb2aefae404d4f6c9f77aacf89f1)
+---
+ internal/server/network/network_utils.go | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/internal/server/network/network_utils.go b/internal/server/network/network_utils.go
+index 596ec1afa0..efebc2defa 100644
+--- a/internal/server/network/network_utils.go
++++ b/internal/server/network/network_utils.go
+@@ -1443,6 +1443,10 @@ func ParsePortRange(r string) (int64, int64, error) {
+ 		return -1, -1, err
+ 	}
+ 
++	if base < 0 || base > 65535 {
++		return -1, -1, fmt.Errorf("Invalid port %q", entries[0])
++	}
++
+ 	size := int64(1)
+ 	if len(entries) > 1 {
+ 		size, err = strconv.ParseInt(entries[1], 10, 64)
+@@ -1450,6 +1454,10 @@ func ParsePortRange(r string) (int64, int64, error) {
+ 			return -1, -1, err
+ 		}
+ 
++		if size > 65535 {
++			return -1, -1, fmt.Errorf("Invalid port %q", entries[1])
++		}
++
+ 		if size <= base {
+ 			return -1, -1, errors.New("End port should be higher than start port")
+ 		}
+@@ -1590,6 +1598,11 @@ func ProxyParseAddr(data string) (*deviceConfig.ProxyAddress, error) {
+ 			return nil, err
+ 		}
+ 
++		// Repeated ranges would expand without limit.
++		if int64(len(newProxyAddr.Ports))+portRange > 65536 {
++			return nil, errors.New("Too many ports")
++		}
++
+ 		for i := range portRange {
+ 			newProxyAddr.Ports = append(newProxyAddr.Ports, uint64(portFirst+i))
+ 		}

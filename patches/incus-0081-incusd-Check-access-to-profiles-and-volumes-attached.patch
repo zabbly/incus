@@ -1,0 +1,209 @@
+From eefd18fd92aa55265da1c510036b1ed6cdf8c0ab Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:33:24 -0500
+Subject: [PATCH] incusd: Check access to profiles and volumes attached through
+ an update
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Instance and profile updates only authorized the object being edited,
+so a client with edit access to one instance could attach any custom
+volume or profile of the project.
+
+This addresses GHSA-8553-6xmq-7g3g (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit e55203328a89b2de00142f39af2886351126787f)
+---
+ cmd/incusd/instance.go       | 71 ++++++++++++++++++++++++++++++++++++
+ cmd/incusd/instance_patch.go |  5 +++
+ cmd/incusd/instance_put.go   | 10 +++++
+ cmd/incusd/instances_post.go |  5 +++
+ cmd/incusd/profiles.go       | 10 +++++
+ 5 files changed, 101 insertions(+)
+
+diff --git a/cmd/incusd/instance.go b/cmd/incusd/instance.go
+index 27eb1537f4..6478b0ce52 100644
+--- a/cmd/incusd/instance.go
++++ b/cmd/incusd/instance.go
+@@ -8,6 +8,7 @@ import (
+ 	"net/http"
+ 	"os"
+ 	"path/filepath"
++	"slices"
+ 	"strings"
+ 	"sync"
+ 	"time"
+@@ -16,6 +17,7 @@ import (
+ 	ociSpecs "github.com/opencontainers/runtime-spec/specs-go"
+ 
+ 	internalInstance "github.com/lxc/incus/v7/internal/instance"
++	"github.com/lxc/incus/v7/internal/server/auth"
+ 	"github.com/lxc/incus/v7/internal/server/cluster"
+ 	"github.com/lxc/incus/v7/internal/server/db"
+ 	dbCluster "github.com/lxc/incus/v7/internal/server/db/cluster"
+@@ -27,6 +29,7 @@ import (
+ 	"github.com/lxc/incus/v7/internal/server/locking"
+ 	"github.com/lxc/incus/v7/internal/server/operations"
+ 	"github.com/lxc/incus/v7/internal/server/project"
++	"github.com/lxc/incus/v7/internal/server/response"
+ 	"github.com/lxc/incus/v7/internal/server/state"
+ 	storagePools "github.com/lxc/incus/v7/internal/server/storage"
+ 	"github.com/lxc/incus/v7/internal/server/task"
+@@ -914,6 +917,74 @@ func getSourceImageFromInstanceSource(ctx context.Context, s *state.State, tx *d
+ 	return sourceImage, nil
+ }
+ 
++// checkAttachedAccess checks that the caller may view newly attached profiles and custom volumes.
++func checkAttachedAccess(s *state.State, r *http.Request, projectName string, profiles []string, curProfiles []string, devices map[string]map[string]string, curDevices map[string]map[string]string) error {
++	for _, name := range profiles {
++		if slices.Contains(curProfiles, name) {
++			continue
++		}
++
++		profileProject, err := project.ProfileProject(s.DB.Cluster, projectName)
++		if err != nil {
++			return err
++		}
++
++		err = s.Authorizer.CheckPermission(r.Context(), r, auth.ObjectProfile(profileProject.Name, name), auth.EntitlementCanView)
++		if err != nil {
++			return err
++		}
++	}
++
++	for name, dev := range devices {
++		if dev["type"] != "disk" || dev["pool"] == "" || dev["source"] == "" {
++			continue
++		}
++
++		cur := curDevices[name]
++		if cur != nil && cur["pool"] == dev["pool"] && cur["source"] == dev["source"] {
++			continue
++		}
++
++		volProject, err := project.StorageVolumeProject(s.DB.Cluster, projectName, db.StoragePoolVolumeTypeCustom)
++		if err != nil {
++			return err
++		}
++
++		volName, _, _ := api.GetParentAndSnapshotName(dev["source"])
++
++		// Only a volume on a single member carries a location.
++		var location string
++		if s.ServerClustered {
++			var nodes []db.NodeInfo
++
++			err = s.DB.Cluster.Transaction(r.Context(), func(ctx context.Context, tx *db.ClusterTx) error {
++				poolID, err := tx.GetStoragePoolID(ctx, dev["pool"])
++				if err != nil {
++					return err
++				}
++
++				nodes, err = tx.GetStorageVolumeNodes(ctx, poolID, volProject, volName, db.StoragePoolVolumeTypeCustom)
++
++				return err
++			})
++			if err != nil && !response.IsNotFoundError(err) {
++				return err
++			}
++
++			if len(nodes) == 1 {
++				location = nodes[0].Name
++			}
++		}
++
++		err = s.Authorizer.CheckPermission(r.Context(), r, auth.ObjectStorageVolume(volProject, dev["pool"], db.StoragePoolVolumeTypeNameCustom, volName, location), auth.EntitlementCanView)
++		if err != nil {
++			return err
++		}
++	}
++
++	return nil
++}
++
+ // instanceOperationLock acquires a lock for operating on an instance and returns the unlock function.
+ func instanceOperationLock(ctx context.Context, projectName string, instanceName string) (locking.UnlockFunc, error) {
+ 	l := logger.AddContext(logger.Ctx{"project": projectName, "instance": instanceName})
+diff --git a/cmd/incusd/instance_patch.go b/cmd/incusd/instance_patch.go
+index 481db988ed..22d6fe44ba 100644
+--- a/cmd/incusd/instance_patch.go
++++ b/cmd/incusd/instance_patch.go
+@@ -192,6 +192,11 @@ func instancePatch(d *Daemon, r *http.Request) response.Response {
+ 		}
+ 	}
+ 
++	err = checkAttachedAccess(s, r, projectName, req.Profiles, profileNames, req.Devices, c.LocalDevices().CloneNative())
++	if err != nil {
++		return response.SmartError(err)
++	}
++
+ 	// Check project limits.
+ 	apiProfiles := make([]api.Profile, 0, len(req.Profiles))
+ 	err = s.DB.Cluster.Transaction(r.Context(), func(ctx context.Context, tx *db.ClusterTx) error {
+diff --git a/cmd/incusd/instance_put.go b/cmd/incusd/instance_put.go
+index 14b6560a3c..d9d37a2dc1 100644
+--- a/cmd/incusd/instance_put.go
++++ b/cmd/incusd/instance_put.go
+@@ -134,6 +134,16 @@ func instancePut(d *Daemon, r *http.Request) response.Response {
+ 	var do func(*operations.Operation) error
+ 	var opType operationtype.Type
+ 	if configRaw.Restore == "" {
++		curProfiles := make([]string, 0, len(inst.Profiles()))
++		for _, profile := range inst.Profiles() {
++			curProfiles = append(curProfiles, profile.Name)
++		}
++
++		err = checkAttachedAccess(s, r, projectName, configRaw.Profiles, curProfiles, configRaw.Devices, inst.LocalDevices().CloneNative())
++		if err != nil {
++			return response.SmartError(err)
++		}
++
+ 		// Check project limits.
+ 		apiProfiles := make([]api.Profile, 0, len(configRaw.Profiles))
+ 		err = s.DB.Cluster.Transaction(r.Context(), func(ctx context.Context, tx *db.ClusterTx) error {
+diff --git a/cmd/incusd/instances_post.go b/cmd/incusd/instances_post.go
+index ace68d652c..1df4d3e203 100644
+--- a/cmd/incusd/instances_post.go
++++ b/cmd/incusd/instances_post.go
+@@ -1666,6 +1666,11 @@ func instancesPost(d *Daemon, r *http.Request) response.Response {
+ 		}
+ 	}
+ 
++	err = checkAttachedAccess(s, r, targetProjectName, nil, nil, req.Devices, nil)
++	if err != nil {
++		return response.SmartError(err)
++	}
++
+ 	err = instance.ValidName(req.Name, false)
+ 	if err != nil {
+ 		return response.BadRequest(err)
+diff --git a/cmd/incusd/profiles.go b/cmd/incusd/profiles.go
+index 78d86df9ae..c80d800d83 100644
+--- a/cmd/incusd/profiles.go
++++ b/cmd/incusd/profiles.go
+@@ -653,6 +653,11 @@ func profilePut(d *Daemon, r *http.Request) response.Response {
+ 		return response.BadRequest(err)
+ 	}
+ 
++	err = checkAttachedAccess(s, r, request.ProjectParam(r), nil, nil, req.Devices, profile.Devices)
++	if err != nil {
++		return response.SmartError(err)
++	}
++
+ 	err = doProfileUpdate(r.Context(), s, *p, name, profile, req)
+ 
+ 	if err == nil && !isClusterNotification(r) {
+@@ -808,6 +813,11 @@ func profilePatch(d *Daemon, r *http.Request) response.Response {
+ 		}
+ 	}
+ 
++	err = checkAttachedAccess(s, r, request.ProjectParam(r), nil, nil, req.Devices, profile.Devices)
++	if err != nil {
++		return response.SmartError(err)
++	}
++
+ 	requestor := request.CreateRequestor(r)
+ 	s.Events.SendLifecycle(p.Name, lifecycle.ProfileUpdated.Event(name, p.Name, requestor, nil))
+ 

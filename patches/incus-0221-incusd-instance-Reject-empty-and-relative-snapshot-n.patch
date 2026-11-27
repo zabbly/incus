@@ -1,0 +1,35 @@
+From abb0ac2793c28ca13e432b344ee2a5ede6d90747 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 18 Nov 2026 17:24:50 -0500
+Subject: [PATCH] incusd/instance: Reject empty and relative snapshot names
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The snapshot name is used as a path segment, so a backup listing a
+".." snapshot would have its content unpacked over the snapshots of
+other instances.
+
+This addresses GHSA-gg58-ppxh-6h48 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+---
+ internal/server/instance/instance_utils.go | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/internal/server/instance/instance_utils.go b/internal/server/instance/instance_utils.go
+index e6221424c4..7bd444c60a 100644
+--- a/internal/server/instance/instance_utils.go
++++ b/internal/server/instance/instance_utils.go
+@@ -730,6 +730,11 @@ func ValidName(instanceName string, isSnapshot bool) error {
+ 		if strings.ContainsAny(snapshotName, " /") {
+ 			return errors.New("Invalid instance snapshot name: Cannot contain space or / characters")
+ 		}
++
++		// The snapshot name is used as a path segment.
++		if slices.Contains([]string{"", ".", ".."}, snapshotName) {
++			return errors.New("Invalid instance snapshot name: Cannot be empty or a relative path")
++		}
+ 	} else {
+ 		if strings.Contains(instanceName, instance.SnapshotDelimiter) {
+ 			return fmt.Errorf("The character %q is reserved for snapshots", instance.SnapshotDelimiter)

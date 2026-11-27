@@ -1,0 +1,57 @@
+From 2a7756909381077a18bc844005bbebfcf3257595 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:03:09 -0500
+Subject: [PATCH] incusd: Bound the port forward helper
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+forknet connect dialed without a timeout and nothing limited how long
+the helper could run, so an address the guest leaves unanswered kept a
+root process on the host for as long as it liked.
+
+Dial with a timeout and kill the helper after a minute.
+
+This addresses GHSA-23fc-ggg4-5r2r (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 9966e1aadbee0b819e76331726872b1c43525401)
+---
+ cmd/incusd/main_forknet.go                     |  2 +-
+ internal/server/instance/drivers/driver_lxc.go | 10 +++++++++-
+ 2 files changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/cmd/incusd/main_forknet.go b/cmd/incusd/main_forknet.go
+index 957e37d4bc..1e7d1df601 100644
+--- a/cmd/incusd/main_forknet.go
++++ b/cmd/incusd/main_forknet.go
+@@ -1407,7 +1407,7 @@ func (c *cmdForknet) runConnect(_ *cobra.Command, args []string) error {
+ 	addr := net.JoinHostPort(args[2], args[3])
+ 
+ 	// Establish the connection (we're inside the instance's network namespace).
+-	conn, err := net.Dial("tcp", addr)
++	conn, err := net.DialTimeout("tcp", addr, 30*time.Second)
+ 	if err != nil {
+ 		return fmt.Errorf("Failed connecting to %q: %w", addr, err)
+ 	}
+diff --git a/internal/server/instance/drivers/driver_lxc.go b/internal/server/instance/drivers/driver_lxc.go
+index 4a23085dbd..6bee01a94c 100644
+--- a/internal/server/instance/drivers/driver_lxc.go
++++ b/internal/server/instance/drivers/driver_lxc.go
+@@ -8303,7 +8303,15 @@ func (d *lxc) PortForwardConn(address string, port int) (net.Conn, error) {
+ 		Stderr:     &stderr,
+ 	}
+ 
+-	err = forknet.Run()
++	err = forknet.Start()
++	if err != nil {
++		return nil, fmt.Errorf("Failed to run forknet connect: %w: %s", err, strings.TrimSpace(stderr.String()))
++	}
++
++	// The guest decides how long the dial takes, don't let it keep the helper around.
++	killTimer := time.AfterFunc(time.Minute, func() { _ = forknet.Process.Kill() })
++	err = forknet.Wait()
++	killTimer.Stop()
+ 	if err != nil {
+ 		return nil, fmt.Errorf("Failed to run forknet connect: %w: %s", err, strings.TrimSpace(stderr.String()))
+ 	}

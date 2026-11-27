@@ -1,0 +1,37 @@
+From e288e71a9a44cf9ad2ca7b8d6de2e85be3997467 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:29:18 -0500
+Subject: [PATCH] incusd: Keep the imported root disk on the import pool
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A device override on backup import could point the root disk device at
+another pool, so the project restriction checks looked at a pool other
+than the one the volume was created on.
+
+This addresses GHSA-5pf7-5wqc-rp52 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 5bdecd12dc4079eb9b878fe24d6bdf0759fa93b6)
+---
+ cmd/incusd/api_internal.go | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/cmd/incusd/api_internal.go b/cmd/incusd/api_internal.go
+index 36d5950c76..5f39a5fbe7 100644
+--- a/cmd/incusd/api_internal.go
++++ b/cmd/incusd/api_internal.go
+@@ -962,6 +962,12 @@ func internalImportFromBackup(ctx context.Context, s *state.State, projectName s
+ 		backupConf.Container.ExpandedConfig[key] = value
+ 	}
+ 
++	// The root disk must stay on the pool the backup was imported to.
++	rootName, rootDev, _ := internalInstance.GetRootDiskDevice(backupConf.Container.Devices)
++	if rootName != "" && rootDev["pool"] != instancePoolName {
++		return fmt.Errorf("Root disk device pool %q doesn't match the import pool %q", rootDev["pool"], instancePoolName)
++	}
++
+ 	reverter := revert.New()
+ 	defer reverter.Fail()
+ 

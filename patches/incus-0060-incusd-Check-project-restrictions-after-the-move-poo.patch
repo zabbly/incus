@@ -1,0 +1,57 @@
+From cc77103bf7e59b5c5d298969cc27971365ca2a72 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:29:05 -0500
+Subject: [PATCH] incusd: Check project restrictions after the move pool
+ override
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The pool override was applied after the project restriction check, so
+a cross-member move could place the root disk on a pool the project
+isn't allowed to use.
+
+This addresses GHSA-5pf7-5wqc-rp52 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit f9b2a3c1f638149a390c0073b86fc71707c50a74)
+---
+ cmd/incusd/instance_post.go | 18 +++++++++---------
+ 1 file changed, 9 insertions(+), 9 deletions(-)
+
+diff --git a/cmd/incusd/instance_post.go b/cmd/incusd/instance_post.go
+index 188295b65a..ff45a67295 100644
+--- a/cmd/incusd/instance_post.go
++++ b/cmd/incusd/instance_post.go
+@@ -711,15 +711,6 @@ func migrateInstance(ctx context.Context, s *state.State, inst instance.Instance
+ 		targetInstInfo.Profiles = req.Profiles
+ 	}
+ 
+-	// Enforce project restrictions against the overridden config, as the migration
+-	// request can otherwise set restricted keys (e.g. security.privileged, raw.lxc).
+-	err = s.DB.Cluster.Transaction(ctx, func(ctx context.Context, tx *db.ClusterTx) error {
+-		return project.AllowInstanceUpdate(tx, inst.Project().Name, inst.Name(), targetInstInfo.Writable(), inst.LocalConfig())
+-	})
+-	if err != nil {
+-		return err
+-	}
+-
+ 	// Handle storage pool override.
+ 	if req.Pool != "" {
+ 		err := s.DB.Cluster.Transaction(ctx, func(ctx context.Context, tx *db.ClusterTx) error {
+@@ -743,6 +734,15 @@ func migrateInstance(ctx context.Context, s *state.State, inst instance.Instance
+ 		targetInstInfo.Devices[rootDevKey] = rootDev
+ 	}
+ 
++	// Enforce project restrictions against the overridden config, including the
++	// pool override, as the target member doesn't check cluster notifications.
++	err = s.DB.Cluster.Transaction(ctx, func(ctx context.Context, tx *db.ClusterTx) error {
++		return project.AllowInstanceUpdate(tx, inst.Project().Name, inst.Name(), targetInstInfo.Writable(), inst.LocalConfig())
++	})
++	if err != nil {
++		return err
++	}
++
+ 	// Handle local changes (name, project, storage).
+ 
+ 	// Handle the renames first.

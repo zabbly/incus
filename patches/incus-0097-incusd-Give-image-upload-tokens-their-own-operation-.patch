@@ -1,0 +1,133 @@
+From c801e22c15a3a86cea55cfc634219ac4ba90d146 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:32:15 -0500
+Subject: [PATCH] incusd: Give image upload tokens their own operation type
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A push mode upload token was the same ImageToken operation as a
+download secret, so a client allowed to create images could request an
+upload token for any fingerprint and use it to export a private image.
+
+This addresses GHSA-4j59-4pqh-f3qm (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 2923ed697c8c0d390da1e56b68d8b8227f888217)
+---
+ cmd/incusd/images.go                          | 20 +++++++++----------
+ .../server/db/operationtype/operation_type.go |  5 +++++
+ 2 files changed, 15 insertions(+), 10 deletions(-)
+
+diff --git a/cmd/incusd/images.go b/cmd/incusd/images.go
+index 553cf8e885..5783e2743b 100644
+--- a/cmd/incusd/images.go
++++ b/cmd/incusd/images.go
+@@ -1243,7 +1243,7 @@ func imagesPost(d *Daemon, r *http.Request) response.Response {
+ 	}
+ 
+ 	// We need to invalidate the secret whether the source is trusted or not.
+-	validOp, err := imageValidSecret(s, r, projectName, fingerprint, secret)
++	validOp, err := imageValidSecret(s, r, projectName, fingerprint, secret, operationtype.ImageUploadToken)
+ 	if err != nil {
+ 		return response.SmartError(err)
+ 	}
+@@ -1326,7 +1326,7 @@ func imagesPost(d *Daemon, r *http.Request) response.Response {
+ 			"public":     req.Public,
+ 		}
+ 
+-		return createTokenResponse(s, r, projectName, req.Source.Fingerprint, metadata)
++		return createTokenResponse(s, r, projectName, req.Source.Fingerprint, metadata, operationtype.ImageUploadToken)
+ 	}
+ 
+ 	if !imageUpload && !slices.Contains([]string{"container", "instance", "virtual-machine", "snapshot", "image", "url"}, req.Source.Type) {
+@@ -3207,11 +3207,11 @@ func doImageGet(ctx context.Context, tx *db.ClusterTx, project, fingerprint stri
+ 	return imgInfo, nil
+ }
+ 
+-// imageValidSecret searches for an ImageToken operation running on any member in the default project that has an
++// imageValidSecret searches for a token operation of the given type running on any member in the default project that has an
+ // images resource matching the specified fingerprint and the metadata secret field matches the specified secret.
+ // If an operation is found it is returned and the operation is cancelled. Otherwise nil is returned if not found.
+-func imageValidSecret(s *state.State, r *http.Request, projectName string, fingerprint string, secret string) (*api.Operation, error) {
+-	ops, err := operationsGetByType(s, r, projectName, operationtype.ImageToken)
++func imageValidSecret(s *state.State, r *http.Request, projectName string, fingerprint string, secret string, opType operationtype.Type) (*api.Operation, error) {
++	ops, err := operationsGetByType(s, r, projectName, opType)
+ 	if err != nil {
+ 		return nil, fmt.Errorf("Failed getting image token operations: %w", err)
+ 	}
+@@ -3400,7 +3400,7 @@ func imageGet(d *Daemon, r *http.Request) response.Response {
+ 	public := d.checkTrustedClient(r) != nil || !userCanViewImage
+ 	secret := r.FormValue("secret")
+ 
+-	op, err := imageValidSecret(s, r, projectName, info.Fingerprint, secret)
++	op, err := imageValidSecret(s, r, projectName, info.Fingerprint, secret, operationtype.ImageToken)
+ 	if err != nil {
+ 		return response.SmartError(err)
+ 	}
+@@ -4557,7 +4557,7 @@ func imageExport(d *Daemon, r *http.Request) response.Response {
+ 			return response.NotFound(fmt.Errorf("Image %q not found", fingerprint))
+ 		}
+ 	} else {
+-		op, err := imageValidSecret(s, r, projectName, imgInfo.Fingerprint, secret)
++		op, err := imageValidSecret(s, r, projectName, imgInfo.Fingerprint, secret, operationtype.ImageToken)
+ 		if err != nil {
+ 			return response.SmartError(err)
+ 		}
+@@ -4872,7 +4872,7 @@ func imageSecret(d *Daemon, r *http.Request) response.Response {
+ 		return response.SmartError(err)
+ 	}
+ 
+-	return createTokenResponse(s, r, projectName, imgInfo.Fingerprint, nil)
++	return createTokenResponse(s, r, projectName, imgInfo.Fingerprint, nil, operationtype.ImageToken)
+ }
+ 
+ func imageImportFromNode(imagesDir string, client incus.InstanceServer, fingerprint string) error {
+@@ -5291,7 +5291,7 @@ func imageSyncBetweenNodes(ctx context.Context, s *state.State, r *http.Request,
+ 	return nil
+ }
+ 
+-func createTokenResponse(s *state.State, r *http.Request, projectName string, fingerprint string, metadata jmap.Map) response.Response {
++func createTokenResponse(s *state.State, r *http.Request, projectName string, fingerprint string, metadata jmap.Map, opType operationtype.Type) response.Response {
+ 	secret, err := internalUtil.RandomHexString(32)
+ 	if err != nil {
+ 		return response.InternalError(err)
+@@ -5306,7 +5306,7 @@ func createTokenResponse(s *state.State, r *http.Request, projectName string, fi
+ 	resources := map[string][]api.URL{}
+ 	resources["images"] = []api.URL{*api.NewURL().Path(version.APIVersion, "images", fingerprint)}
+ 
+-	op, err := operations.OperationCreate(s, projectName, operations.OperationClassToken, operationtype.ImageToken, resources, meta, nil, nil, nil, r)
++	op, err := operations.OperationCreate(s, projectName, operations.OperationClassToken, opType, resources, meta, nil, nil, nil, r)
+ 	if err != nil {
+ 		return response.InternalError(err)
+ 	}
+diff --git a/internal/server/db/operationtype/operation_type.go b/internal/server/db/operationtype/operation_type.go
+index 2ac122d88b..bf27e3bdf8 100644
+--- a/internal/server/db/operationtype/operation_type.go
++++ b/internal/server/db/operationtype/operation_type.go
+@@ -80,6 +80,7 @@ const (
+ 	BucketBackupRename
+ 	BucketBackupRestore
+ 	VolumeRebuild
++	ImageUploadToken
+ )
+ 
+ // Description return a human-readable description of the operation type.
+@@ -143,6 +144,8 @@ func (t Type) Description() string {
+ 		return "Deleting image"
+ 	case ImageToken:
+ 		return "Image download token"
++	case ImageUploadToken:
++		return "Image upload token"
+ 	case ImageRefresh:
+ 		return "Refreshing image"
+ 	case VolumeCopy:
+@@ -277,6 +280,8 @@ func (t Type) Permission() (auth.ObjectType, auth.Entitlement) {
+ 		return auth.ObjectTypeImage, auth.EntitlementCanEdit
+ 	case ImageToken:
+ 		return auth.ObjectTypeImage, auth.EntitlementCanEdit
++	case ImageUploadToken:
++		return auth.ObjectTypeProject, auth.EntitlementCanCreateImages
+ 	case ImageRefresh:
+ 		return auth.ObjectTypeImage, auth.EntitlementCanEdit
+ 	case ImagesUpdate:

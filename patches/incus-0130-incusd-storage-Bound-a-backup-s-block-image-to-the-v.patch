@@ -1,0 +1,51 @@
+From 1d50ee87b8be453107cecc20838cec234f6e2f94 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:06:13 -0500
+Subject: [PATCH] incusd/storage: Bound a backup's block image to the volume
+ size
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The project limit was checked against the size the backup declared
+while the volume was resized to whatever the tarball held.
+
+This addresses GHSA-9pvj-5r2h-r873 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit eee57fbbeca15f1cc8fba0e0f1be29e40939bfeb)
+---
+ internal/server/storage/drivers/utils.go | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/internal/server/storage/drivers/utils.go b/internal/server/storage/drivers/utils.go
+index c58842dff5..93064b8de4 100644
+--- a/internal/server/storage/drivers/utils.go
++++ b/internal/server/storage/drivers/utils.go
+@@ -30,6 +30,7 @@ import (
+ 	"github.com/lxc/incus/v7/shared/idmap"
+ 	"github.com/lxc/incus/v7/shared/logger"
+ 	"github.com/lxc/incus/v7/shared/subprocess"
++	"github.com/lxc/incus/v7/shared/units"
+ 	"github.com/lxc/incus/v7/shared/util"
+ )
+ 
+@@ -1340,6 +1341,18 @@ func UnpackVolume(d Driver, vol Volume, r io.ReadSeeker, tarArgs []string, unpac
+ 
+ 			defer logger.WarnOnErrorExcept(to.Close, []error{os.ErrClosed}, "Failed to close file")
+ 
++			// The project checked the declared size, bound the image to it with the migration path's rounding allowance.
++			if vol.ExpandedConfig("size") != "" {
++				sizeBytes, err := units.ParseByteSizeString(vol.ExpandedConfig("size"))
++				if err != nil {
++					return err
++				}
++
++				if sizeBytes > 0 && hdr.Size > sizeBytes+(4*1024*1024) {
++					return fmt.Errorf("Backup image size (%d) exceeds the volume size (%d)", hdr.Size, sizeBytes)
++				}
++			}
++
+ 			// Restore original size of volume from raw block backup file size.
+ 			d.Logger().Debug("Setting volume size from source", logger.Ctx{"source": srcFile, "target": targetPath, "size": hdr.Size})
+ 

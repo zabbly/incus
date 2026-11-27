@@ -1,0 +1,77 @@
+From fe84edf548894be7a767fa4e731b0909c3506908 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:00:33 -0500
+Subject: [PATCH] incusd/forknet: Ignore DHCP domain names that can't fit on
+ one line
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A line break or space in a DHCP-supplied domain name added lines of the
+server's choosing to the container's resolv.conf, bypassing the pinned
+oci.dns.nameservers.
+
+This addresses GHSA-fg2p-r659-c4q8 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit f6c4c04f6d990c9ab264a0e7065bcb2f0442e043)
+---
+ cmd/incusd/main_forknet.go | 17 ++++++++++++++---
+ 1 file changed, 14 insertions(+), 3 deletions(-)
+
+diff --git a/cmd/incusd/main_forknet.go b/cmd/incusd/main_forknet.go
+index 28702b5310..452d2d902c 100644
+--- a/cmd/incusd/main_forknet.go
++++ b/cmd/incusd/main_forknet.go
+@@ -245,6 +245,7 @@ import (
+ 	"strings"
+ 	"sync"
+ 	"time"
++	"unicode"
+ 
+ 	"github.com/insomniacslk/dhcp/dhcpv4"
+ 	"github.com/insomniacslk/dhcp/dhcpv4/nclient4"
+@@ -1070,6 +1071,16 @@ func appendUnique(list []string, value string) []string {
+ 	return append(list, value)
+ }
+ 
++// appendUniqueDomain appends a DHCP-supplied domain name unless it would break the resolv.conf line.
++func appendUniqueDomain(list []string, value string) []string {
++	value = strings.TrimRight(value, "\x00")
++	if strings.ContainsFunc(value, func(r rune) bool { return unicode.IsSpace(r) || unicode.IsControl(r) }) {
++		return list
++	}
++
++	return appendUnique(list, value)
++}
++
+ func (c *cmdForknet) dhcpApplyDNS(l *logrus.Logger) error {
+ 	nameservers := []string{}
+ 	searchLabels := []string{}
+@@ -1122,7 +1133,7 @@ func (c *cmdForknet) dhcpApplyDNS(l *logrus.Logger) error {
+ 
+ 		// Domain name (option 15).
+ 		if c.initialDomain == "" {
+-			domainNames = appendUnique(domainNames, lease.Offer.DomainName())
++			domainNames = appendUniqueDomain(domainNames, lease.Offer.DomainName())
+ 		}
+ 
+ 		// Domain search list (option 119).
+@@ -1130,7 +1141,7 @@ func (c *cmdForknet) dhcpApplyDNS(l *logrus.Logger) error {
+ 			ds := lease.Offer.DomainSearch()
+ 			if ds != nil {
+ 				for _, s := range ds.Labels {
+-					searchLabels = appendUnique(searchLabels, s)
++					searchLabels = appendUniqueDomain(searchLabels, s)
+ 				}
+ 			}
+ 		}
+@@ -1155,7 +1166,7 @@ func (c *cmdForknet) dhcpApplyDNS(l *logrus.Logger) error {
+ 			dsl := reply.Options.DomainSearchList()
+ 			if dsl != nil {
+ 				for _, s := range dsl.Labels {
+-					searchLabels = appendUnique(searchLabels, s)
++					searchLabels = appendUniqueDomain(searchLabels, s)
+ 				}
+ 			}
+ 		}

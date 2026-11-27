@@ -1,0 +1,33 @@
+From bfc484a6d7bbb12ca677d0758d35044616f79ddf Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:35:09 -0500
+Subject: [PATCH] incusd: Only restore an instance from its own snapshots
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This addresses GHSA-8553-6xmq-7g3g (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 31629e49acad66754a1e2ac38a048489cceec80e)
+---
+ cmd/incusd/instance_put.go | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/cmd/incusd/instance_put.go b/cmd/incusd/instance_put.go
+index d9d37a2dc1..d620dbc387 100644
+--- a/cmd/incusd/instance_put.go
++++ b/cmd/incusd/instance_put.go
+@@ -234,6 +234,12 @@ func instanceSnapRestore(s *state.State, projectName string, name string, snap s
+ 		snap = name + internalInstance.SnapshotDelimiter + snap
+ 	}
+ 
++	// Only the instance's own snapshots can be restored.
++	parentName, _, _ := api.GetParentAndSnapshotName(snap)
++	if parentName != name {
++		return fmt.Errorf("Snapshot %q doesn't belong to instance %q", snap, name)
++	}
++
+ 	inst, err := instance.LoadByProjectAndName(s, projectName, name)
+ 	if err != nil {
+ 		return err

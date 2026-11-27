@@ -1,0 +1,78 @@
+From 7cf420d6f0f67c6d2117b3881ffc8d5c1f198200 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:32:22 -0500
+Subject: [PATCH] incusd: Don't follow a symlinked exec output directory
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The confinement root was opened on the exec-output path itself, which
+follows a symlink planted there, so a restored snapshot could point the
+handlers at another instance's recorded output.
+
+This addresses GHSA-8m9x-vx2q-7f9q (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit e97adc499c5210e95b212d605f7e8ab9250e652c)
+---
+ cmd/incusd/instance_logs.go | 33 +++++++++++++++++++++++++++------
+ 1 file changed, 27 insertions(+), 6 deletions(-)
+
+diff --git a/cmd/incusd/instance_logs.go b/cmd/incusd/instance_logs.go
+index 0812fca12b..07ac674afe 100644
+--- a/cmd/incusd/instance_logs.go
++++ b/cmd/incusd/instance_logs.go
+@@ -436,8 +436,15 @@ func instanceExecOutputsGet(d *Daemon, r *http.Request) response.Response {
+ 
+ 	defer logger.WarnOnError(func() error { return pool.UnmountInstance(inst, nil) }, "Failed to unmount instance")
+ 
+-	// Confine access to the exec output directory to avoid following symlinks.
+-	root, err := os.OpenRoot(inst.ExecOutputPath())
++	// Confine access to the exec output directory without following a symlinked directory.
++	instRoot, err := os.OpenRoot(inst.Path())
++	if err != nil {
++		return response.SmartError(err)
++	}
++
++	defer logger.WarnOnError(instRoot.Close, "Failed to close instance root")
++
++	root, err := instRoot.OpenRoot("exec-output")
+ 	if err != nil {
+ 		return response.SmartError(err)
+ 	}
+@@ -560,8 +567,15 @@ func instanceExecOutputGet(d *Daemon, r *http.Request) response.Response {
+ 
+ 	reverter.Add(func() { _ = pool.UnmountInstance(inst, nil) })
+ 
+-	// Confine access to the exec output directory to avoid following symlinks.
+-	root, err := os.OpenRoot(inst.ExecOutputPath())
++	// Confine access to the exec output directory without following a symlinked directory.
++	instRoot, err := os.OpenRoot(inst.Path())
++	if err != nil {
++		return response.SmartError(err)
++	}
++
++	defer logger.WarnOnError(instRoot.Close, "Failed to close instance root")
++
++	root, err := instRoot.OpenRoot("exec-output")
+ 	if err != nil {
+ 		return response.SmartError(err)
+ 	}
+@@ -689,8 +703,15 @@ func instanceExecOutputDelete(d *Daemon, r *http.Request) response.Response {
+ 
+ 	defer logger.WarnOnError(func() error { return pool.UnmountInstance(inst, nil) }, "Failed to unmount instance")
+ 
+-	// Confine access to the exec output directory to avoid following symlinks.
+-	root, err := os.OpenRoot(inst.ExecOutputPath())
++	// Confine access to the exec output directory without following a symlinked directory.
++	instRoot, err := os.OpenRoot(inst.Path())
++	if err != nil {
++		return response.SmartError(err)
++	}
++
++	defer logger.WarnOnError(instRoot.Close, "Failed to close instance root")
++
++	root, err := instRoot.OpenRoot("exec-output")
+ 	if err != nil {
+ 		return response.SmartError(err)
+ 	}

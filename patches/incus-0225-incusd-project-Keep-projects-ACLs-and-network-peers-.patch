@@ -1,0 +1,87 @@
+From c3fdb87879799d04e5239a96784fc732a1936bb4 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Fri, 20 Nov 2026 14:28:12 -0500
+Subject: [PATCH] incusd/project: Keep projects, ACLs and network peers in
+ filtered used_by lists
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The filter dropped every entry it had no case for, so network
+integrations and cluster groups lost those entries for all callers.
+
+This addresses GHSA-44g3-g988-46rg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+---
+ internal/server/project/permissions.go | 37 ++++++++++++++++++++++++--
+ 1 file changed, 35 insertions(+), 2 deletions(-)
+
+diff --git a/internal/server/project/permissions.go b/internal/server/project/permissions.go
+index 3469774f9f..09ffe06464 100644
+--- a/internal/server/project/permissions.go
++++ b/internal/server/project/permissions.go
+@@ -2115,12 +2115,21 @@ func FilterUsedBy(authorizer auth.Authorizer, r *http.Request, entries []string)
+ 	// Filter the entries.
+ 	usedBy := []string{}
+ 	for _, entry := range entries {
++		var object auth.Object
++
+ 		entityType, projectName, location, pathArgs, err := cluster.URLToEntityType(entry)
+ 		if err != nil {
+-			continue
++			// Network peers aren't an entity type, they follow their network.
++			networkName, networkProject, ok := networkPeerURL(entry)
++			if !ok {
++				continue
++			}
++
++			entityType = cluster.TypeNetwork
++			projectName = networkProject
++			pathArgs = []string{networkName}
+ 		}
+ 
+-		var object auth.Object
+ 		switch entityType {
+ 		case cluster.TypeImage:
+ 			object = auth.ObjectImage(projectName, pathArgs[0])
+@@ -2128,8 +2137,12 @@ func FilterUsedBy(authorizer auth.Authorizer, r *http.Request, entries []string)
+ 			object = auth.ObjectInstance(projectName, pathArgs[0])
+ 		case cluster.TypeNetwork:
+ 			object = auth.ObjectNetwork(projectName, pathArgs[0])
++		case cluster.TypeNetworkACL:
++			object = auth.ObjectNetworkACL(projectName, pathArgs[0])
+ 		case cluster.TypeProfile:
+ 			object = auth.ObjectProfile(projectName, pathArgs[0])
++		case cluster.TypeProject:
++			object = auth.ObjectProject(pathArgs[0])
+ 		case cluster.TypeStoragePool:
+ 			object = auth.ObjectStoragePool(pathArgs[0])
+ 		case cluster.TypeStorageVolume:
+@@ -2153,6 +2166,26 @@ func FilterUsedBy(authorizer auth.Authorizer, r *http.Request, entries []string)
+ 	return usedBy
+ }
+ 
++// networkPeerURL returns the network and project of a network peer URL.
++func networkPeerURL(entry string) (string, string, bool) {
++	u, err := url.Parse(entry)
++	if err != nil {
++		return "", "", false
++	}
++
++	parts := strings.Split(strings.Trim(u.Path, "/"), "/")
++	if len(parts) != 5 || parts[1] != "networks" || parts[3] != "peers" {
++		return "", "", false
++	}
++
++	projectName := u.Query().Get("project")
++	if projectName == "" {
++		projectName = api.ProjectDefaultName
++	}
++
++	return parts[2], projectName, true
++}
++
+ // Return true if particular restriction in project is violated.
+ func projectHasRestriction(project *api.Project, restrictionKey string, blockValue string) bool {
+ 	if util.IsFalseOrEmpty(project.Config["restricted"]) {

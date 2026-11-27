@@ -1,0 +1,75 @@
+From 0454d0991db68091ebf38a6ab5f22391553addf3 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:09:26 -0500
+Subject: [PATCH] incusd: Start without a device monitor when none can be
+ created
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The inotify and fanotify limits are charged to the host root user for
+unprivileged containers, so a container could exhaust them and keep the
+daemon from starting. Device hotplug is unavailable in that state, the
+rest of the daemon works.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 65a7441f372967229116aba951532454e7f54a6a)
+---
+ cmd/incusd/daemon.go              |  4 +++-
+ internal/server/fsmonitor/noop.go | 30 ++++++++++++++++++++++++++++++
+ 2 files changed, 33 insertions(+), 1 deletion(-)
+ create mode 100644 internal/server/fsmonitor/noop.go
+
+diff --git a/cmd/incusd/daemon.go b/cmd/incusd/daemon.go
+index 8b4d41d263..811ffac451 100644
+--- a/cmd/incusd/daemon.go
++++ b/cmd/incusd/daemon.go
+@@ -1743,7 +1743,9 @@ func (d *Daemon) init() error {
+ 
+ 		d.devmonitor, err = fsmonitor.New(d.State().ShutdownCtx, prefixPath)
+ 		if err != nil {
+-			return err
++			// The kernel limits are shared with the containers, don't let them keep the daemon down.
++			logger.Warn("Failed to start the device monitor, device hotplug is unavailable", logger.Ctx{"err": err})
++			d.devmonitor = fsmonitor.NewNoop(prefixPath)
+ 		}
+ 
+ 		// Must occur after d.devmonitor has been initialized.
+diff --git a/internal/server/fsmonitor/noop.go b/internal/server/fsmonitor/noop.go
+new file mode 100644
+index 0000000000..38d66329a8
+--- /dev/null
++++ b/internal/server/fsmonitor/noop.go
+@@ -0,0 +1,30 @@
++package fsmonitor
++
++import (
++	"errors"
++)
++
++// noopMonitor stands in when no filesystem monitor could be started.
++type noopMonitor struct {
++	prefixPath string
++}
++
++// NewNoop returns a monitor that refuses every watch.
++func NewNoop(prefixPath string) FSMonitor {
++	return &noopMonitor{prefixPath: prefixPath}
++}
++
++// PrefixPath returns the prefix path.
++func (fs *noopMonitor) PrefixPath() string {
++	return fs.prefixPath
++}
++
++// Watch always fails as no filesystem monitor is available.
++func (fs *noopMonitor) Watch(path string, identifier string, f func(path string, event string) bool) error {
++	return errors.New("No filesystem monitor is available")
++}
++
++// Unwatch does nothing as nothing is ever watched.
++func (fs *noopMonitor) Unwatch(path string, identifier string) error {
++	return nil
++}

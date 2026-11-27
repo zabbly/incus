@@ -1,0 +1,137 @@
+From 5cce7a333242b306f1307133dfdda18a3f24705c Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Sat, 24 Oct 2026 00:27:50 -0400
+Subject: [PATCH] incusd: Lock the instance during rebuild
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The rebuild operation deleted and re-unpacked the root volume without
+holding the instance lock, so a copy refresh sent during the image
+unpack could swap a directory for a symlink and have tar write image
+entries onto host files as root. A PATCH during a create did the same by
+dropping the inherited create lock.
+
+Take the exclusive lock in the rebuild operation and reload under it, and
+stop Update from inheriting the create lock.
+
+This addresses GHSA-42x8-664j-84w8 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 05a4e38af7924011390e024775b3df93a9ff9c96)
+---
+ cmd/incusd/instance.go                        | 11 ++++---
+ cmd/incusd/instance_rebuild.go                | 30 +++++++++++++++----
+ .../server/instance/drivers/driver_lxc.go     |  2 +-
+ 3 files changed, 32 insertions(+), 11 deletions(-)
+
+diff --git a/cmd/incusd/instance.go b/cmd/incusd/instance.go
+index bf0701e7c6..27eb1537f4 100644
+--- a/cmd/incusd/instance.go
++++ b/cmd/incusd/instance.go
+@@ -203,7 +203,7 @@ func instanceCreateFromImage(ctx context.Context, s *state.State, img *api.Image
+ 
+ 	// If dealing with an OCI image, parse the configuration.
+ 	if args.Type == instancetype.Container && inst.LocalConfig()["image.type"] == "oci" {
+-		err = instanceApplyOCIConfig(inst, pool)
++		err = instanceApplyOCIConfig(inst, pool, instOp)
+ 		if err != nil {
+ 			return err
+ 		}
+@@ -240,7 +240,7 @@ func ociDefaults(spec *ociSpecs.Spec) map[string]string {
+ }
+ 
+ // instanceApplyOCIConfig sets the config keys derived from the instance's OCI image that aren't set yet.
+-func instanceApplyOCIConfig(inst instance.Instance, pool storagePools.Pool) error {
++func instanceApplyOCIConfig(inst instance.Instance, pool storagePools.Pool, instOp *operationlock.InstanceOperation) error {
+ 	// Parse the OCI config.
+ 	_, err := pool.MountInstance(inst, nil)
+ 	if err != nil {
+@@ -284,10 +284,13 @@ func instanceApplyOCIConfig(inst instance.Instance, pool storagePools.Pool) erro
+ 		Snapshot:     inst.IsSnapshot(),
+ 	}
+ 
++	// Release the exclusive lock, as Update takes the instance operation lock itself.
++	instOp.Done(nil)
++
+ 	return inst.Update(args, false)
+ }
+ 
+-func instanceRebuildFromImage(ctx context.Context, s *state.State, r *http.Request, inst instance.Instance, img *api.Image, op *operations.Operation) error {
++func instanceRebuildFromImage(ctx context.Context, s *state.State, r *http.Request, inst instance.Instance, img *api.Image, instOp *operationlock.InstanceOperation, op *operations.Operation) error {
+ 	// Validate the type of the image matches the type of the instance.
+ 	imgType, err := instancetype.New(img.Type)
+ 	if err != nil {
+@@ -315,7 +318,7 @@ func instanceRebuildFromImage(ctx context.Context, s *state.State, r *http.Reque
+ 			return err
+ 		}
+ 
+-		err = instanceApplyOCIConfig(inst, pool)
++		err = instanceApplyOCIConfig(inst, pool, instOp)
+ 		if err != nil {
+ 			return err
+ 		}
+diff --git a/cmd/incusd/instance_rebuild.go b/cmd/incusd/instance_rebuild.go
+index c295a8175c..8a3e35be1d 100644
+--- a/cmd/incusd/instance_rebuild.go
++++ b/cmd/incusd/instance_rebuild.go
+@@ -133,22 +133,40 @@ func instanceRebuildPost(d *Daemon, r *http.Request) response.Response {
+ 	}
+ 
+ 	run := func(op *operations.Operation) error {
+-		if req.Source.Type == "none" {
+-			return instanceRebuildFromEmpty(inst, op)
+-		}
+-
+-		if req.Source.Server != "" {
++		if req.Source.Type != "none" && req.Source.Server != "" {
+ 			sourceImage, err = ensureDownloadedImageFitWithinBudget(context.TODO(), s, r, op, *targetProject, sourceImageRef, req.Source, inst.Type().String())
+ 			if err != nil {
+ 				return err
+ 			}
+ 		}
+ 
++		// Prevent concurrent operations on the instance while its root volume is replaced.
++		instOp, err := inst.LockExclusive()
++		if err != nil {
++			return fmt.Errorf("Failed getting exclusive access to instance: %w", err)
++		}
++
++		defer instOp.Done(nil)
++
++		// Reload the instance as it may have changed since the request was received.
++		inst, err = instance.LoadByProjectAndName(s, targetProject.Name, name)
++		if err != nil {
++			return err
++		}
++
++		if inst.IsRunning() {
++			return errors.New("Instance must be stopped to be rebuilt")
++		}
++
++		if req.Source.Type == "none" {
++			return instanceRebuildFromEmpty(inst, op)
++		}
++
+ 		if sourceImage == nil {
+ 			return errors.New("Image not provided for instance rebuild")
+ 		}
+ 
+-		return instanceRebuildFromImage(context.TODO(), s, r, inst, sourceImage, op)
++		return instanceRebuildFromImage(context.TODO(), s, r, inst, sourceImage, instOp, op)
+ 	}
+ 
+ 	resources := map[string][]api.URL{}
+diff --git a/internal/server/instance/drivers/driver_lxc.go b/internal/server/instance/drivers/driver_lxc.go
+index e0101a3a85..112f0b9246 100644
+--- a/internal/server/instance/drivers/driver_lxc.go
++++ b/internal/server/instance/drivers/driver_lxc.go
+@@ -5051,7 +5051,7 @@ func (d *lxc) CGroupSet(key string, value string) error {
+ // Update applies updated config.
+ func (d *lxc) Update(args db.InstanceArgs, userRequested bool) error {
+ 	// Setup a new operation
+-	op, err := operationlock.CreateWaitGet(d.Project().Name, d.Name(), d.op, operationlock.ActionUpdate, []operationlock.Action{operationlock.ActionCreate, operationlock.ActionRestart, operationlock.ActionRestore}, false, false)
++	op, err := operationlock.CreateWaitGet(d.Project().Name, d.Name(), d.op, operationlock.ActionUpdate, []operationlock.Action{operationlock.ActionRestart, operationlock.ActionRestore}, false, false)
+ 	if err != nil {
+ 		return fmt.Errorf("Failed to create instance update operation: %w", err)
+ 	}

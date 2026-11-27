@@ -1,0 +1,43 @@
+From 43b6330b0a6d44029887d2d883025c4542b01ed7 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Fri, 23 Oct 2026 23:09:22 -0400
+Subject: [PATCH] incusd: Don't leak descriptors into the intercepted
+ mount.fuse
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The FUSE mount interception helper executed the container's mount.fuse
+without closing inherited descriptors, so it received the daemon's
+cowsql listening socket and could serve the daemon a database of its own.
+
+Close everything above stderr and clear the environment before the exec,
+as forkexec does.
+
+This addresses GHSA-28m6-7v43-rr8m (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 484431ee7b797e2a6cef2e68df0c6a511fb58cda)
+---
+ cmd/incusd/main_forksyscall.go | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/cmd/incusd/main_forksyscall.go b/cmd/incusd/main_forksyscall.go
+index aabdceb778..df6f845241 100644
+--- a/cmd/incusd/main_forksyscall.go
++++ b/cmd/incusd/main_forksyscall.go
+@@ -411,6 +411,14 @@ static void mount_emulate(void)
+ 			fuse_target = advance_arg(true);
+ 			fuse_opts = advance_arg(true);
+ 
++			// Don't leak the daemon's descriptors or environment into the container's mount.fuse.
++			if (incus_close_range(STDERR_FILENO + 1, UINT_MAX, CLOSE_RANGE_UNSHARE) < 0)
++				_exit(EXIT_FAILURE);
++
++			clearenv();
++			if (setenv("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", 1) < 0)
++				_exit(EXIT_FAILURE);
++
+ 			if (strcmp(fuse_opts, "") == 0)
+ 				execlp("mount.fuse", "mount.fuse", fuse_source, fuse_target, (char *) NULL);
+ 			else

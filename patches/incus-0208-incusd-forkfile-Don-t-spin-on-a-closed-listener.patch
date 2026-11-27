@@ -1,0 +1,45 @@
+From 131c1f689907b89399ee61ab882400b3b3d27aad Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:03:10 -0500
+Subject: [PATCH] incusd/forkfile: Don't spin on a closed listener
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Once the signal handler closed the listener, Accept returned at once
+and the accept loop retried without pause until the last client went
+away, burning a CPU for as long as a client kept its connection open.
+
+This addresses GHSA-23fc-ggg4-5r2r (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit cb0a9a745b5b3ee6552276512ab095a42d8dc41a)
+---
+ cmd/incusd/main_forkfile.go | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/cmd/incusd/main_forkfile.go b/cmd/incusd/main_forkfile.go
+index 8187430d69..2356f3214e 100644
+--- a/cmd/incusd/main_forkfile.go
++++ b/cmd/incusd/main_forkfile.go
+@@ -107,6 +107,7 @@ void forkfile(void)
+ import "C"
+ 
+ import (
++	"errors"
+ 	"net"
+ 	"os"
+ 	"os/signal"
+@@ -234,6 +235,12 @@ func (c *cmdForkfile) run(_ *cobra.Command, args []string) error {
+ 		// Accept new connection.
+ 		conn, err := listener.Accept()
+ 		if err != nil {
++			// The signal handler exits once the remaining connections are gone.
++			if errors.Is(err, net.ErrClosed) {
++				select {}
++			}
++
++			time.Sleep(100 * time.Millisecond)
+ 			continue
+ 		}
+ 

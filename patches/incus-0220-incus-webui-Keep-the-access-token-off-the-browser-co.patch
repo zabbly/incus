@@ -1,0 +1,93 @@
+From 8919c56ecc0b3c327bc36d136c5fa744dd545de5 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Tue, 17 Nov 2026 15:26:30 -0500
+Subject: [PATCH] incus/webui: Keep the access token off the browser command
+ line
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The browser is now pointed at a private file redirecting to the web
+interface.
+
+This addresses GHSA-37v2-35hc-m379 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+---
+ cmd/incus/webui_unix.go | 51 +++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 49 insertions(+), 2 deletions(-)
+
+diff --git a/cmd/incus/webui_unix.go b/cmd/incus/webui_unix.go
+index 6f4f9af891..c445a11119 100644
+--- a/cmd/incus/webui_unix.go
++++ b/cmd/incus/webui_unix.go
+@@ -8,7 +8,9 @@ import (
+ 	"net"
+ 	"net/http"
+ 	"net/url"
++	"os"
+ 	"sync"
++	"time"
+ 
+ 	"github.com/google/uuid"
+ 	"github.com/spf13/cobra"
+@@ -108,8 +110,17 @@ func (c *cmdWebui) run(cmd *cobra.Command, args []string) error {
+ 	uiURL := fmt.Sprintf("http://%s/ui?auth_token=%s", server.Addr().String(), token)
+ 	fmt.Printf(i18n.G("Web server running at: %s")+"\n", uiURL)
+ 
+-	// Attempt to automatically open the web browser.
+-	_ = util.OpenBrowser(uiURL)
++	// Attempt to automatically open the web browser, keeping the token off its command line.
++	redirect, err := c.redirectFile(uiURL)
++	if err == nil {
++		_ = util.OpenBrowser((&url.URL{Scheme: "file", Path: redirect}).String())
++
++		// Give the browser some time to load the file.
++		go func() {
++			time.Sleep(time.Minute)
++			_ = os.Remove(redirect)
++		}()
++	}
+ 
+ 	// Start the server.
+ 	err = http.Serve(server, &handler)
+@@ -119,3 +130,39 @@ func (c *cmdWebui) run(cmd *cobra.Command, args []string) error {
+ 
+ 	return nil
+ }
++
++// redirectFile writes a private HTML file redirecting to the provided URL.
++func (c *cmdWebui) redirectFile(target string) (string, error) {
++	if c.global.conf.ConfigDir == "" {
++		return "", errors.New("No configuration directory")
++	}
++
++	dir := c.global.conf.ConfigPath("webui")
++
++	err := os.MkdirAll(dir, 0o700)
++	if err != nil {
++		return "", err
++	}
++
++	f, err := os.CreateTemp(dir, "*.html")
++	if err != nil {
++		return "", err
++	}
++
++	_, err = fmt.Fprintf(f, `<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=%s"></head></html>`+"\n", target)
++	if err != nil {
++		_ = f.Close()
++		_ = os.Remove(f.Name())
++
++		return "", err
++	}
++
++	err = f.Close()
++	if err != nil {
++		_ = os.Remove(f.Name())
++
++		return "", err
++	}
++
++	return f.Name(), nil
++}

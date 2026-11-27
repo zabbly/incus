@@ -1,0 +1,54 @@
+From a515a41d7dae261b57499150290be7114f0f7069 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:03:34 -0500
+Subject: [PATCH] incusd/images: Stream split publish files through the hash
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Both files were read into memory to be hashed, so publishing a large
+instance in split format cost the daemon the size of its rootfs.
+
+This addresses GHSA-4j59-4pqh-f3qm (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit cbcd86e7da33a90ca620235b9e15bdf23d8e3934)
+---
+ cmd/incusd/images.go | 22 +++++++++++-----------
+ 1 file changed, 11 insertions(+), 11 deletions(-)
+
+diff --git a/cmd/incusd/images.go b/cmd/incusd/images.go
+index b8fea6bf3f..d1f9a23129 100644
+--- a/cmd/incusd/images.go
++++ b/cmd/incusd/images.go
+@@ -514,19 +514,19 @@ func imgPostInstanceInfo(ctx context.Context, s *state.State, r *http.Request, r
+ 
+ 		info.Size += rootfsFi.Size()
+ 
+-		metaData, err := os.ReadFile(metaFile.Name())
+-		if err != nil {
+-			return nil, err
+-		}
+-
+-		hash256.Write(metaData)
++		// Stream the files through the hash, the rootfs can be large.
++		for _, name := range []string{metaFile.Name(), rootfsFile.Name()} {
++			f, err := os.Open(name)
++			if err != nil {
++				return nil, err
++			}
+ 
+-		rootfsData, err := os.ReadFile(rootfsFile.Name())
+-		if err != nil {
+-			return nil, err
++			_, err = util.SafeCopy(hash256, f)
++			_ = f.Close()
++			if err != nil {
++				return nil, err
++			}
+ 		}
+-
+-		hash256.Write(rootfsData)
+ 	}
+ 
+ 	info.Fingerprint = fmt.Sprintf("%x", hash256.Sum(nil))

@@ -1,0 +1,72 @@
+From ecb68ef4b7d2ac575cff4f81094c19bd8481de3a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Thu, 22 Oct 2026 08:19:41 -0400
+Subject: [PATCH] incusd/instance/lxc: Enable the devices cgroup for all
+ containers
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This addresses GHSA-f886-r3x9-fp2r (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 73e25453cfb5b89ad76f632c4aa03b85c7fd1509)
+---
+ .../server/instance/drivers/driver_lxc.go     | 23 ++++---------------
+ 1 file changed, 5 insertions(+), 18 deletions(-)
+
+diff --git a/internal/server/instance/drivers/driver_lxc.go b/internal/server/instance/drivers/driver_lxc.go
+index a2beff58fe..e290bf8e83 100644
+--- a/internal/server/instance/drivers/driver_lxc.go
++++ b/internal/server/instance/drivers/driver_lxc.go
+@@ -956,8 +956,8 @@ func (d *lxc) initLXC(config bool) (*liblxc.Container, error) {
+ 		}
+ 	}
+ 
+-	// Configure devices cgroup
+-	if d.IsPrivileged() && !d.state.OS.RunningInUserNS {
++	// Configure the devices cgroup for all containers so smuggled device nodes can't be opened.
++	if !d.state.OS.RunningInUserNS {
+ 		err = lxcSetConfigItem(cc, "lxc.cgroup2.devices.deny", "a")
+ 		if err != nil {
+ 			return nil, err
+@@ -1622,8 +1622,8 @@ func (d *lxc) deviceAddCgroupRules(cgroups []deviceConfig.RunConfigItem) error {
+ 	}
+ 
+ 	for _, rule := range cgroups {
+-		// Only apply devices cgroup rules if container is running privileged and host has devices cgroup controller.
+-		if strings.HasPrefix(rule.Key, "devices.") && (!d.isCurrentlyPrivileged() || d.state.OS.RunningInUserNS) {
++		// Devices cgroup rules need the host's devices cgroup controller.
++		if strings.HasPrefix(rule.Key, "devices.") && d.state.OS.RunningInUserNS {
+ 			continue
+ 		}
+ 
+@@ -2443,7 +2443,7 @@ func (d *lxc) startCommon() (string, []func() error, error) {
+ 		// Pass any cgroups rules into LXC.
+ 		if len(runConf.CGroups) > 0 {
+ 			for _, rule := range runConf.CGroups {
+-				if strings.HasPrefix(rule.Key, "devices.") && (!d.isCurrentlyPrivileged() || d.state.OS.RunningInUserNS) {
++				if strings.HasPrefix(rule.Key, "devices.") && d.state.OS.RunningInUserNS {
+ 					continue
+ 				}
+ 
+@@ -9333,19 +9333,6 @@ func (d *lxc) IsNesting() bool {
+ 	return util.IsTrue(d.expandedConfig["security.nesting"])
+ }
+ 
+-func (d *lxc) isCurrentlyPrivileged() bool {
+-	if !d.IsRunning() {
+-		return d.IsPrivileged()
+-	}
+-
+-	currentIdmap, err := d.CurrentIdmap()
+-	if err != nil {
+-		return d.IsPrivileged()
+-	}
+-
+-	return currentIdmap == nil
+-}
+-
+ // IsPrivileged returns if instance is privileged.
+ func (d *lxc) IsPrivileged() bool {
+ 	return util.IsTrue(d.expandedConfig["security.privileged"])

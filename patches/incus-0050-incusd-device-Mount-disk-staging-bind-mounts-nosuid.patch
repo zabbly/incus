@@ -1,0 +1,78 @@
+From 29f8d87286b3241efc93c1fb40e25ba1045faa9a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Sat, 24 Oct 2026 00:40:02 -0400
+Subject: [PATCH] incusd/device: Mount disk staging bind mounts nosuid
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A disk device's source is bind-mounted under a traversable devices
+directory while a container starts. The mount kept setuid bits, so a
+local user who knew the path could run a setuid-root file from their own
+custom volume as root during the start window.
+
+Set nosuid on the staging mount.
+
+This addresses GHSA-p8fx-6xxm-25wh (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 0b817475560896c29396b566bdaf4faf13e27122)
+---
+ internal/server/device/device_utils_disk.go | 25 ++++++++++++++++++++-
+ internal/server/device/disk.go              |  7 ++++++
+ 2 files changed, 31 insertions(+), 1 deletion(-)
+
+diff --git a/internal/server/device/device_utils_disk.go b/internal/server/device/device_utils_disk.go
+index e7c2acd311..3e2fd1a638 100644
+--- a/internal/server/device/device_utils_disk.go
++++ b/internal/server/device/device_utils_disk.go
+@@ -181,7 +181,30 @@ func DiskMount(srcPath string, dstPath string, recursive bool, propagation strin
+ 	return nil
+ }
+ 
+-// DiskMountClear unmounts and removes the mount path used for disk shares.
++// DiskMountSetNoSuid sets nosuid on an existing mount, keeping its other flags, so a setuid file on
++// the source can't be run through the staging path by a host user who can reach it.
++func DiskMountSetNoSuid(mntPath string, recursive bool) error {
++	fd, err := unix.Open(mntPath, unix.O_PATH|unix.O_CLOEXEC, 0)
++	if err != nil {
++		return fmt.Errorf("Failed to open %q: %w", mntPath, err)
++	}
++
++	defer func() { _ = unix.Close(fd) }()
++
++	flags := uint(unix.AT_EMPTY_PATH)
++	if recursive {
++		flags |= unix.AT_RECURSIVE
++	}
++
++	err = unix.MountSetattr(fd, "", flags, &unix.MountAttr{Attr_set: unix.MOUNT_ATTR_NOSUID})
++	if err != nil {
++		return fmt.Errorf("Failed to set nosuid on %q: %w", mntPath, err)
++	}
++
++	return nil
++}
++
++// DiskMountClear unmounts and removes a staging mount path.
+ func DiskMountClear(mntPath string) error {
+ 	if util.PathExists(mntPath) {
+ 		if linux.IsMountPoint(mntPath) {
+diff --git a/internal/server/device/disk.go b/internal/server/device/disk.go
+index 938919cb76..e4cb399c6b 100644
+--- a/internal/server/device/disk.go
++++ b/internal/server/device/disk.go
+@@ -2477,6 +2477,13 @@ func (d *disk) createDevice(srcPath string) (func(), string, bool, error) {
+ 		return nil, "", false, err
+ 	}
+ 
++	// Prevent running a setuid file from the staging mount, which sits under a traversable directory.
++	err = DiskMountSetNoSuid(devPath, isRecursive)
++	if err != nil {
++		_ = DiskMountClear(devPath)
++		return nil, "", false, err
++	}
++
+ 	reverter.Add(func() { _ = DiskMountClear(devPath) })
+ 
+ 	cleanup := reverter.Clone().Fail // Clone before calling revert.Success() so we can return the Fail func.

@@ -1,0 +1,132 @@
+From 23516e33d5d92b21262fec98508b78fb708f0f6b Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:32:23 -0500
+Subject: [PATCH] incusd/device: Check the interface an instance hands back
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A container can rename the NIC it was given and leave a tap or veth
+under the expected name, which was then moved to the host, given the
+original MAC and handed to the next instance using the network.
+
+This addresses GHSA-fg2p-r659-c4q8 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit bc13b8b8e6ec1e4394772a593c0a1b59af94631b)
+---
+ internal/instance/config.go                   |  9 ++++++
+ .../server/device/device_utils_network.go     | 31 +++++++++++++++++++
+ internal/server/device/infiniband_physical.go |  1 +
+ internal/server/device/infiniband_sriov.go    |  1 +
+ internal/server/device/nic_physical.go        |  1 +
+ 5 files changed, 43 insertions(+)
+
+diff --git a/internal/instance/config.go b/internal/instance/config.go
+index c1e3e161ef..027457c544 100644
+--- a/internal/instance/config.go
++++ b/internal/instance/config.go
+@@ -1664,6 +1664,15 @@ func ConfigKeyChecker(key string, instanceType api.InstanceType) (func(value str
+ 			return validate.IsListOf(validate.IsNetworkAddress), nil
+ 		}
+ 
++		// gendoc:generate(entity=instance, group=volatile, key=volatile.<name>.last_state.kind)
++		// The kind of physical device that was moved into an instance.
++		// ---
++		//  type: string
++		//  shortdesc: Network device original kind
++		if strings.HasSuffix(key, ".last_state.kind") {
++			return validate.IsAny, nil
++		}
++
+ 		// gendoc:generate(entity=instance, group=volatile, key=volatile.<name>.last_state.mtu)
+ 		// The original MTU that was used when moving a physical device into an instance.
+ 		// ---
+diff --git a/internal/server/device/device_utils_network.go b/internal/server/device/device_utils_network.go
+index e32f42f4ac..b4304952ee 100644
+--- a/internal/server/device/device_utils_network.go
++++ b/internal/server/device/device_utils_network.go
+@@ -192,9 +192,27 @@ func networkSnapshotPhysicalNIC(hostName string, volatile map[string]string) err
+ 	}
+ 
+ 	volatile["last_state.hwaddr"] = mac
++
++	// Store the kind of device so that what comes back can be compared against it.
++	linkInfo, err := ip.LinkByName(hostName)
++	if err != nil {
++		return err
++	}
++
++	volatile["last_state.kind"] = networkLinkKind(linkInfo)
++
+ 	return nil
+ }
+ 
++// networkLinkKind returns the kind of a link, using "physical" for those which don't have one.
++func networkLinkKind(linkInfo ip.LinkInfo) string {
++	if linkInfo.Kind == "" {
++		return "physical"
++	}
++
++	return linkInfo.Kind
++}
++
+ // networkRestorePhysicalNIC restores NIC properties from volatile to what they were before it was attached.
+ func networkRestorePhysicalNIC(hostName string, volatile map[string]string) error {
+ 	// If we created the "physical" device and then it should be removed.
+@@ -202,6 +220,19 @@ func networkRestorePhysicalNIC(hostName string, volatile map[string]string) erro
+ 		return network.InterfaceRemove(hostName)
+ 	}
+ 
++	// Refuse a device of another kind handed back in place of the one the instance was given.
++	if volatile["last_state.kind"] != "" {
++		linkInfo, err := ip.LinkByName(hostName)
++		if err != nil {
++			return fmt.Errorf("Failed to get link info for %q: %w", hostName, err)
++		}
++
++		if networkLinkKind(linkInfo) != volatile["last_state.kind"] {
++			_ = network.InterfaceRemove(hostName)
++			return fmt.Errorf("Interface %q isn't the device given to the instance", hostName)
++		}
++	}
++
+ 	// Bring the interface down, as this is sometimes needed to change settings on the nic.
+ 	link := &ip.Link{Name: hostName}
+ 	err := link.SetDown()
+diff --git a/internal/server/device/infiniband_physical.go b/internal/server/device/infiniband_physical.go
+index 3a3ee48d73..fbf3b44175 100644
+--- a/internal/server/device/infiniband_physical.go
++++ b/internal/server/device/infiniband_physical.go
+@@ -238,6 +238,7 @@ func (d *infinibandPhysical) postStop() error {
+ 			"host_name":                "",
+ 			"last_state.hwaddr":        "",
+ 			"last_state.mtu":           "",
++			"last_state.kind":          "",
+ 			"last_state.pci.slot.name": "",
+ 			"last_state.pci.driver":    "",
+ 		})
+diff --git a/internal/server/device/infiniband_sriov.go b/internal/server/device/infiniband_sriov.go
+index 4f0299cf15..4c9fc64c16 100644
+--- a/internal/server/device/infiniband_sriov.go
++++ b/internal/server/device/infiniband_sriov.go
+@@ -341,6 +341,7 @@ func (d *infinibandSRIOV) postStop() error {
+ 			"host_name":                "",
+ 			"last_state.hwaddr":        "",
+ 			"last_state.mtu":           "",
++			"last_state.kind":          "",
+ 			"last_state.vf.id":         "",
+ 			"last_state.pci.slot.name": "",
+ 			"last_state.pci.driver":    "",
+diff --git a/internal/server/device/nic_physical.go b/internal/server/device/nic_physical.go
+index 4d9e69c318..dee518348a 100644
+--- a/internal/server/device/nic_physical.go
++++ b/internal/server/device/nic_physical.go
+@@ -514,6 +514,7 @@ func (d *nicPhysical) postStop() error {
+ 			"host_name":                "",
+ 			"last_state.hwaddr":        "",
+ 			"last_state.mtu":           "",
++			"last_state.kind":          "",
+ 			"last_state.created":       "",
+ 			"last_state.pci.slot.name": "",
+ 			"last_state.pci.driver":    "",

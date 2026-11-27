@@ -1,0 +1,50 @@
+From 9ac5372b8ec0dc290da534d7b59ff4817a31c6e2 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:07:19 -0500
+Subject: [PATCH] incusd: Check the alias entitlement on image upload
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Aliases passed with an image upload, through the request, the headers
+or a token, were created without can_create_image_aliases.
+
+This addresses GHSA-8553-6xmq-7g3g (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit f821d9122f2b5c381a477ff9a2fe045a4e0eb03d)
+---
+ cmd/incusd/images.go | 13 +++++++++++--
+ 1 file changed, 11 insertions(+), 2 deletions(-)
+
+diff --git a/cmd/incusd/images.go b/cmd/incusd/images.go
+index bbebccc8dd..d07b673cfe 100644
+--- a/cmd/incusd/images.go
++++ b/cmd/incusd/images.go
+@@ -1393,6 +1393,15 @@ func imagesPost(d *Daemon, r *http.Request) response.Response {
+ 		return response.Forbidden(nil)
+ 	}
+ 
++	// Aliases are a separate entitlement from images.
++	if trusted && (len(req.Aliases) > 0 || r.Header.Get("X-Incus-aliases") != "") {
++		err = s.Authorizer.CheckPermission(r.Context(), r, auth.ObjectProject(imageProjectName), auth.EntitlementCanCreateImageAliases)
++		if err != nil {
++			cleanup(builddir, post)
++			return response.SmartError(err)
++		}
++	}
++
+ 	if !imageUpload && req.Source.Mode == "push" {
+ 		cleanup(builddir, post)
+ 
+@@ -1503,8 +1512,8 @@ func imagesPost(d *Daemon, r *http.Request) response.Response {
+ 				if ok {
+ 					req.Aliases = aliases
+ 				}
+-			} else if len(info.Aliases) > 0 {
+-				// Used to get aliases from HTTP headers on raw image imports.
++			} else if trusted && len(info.Aliases) > 0 {
++				// Used to get aliases from HTTP headers on raw image imports, a token only carries its own.
+ 				req.Aliases = info.Aliases
+ 			}
+ 		}

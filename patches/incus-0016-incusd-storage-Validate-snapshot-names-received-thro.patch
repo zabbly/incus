@@ -1,0 +1,55 @@
+From 25486b144991b71058bdcad4f26e650bc4f1d0ef Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Tue, 6 Oct 2026 06:25:37 -0400
+Subject: [PATCH] incusd/storage: Validate snapshot names received through
+ migration
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The snapshot names of a custom volume received through migration come
+from the source and were used as path segments without validation,
+letting a malicious source create snapshots outside of the storage pool.
+
+This addresses GHSA-hfwr-h8hx-pw2g (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 76e4fe1421028c7776628449e4eb87df0e298555)
+---
+ internal/server/storage/backend.go | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/internal/server/storage/backend.go b/internal/server/storage/backend.go
+index 6dbca0b1af..2e16c71af3 100644
+--- a/internal/server/storage/backend.go
++++ b/internal/server/storage/backend.go
+@@ -5937,6 +5937,14 @@ func (b *backend) MigrateCustomVolume(projectName string, conn io.ReadWriteClose
+ 	l.Debug("MigrateCustomVolume started")
+ 	defer l.Debug("MigrateCustomVolume finished")
+ 
++	// The refresh target chooses which snapshots to send, so validate the names used as path segments.
++	for _, snapshot := range args.Snapshots {
++		err := validate.IsAPIName(snapshot, false)
++		if err != nil {
++			return fmt.Errorf("Invalid snapshot name: %w", err)
++		}
++	}
++
+ 	// Get the volume name on storage.
+ 	volStorageName := project.StorageVolume(projectName, args.Name)
+ 
+@@ -5996,6 +6004,14 @@ func (b *backend) CreateCustomVolumeFromMigration(projectName string, conn io.Re
+ 	l.Debug("CreateCustomVolumeFromMigration started")
+ 	defer l.Debug("CreateCustomVolumeFromMigration finished")
+ 
++	// Validate the snapshot names as they're used as path segments.
++	for _, snapshot := range args.Snapshots {
++		err := validate.IsAPIName(snapshot.GetName(), false)
++		if err != nil {
++			return fmt.Errorf("Invalid snapshot name: %w", err)
++		}
++	}
++
+ 	err := b.isStatusReady()
+ 	if err != nil {
+ 		return err

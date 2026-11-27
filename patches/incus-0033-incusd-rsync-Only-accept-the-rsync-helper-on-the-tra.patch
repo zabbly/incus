@@ -1,0 +1,115 @@
+From 5c98363e5671a7aeecde8f13b57ccc5c88a49106 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Fri, 23 Oct 2026 23:11:04 -0400
+Subject: [PATCH] incusd/rsync: Only accept the rsync helper on the transfer
+ socket
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The sending side listened on an abstract unix socket and handed the
+first connection to the transfer. Any local user could connect first,
+read the whole tree and feed the receiving root rsync setuid files.
+
+Accept only a peer running as our own effective user, and keep the
+listener open until it connects. Same change in the migration tools.
+
+This addresses GHSA-p8fx-6xxm-25wh (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 844db577d04425636c738ae8cd78344483f71f98)
+---
+ cmd/incus-migrate/transfer.go |  2 +-
+ cmd/lxc-to-incus/transfer.go  |  2 +-
+ internal/linux/ucred.go       | 34 ++++++++++++++++++++++++++++++++++
+ internal/rsync/rsync.go       |  2 +-
+ 4 files changed, 37 insertions(+), 3 deletions(-)
+
+diff --git a/cmd/incus-migrate/transfer.go b/cmd/incus-migrate/transfer.go
+index 517372ed82..32b95860fc 100644
+--- a/cmd/incus-migrate/transfer.go
++++ b/cmd/incus-migrate/transfer.go
+@@ -112,7 +112,7 @@ func rsyncSendSetup(ctx context.Context, path string, rsyncArgs string, migratio
+ 		return nil, nil, nil, err
+ 	}
+ 
+-	conn, err := l.Accept()
++	conn, err := linux.AcceptSameUser(l)
+ 	if err != nil {
+ 		_ = cmd.Process.Kill()
+ 		_ = cmd.Wait()
+diff --git a/cmd/lxc-to-incus/transfer.go b/cmd/lxc-to-incus/transfer.go
+index c063ab4797..90abf31df6 100644
+--- a/cmd/lxc-to-incus/transfer.go
++++ b/cmd/lxc-to-incus/transfer.go
+@@ -102,7 +102,7 @@ func rsyncSendSetup(path string, rsyncArgs string) (*exec.Cmd, net.Conn, io.Read
+ 		return nil, nil, nil, err
+ 	}
+ 
+-	conn, err := l.Accept()
++	conn, err := linux.AcceptSameUser(l)
+ 	if err != nil {
+ 		_ = cmd.Process.Kill()
+ 		_ = cmd.Wait()
+diff --git a/internal/linux/ucred.go b/internal/linux/ucred.go
+index 5e0f4d253b..866e17eae9 100644
+--- a/internal/linux/ucred.go
++++ b/internal/linux/ucred.go
+@@ -2,6 +2,7 @@ package linux
+ 
+ import (
+ 	"net"
++	"os"
+ 
+ 	"golang.org/x/sys/unix"
+ )
+@@ -28,3 +29,36 @@ func GetUcred(conn *net.UnixConn) (*unix.Ucred, error) {
+ 
+ 	return ucred, nil
+ }
++
++// AcceptSameUser returns the first connection on l whose peer runs as this process's effective
++// user, closing any other. Abstract unix sockets have no owner or mode, so any local user can
++// connect to them.
++func AcceptSameUser(l net.Listener) (net.Conn, error) {
++	euid := uint32(os.Geteuid())
++
++	for {
++		conn, err := l.Accept()
++		if err != nil {
++			return nil, err
++		}
++
++		unixConn, ok := conn.(*net.UnixConn)
++		if !ok {
++			_ = conn.Close()
++			continue
++		}
++
++		ucred, err := GetUcred(unixConn)
++		if err != nil {
++			_ = conn.Close()
++			continue
++		}
++
++		if ucred.Uid != euid {
++			_ = conn.Close()
++			continue
++		}
++
++		return conn, nil
++	}
++}
+diff --git a/internal/rsync/rsync.go b/internal/rsync/rsync.go
+index 766a47139b..63a92ed89a 100644
+--- a/internal/rsync/rsync.go
++++ b/internal/rsync/rsync.go
+@@ -217,7 +217,7 @@ func sendSetup(name string, path string, bwlimit string, execPath string, featur
+ 	chConn := make(chan *net.Conn, 1)
+ 
+ 	go func() {
+-		conn, err := l.Accept()
++		conn, err := linux.AcceptSameUser(l)
+ 		if err != nil {
+ 			chConn <- nil
+ 			return

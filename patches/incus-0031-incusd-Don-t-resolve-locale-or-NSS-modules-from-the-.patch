@@ -1,0 +1,81 @@
+From 5d89c5cc3a5ea0fe1262ff7c1758e6a9e720ad17 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Fri, 23 Oct 2026 23:08:04 -0400
+Subject: [PATCH] incusd: Don't resolve locale or NSS modules from the instance
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The fork* helpers enter the instance's filesystem in a C constructor
+before the Go runtime initializes, so glibc resolved locale data and the
+first NSS lookup against the instance, loading an instance-supplied
+shared object as host root.
+
+Pin the C locale in the shared constructor, and pin passwd/group to the
+files database and prime them before forkfile enters the instance.
+
+This addresses GHSA-28m6-7v43-rr8m (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 2f6e69f78f6e83c7b22ea1bd9ab8eebe4790162c)
+---
+ cmd/incusd/main_forkfile.go | 16 ++++++++++++++++
+ cmd/incusd/main_nsexec.go   |  4 ++++
+ 2 files changed, 20 insertions(+)
+
+diff --git a/cmd/incusd/main_forkfile.go b/cmd/incusd/main_forkfile.go
+index f3b5361bcf..8187430d69 100644
+--- a/cmd/incusd/main_forkfile.go
++++ b/cmd/incusd/main_forkfile.go
+@@ -6,6 +6,8 @@ package main
+ #include <dirent.h>
+ #include <errno.h>
+ #include <fcntl.h>
++#include <grp.h>
++#include <pwd.h>
+ #include <sched.h>
+ #include <stdbool.h>
+ #include <stdio.h>
+@@ -15,6 +17,9 @@ package main
+ #include <sys/stat.h>
+ #include <unistd.h>
+ #include <limits.h>
++#ifdef __GLIBC__
++#include <nss.h>
++#endif
+ 
+ #include "incus.h"
+ #include "memory_utils.h"
+@@ -56,6 +61,17 @@ void forkfile(void)
+ 		}
+ 	}
+ 
++	// Configure and prime NSS before entering the instance so glibc doesn't load nsswitch.conf or NSS modules from it.
++#ifdef __GLIBC__
++	if (__nss_configure_lookup("passwd", "files") < 0 || __nss_configure_lookup("group", "files") < 0) {
++		error("error: nss_configure_lookup");
++		_exit(1);
++	}
++#endif
++
++	(void)getpwuid(0);
++	(void)getgrgid(0);
++
+ 	// Attach to the container.
+ 	if (ns_fd >= 0) {
+ 		int setns_flags = CLONE_NEWNS;
+diff --git a/cmd/incusd/main_nsexec.go b/cmd/incusd/main_nsexec.go
+index a55f8f75e1..0bc4d22ed3 100644
+--- a/cmd/incusd/main_nsexec.go
++++ b/cmd/incusd/main_nsexec.go
+@@ -315,6 +315,10 @@ __attribute__((constructor)) void init(void) {
+ 	__do_free char *cmdline = NULL;
+ 	int ret;
+ 
++	// Pin the C locale; Go's i18n init runs after entering the instance and glibc would otherwise load locale data from it.
++	if (setenv("LC_ALL", "C", 1) < 0)
++		_exit(232);
++
+ 	cmdline_buf = file_to_buf("/proc/self/cmdline", &cmdline_size);
+ 	if (!cmdline_buf)
+ 		_exit(232);

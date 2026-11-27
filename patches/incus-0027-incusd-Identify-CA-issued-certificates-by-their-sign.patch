@@ -1,0 +1,83 @@
+From 71023bb408c1647ff8d52d18102ee041150e0b78 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Fri, 23 Oct 2026 22:52:20 -0400
+Subject: [PATCH] incusd: Identify CA-issued certificates by their signed body
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+CA trust named a client by the hash of the presented certificate bytes,
+which include the signature. A restricted client could re-encode its own
+signature, keeping CA trust but changing the fingerprint, and lose its
+trust store restriction.
+
+Map a CA-issued certificate to its trust store entry by the signed body.
+
+This addresses GHSA-9m5m-cr24-m367 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit dd44146980130b7e7c49d4cac1e11bb0a3733efb)
+---
+ cmd/incusd/daemon.go | 36 ++++++++++++++++++++++++++++++++----
+ 1 file changed, 32 insertions(+), 4 deletions(-)
+
+diff --git a/cmd/incusd/daemon.go b/cmd/incusd/daemon.go
+index a323e8f058..6a07f9a134 100644
+--- a/cmd/incusd/daemon.go
++++ b/cmd/incusd/daemon.go
+@@ -690,16 +690,19 @@ func (d *Daemon) Authenticate(w http.ResponseWriter, r *http.Request) (bool, str
+ 	if r.URL.Path == "/1.0/metrics" && peerCert != nil {
+ 		trusted, username := localUtil.CheckTrustState(*peerCert, trustedCerts[certificate.TypeMetrics], d.endpoints.NetworkCert(), trustCACertificates)
+ 		if trusted {
+-			return true, username, api.AuthenticationMethodTLS, nil, nil
++			return true, d.trustStoreFingerprint(peerCert, username), api.AuthenticationMethodTLS, nil, nil
+ 		}
+ 	}
+ 
+ 	// Validate regular TLS certificates.
+ 	if peerCert != nil {
+ 		trusted, username := localUtil.CheckTrustState(*peerCert, trustedCerts[certificate.TypeClient], d.endpoints.NetworkCert(), trustCACertificates)
+-		_, isMetrics := trustedCerts[certificate.TypeMetrics][username]
+-		if trusted && !isMetrics {
+-			return true, username, api.AuthenticationMethodTLS, nil, nil
++		if trusted {
++			username = d.trustStoreFingerprint(peerCert, username)
++			_, isMetrics := trustedCerts[certificate.TypeMetrics][username]
++			if !isMetrics {
++				return true, username, api.AuthenticationMethodTLS, nil, nil
++			}
+ 		}
+ 	}
+ 
+@@ -707,6 +710,31 @@ func (d *Daemon) Authenticate(w http.ResponseWriter, r *http.Request) (bool, str
+ 	return false, "", "", nil, nil
+ }
+ 
++// trustStoreFingerprint maps a CA-issued certificate to its trust store entry by what the CA signed,
++// so a re-encoded signature can't shed the entry's restrictions. Returns the presented fingerprint
++// when there is no matching entry.
++func (d *Daemon) trustStoreFingerprint(cert *x509.Certificate, fingerprint string) string {
++	certs := d.clientCerts.GetCertificates()
++	certTypes := []certificate.Type{certificate.TypeClient, certificate.TypeMetrics}
++
++	for _, certType := range certTypes {
++		_, ok := certs[certType][fingerprint]
++		if ok {
++			return fingerprint
++		}
++	}
++
++	for _, certType := range certTypes {
++		for fp, entry := range certs[certType] {
++			if bytes.Equal(entry.RawTBSCertificate, cert.RawTBSCertificate) {
++				return fp
++			}
++		}
++	}
++
++	return fingerprint
++}
++
+ // State creates a new State instance linked to our internal db and os.
+ func (d *Daemon) State() *state.State {
+ 	// If the daemon is shutting down, the context will be cancelled.

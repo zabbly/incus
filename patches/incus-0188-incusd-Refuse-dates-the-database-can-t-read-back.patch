@@ -1,0 +1,226 @@
+From c5831a89bcb92be2add0b6bc2eb11cff063431e1 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:08:07 -0500
+Subject: [PATCH] incusd: Refuse dates the database can't read back
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Expiry and creation dates supplied by clients, directly or through an
+image's metadata or a snapshots.expiry, were stored as given. A year
+past 9999 is written with five digits but can't be parsed on read, so
+every listing touching the row failed and the expiry tasks stopped.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 39811b554001078d2f19252f21f9bbdca9b79aba)
+---
+ cmd/incusd/images.go                   | 20 ++++++++++++++++++++
+ cmd/incusd/instance_backup.go          |  5 +++++
+ cmd/incusd/instance_snapshot.go        | 10 ++++++++++
+ cmd/incusd/storage_buckets_backup.go   |  5 +++++
+ cmd/incusd/storage_volumes_backup.go   |  5 +++++
+ cmd/incusd/storage_volumes_snapshot.go | 10 ++++++++++
+ internal/instance/expiry.go            |  5 +++++
+ internal/server/db/time.go             | 20 ++++++++++++++++++++
+ 8 files changed, 80 insertions(+)
+ create mode 100644 internal/server/db/time.go
+
+diff --git a/cmd/incusd/images.go b/cmd/incusd/images.go
+index 3df8632445..1a4db240d9 100644
+--- a/cmd/incusd/images.go
++++ b/cmd/incusd/images.go
+@@ -260,6 +260,11 @@ func imgPostInstanceInfo(ctx context.Context, s *state.State, r *http.Request, r
+ 		return nil, errors.New("No source provided")
+ 	}
+ 
++	err := db.CheckTime(req.ExpiresAt)
++	if err != nil {
++		return nil, err
++	}
++
+ 	if imageType != "" && imageType != "unified" && imageType != "split" {
+ 		return nil, errors.New("Invalid image format")
+ 	}
+@@ -1003,6 +1008,11 @@ func getImgPostInfo(ctx context.Context, s *state.State, r *http.Request, buildd
+ 		info.CreatedAt = time.Unix(imageMeta.CreationDate, 0)
+ 	}
+ 
++	err = db.CheckTime(info.CreatedAt)
++	if err != nil {
++		return nil, fmt.Errorf("Invalid creation date: %w", err)
++	}
++
+ 	expiresAt, ok := metadata["expires_at"]
+ 	if ok {
+ 		expiry, ok := expiresAt.(time.Time)
+@@ -1013,6 +1023,11 @@ func getImgPostInfo(ctx context.Context, s *state.State, r *http.Request, buildd
+ 		info.ExpiresAt = time.Unix(imageMeta.ExpiryDate, 0)
+ 	}
+ 
++	err = db.CheckTime(info.ExpiresAt)
++	if err != nil {
++		return nil, fmt.Errorf("Invalid expiry date: %w", err)
++	}
++
+ 	properties, ok := metadata["properties"]
+ 	if ok {
+ 		props, ok := properties.(map[string]string)
+@@ -3608,6 +3623,11 @@ func imagePut(d *Daemon, r *http.Request) response.Response {
+ 
+ 	// Get ExpiresAt
+ 	if !req.ExpiresAt.IsZero() {
++		err = db.CheckTime(req.ExpiresAt)
++		if err != nil {
++			return response.BadRequest(err)
++		}
++
+ 		info.ExpiresAt = req.ExpiresAt
+ 	}
+ 
+diff --git a/cmd/incusd/instance_backup.go b/cmd/incusd/instance_backup.go
+index 6a344f7b8e..b3f1af9aa2 100644
+--- a/cmd/incusd/instance_backup.go
++++ b/cmd/incusd/instance_backup.go
+@@ -302,6 +302,11 @@ func instanceBackupsPost(d *Daemon, r *http.Request) response.Response {
+ 		return response.BadRequest(err)
+ 	}
+ 
++	err = db.CheckTime(req.ExpiresAt)
++	if err != nil {
++		return response.BadRequest(err)
++	}
++
+ 	direct := r.Header.Get("Accept") == "application/octet-stream"
+ 
+ 	if direct && req.Target != nil {
+diff --git a/cmd/incusd/instance_snapshot.go b/cmd/incusd/instance_snapshot.go
+index b78875b779..08c8206d78 100644
+--- a/cmd/incusd/instance_snapshot.go
++++ b/cmd/incusd/instance_snapshot.go
+@@ -338,6 +338,11 @@ func instanceSnapshotsPost(d *Daemon, r *http.Request) response.Response {
+ 
+ 	var expiry time.Time
+ 	if req.ExpiresAt != nil {
++		err = db.CheckTime(*req.ExpiresAt)
++		if err != nil {
++			return response.BadRequest(err)
++		}
++
+ 		expiry = *req.ExpiresAt
+ 	} else {
+ 		duration := inst.ExpandedConfig()["snapshots.expiry.manual"]
+@@ -554,6 +559,11 @@ func snapshotPut(s *state.State, r *http.Request, snapInst instance.Instance) re
+ 			return response.BadRequest(err)
+ 		}
+ 
++		err = db.CheckTime(configRaw.ExpiresAt)
++		if err != nil {
++			return response.BadRequest(err)
++		}
++
+ 		// Update instance configuration
+ 		do = func(op *operations.Operation) error {
+ 			snapInst.SetOperation(op)
+diff --git a/cmd/incusd/storage_buckets_backup.go b/cmd/incusd/storage_buckets_backup.go
+index 7bf83bb10a..ee79ee261b 100644
+--- a/cmd/incusd/storage_buckets_backup.go
++++ b/cmd/incusd/storage_buckets_backup.go
+@@ -407,6 +407,11 @@ func storagePoolBucketBackupsPost(d *Daemon, r *http.Request) response.Response
+ 		return response.BadRequest(err)
+ 	}
+ 
++	err = db.CheckTime(req.ExpiresAt)
++	if err != nil {
++		return response.BadRequest(err)
++	}
++
+ 	direct := r.Header.Get("Accept") == "application/octet-stream"
+ 
+ 	var reader *io.PipeReader
+diff --git a/cmd/incusd/storage_volumes_backup.go b/cmd/incusd/storage_volumes_backup.go
+index c7169eda0d..45bd77008b 100644
+--- a/cmd/incusd/storage_volumes_backup.go
++++ b/cmd/incusd/storage_volumes_backup.go
+@@ -454,6 +454,11 @@ func storagePoolVolumeTypeCustomBackupsPost(d *Daemon, r *http.Request) response
+ 		return response.BadRequest(err)
+ 	}
+ 
++	err = db.CheckTime(req.ExpiresAt)
++	if err != nil {
++		return response.BadRequest(err)
++	}
++
+ 	direct := r.Header.Get("Accept") == "application/octet-stream"
+ 
+ 	if direct && req.Target != nil {
+diff --git a/cmd/incusd/storage_volumes_snapshot.go b/cmd/incusd/storage_volumes_snapshot.go
+index ff830563f9..08b5f1dc4c 100644
+--- a/cmd/incusd/storage_volumes_snapshot.go
++++ b/cmd/incusd/storage_volumes_snapshot.go
+@@ -276,6 +276,11 @@ func storagePoolVolumeSnapshotsTypePost(d *Daemon, r *http.Request) response.Res
+ 	// Fill in the expiry.
+ 	var expiry time.Time
+ 	if req.ExpiresAt != nil {
++		err = db.CheckTime(*req.ExpiresAt)
++		if err != nil {
++			return response.BadRequest(err)
++		}
++
+ 		expiry = *req.ExpiresAt
+ 	} else {
+ 		duration := parentDBVolume.Config["snapshots.expiry.manual"]
+@@ -1241,6 +1246,11 @@ func storagePoolVolumeSnapshotTypePatch(d *Daemon, r *http.Request) response.Res
+ func doStoragePoolVolumeSnapshotUpdate(s *state.State, r *http.Request, poolName string, projectName string, volName string, volumeType int, req api.StorageVolumeSnapshotPut) response.Response {
+ 	expiry := time.Time{}
+ 	if req.ExpiresAt != nil {
++		err := db.CheckTime(*req.ExpiresAt)
++		if err != nil {
++			return response.BadRequest(err)
++		}
++
+ 		expiry = *req.ExpiresAt
+ 	}
+ 
+diff --git a/internal/instance/expiry.go b/internal/instance/expiry.go
+index f4ec06d0b8..f08d0f8e69 100644
+--- a/internal/instance/expiry.go
++++ b/internal/instance/expiry.go
+@@ -65,5 +65,10 @@ func GetExpiry(refDate time.Time, s string) (time.Time, error) {
+ 		time.Hour*time.Duration(expiry["H"]) + time.Minute*time.Duration(expiry["M"]) + time.Second*time.Duration(expiry["S"]),
+ 	)
+ 
++	// The database can't store dates past year 9999.
++	if t.Year() > 9999 {
++		return time.Time{}, ErrInvalidExpiry
++	}
++
+ 	return t, nil
+ }
+diff --git a/internal/server/db/time.go b/internal/server/db/time.go
+new file mode 100644
+index 0000000000..24c11cb182
+--- /dev/null
++++ b/internal/server/db/time.go
+@@ -0,0 +1,20 @@
++package db
++
++import (
++	"errors"
++	"time"
++)
++
++// CheckTime returns an error when a time can't be stored in the database and read back.
++func CheckTime(t time.Time) error {
++	if t.IsZero() {
++		return nil
++	}
++
++	year := t.UTC().Year()
++	if year < 1 || year > 9999 {
++		return errors.New("Dates must fall between years 1 and 9999")
++	}
++
++	return nil
++}

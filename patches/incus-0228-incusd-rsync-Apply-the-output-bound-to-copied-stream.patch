@@ -1,0 +1,60 @@
+From 5f1a8ae0b6e144d2a42ab9e8d009a3145e51f3fb Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Fri, 20 Nov 2026 19:37:40 -0500
+Subject: [PATCH] incusd/rsync: Apply the output bound to copied streams
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This addresses GHSA-23fc-ggg4-5r2r (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+---
+ internal/rsync/rsync.go | 13 +++++++------
+ 1 file changed, 7 insertions(+), 6 deletions(-)
+
+diff --git a/internal/rsync/rsync.go b/internal/rsync/rsync.go
+index d1aa1f277f..1054c223c2 100644
+--- a/internal/rsync/rsync.go
++++ b/internal/rsync/rsync.go
+@@ -41,14 +41,15 @@ const maxOutput = 64 * 1024
+ 
+ // boundedBuffer keeps the beginning of a stream and drops the rest.
+ type boundedBuffer struct {
+-	bytes.Buffer
++	// Not embedded, io.Copy would fill the buffer directly.
++	buf bytes.Buffer
+ }
+ 
+ // Write keeps up to maxOutput bytes.
+ func (b *boundedBuffer) Write(p []byte) (int, error) {
+-	remaining := maxOutput - b.Len()
++	remaining := maxOutput - b.buf.Len()
+ 	if remaining > 0 {
+-		b.Buffer.Write(p[:min(len(p), remaining)])
++		b.buf.Write(p[:min(len(p), remaining)])
+ 	}
+ 
+ 	return len(p), nil
+@@ -60,7 +61,7 @@ func readOutput(r io.Reader) ([]byte, error) {
+ 
+ 	_, err := io.Copy(&b, r)
+ 
+-	return b.Bytes(), err
++	return b.buf.Bytes(), err
+ }
+ 
+ // rsync is a wrapper for the rsync command which will respect RunWrapper.
+@@ -92,10 +93,10 @@ func rsync(args ...string) (string, error) {
+ 	// Run the command.
+ 	err := cmd.Run()
+ 	if err != nil {
+-		return stdout.String(), subprocess.NewRunError("rsync", args, err, &stdout.Buffer, &stderr.Buffer)
++		return stdout.buf.String(), subprocess.NewRunError("rsync", args, err, &stdout.buf, &stderr.buf)
+ 	}
+ 
+-	return stdout.String(), nil
++	return stdout.buf.String(), nil
+ }
+ 
+ // LocalCopy copies a directory using rsync (with the --devices option).

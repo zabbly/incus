@@ -1,0 +1,102 @@
+From 01709d105ded75168ff334391bce2cef104134ad Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:14:13 -0500
+Subject: [PATCH] incusd/events: Keep server-wide events to privileged viewers
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Events without a project, such as cluster evacuation progress, name
+other projects' instances and reached every listener.
+
+This addresses GHSA-44g3-g988-46rg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 2688b8aba0e48ee2f071da3e44ec12023474823f)
+---
+ cmd/incus-agent/events.go                  | 2 +-
+ cmd/incusd/events.go                       | 2 +-
+ internal/server/events/events.go           | 9 ++++++++-
+ internal/server/events/internalListener.go | 2 +-
+ 4 files changed, 11 insertions(+), 4 deletions(-)
+
+diff --git a/cmd/incus-agent/events.go b/cmd/incus-agent/events.go
+index a40492d4ad..e06a5e4a75 100644
+--- a/cmd/incus-agent/events.go
++++ b/cmd/incus-agent/events.go
+@@ -80,7 +80,7 @@ func eventsSocket(d *Daemon, r *http.Request, w http.ResponseWriter) error {
+ 	}
+ 
+ 	// As we don't know which project we are in, subscribe to events from all projects.
+-	listener, err := d.events.AddListener("", true, nil, listenerConnection, strings.Split(typeStr, ","), nil, nil, nil)
++	listener, err := d.events.AddListener("", true, true, nil, listenerConnection, strings.Split(typeStr, ","), nil, nil, nil)
+ 	if err != nil {
+ 		return err
+ 	}
+diff --git a/cmd/incusd/events.go b/cmd/incusd/events.go
+index b639014c64..606f93fd9c 100644
+--- a/cmd/incusd/events.go
++++ b/cmd/incusd/events.go
+@@ -164,7 +164,7 @@ func eventsSocket(s *state.State, r *http.Request, w http.ResponseWriter) error
+ 	defer logger.WarnOnErrorExcept(conn.Close, []error{net.ErrClosed}, "Failed to close connection") // Ensure listener below ends when this function ends.
+ 
+ 	listenerConnection := events.NewWebsocketListenerConnection(conn)
+-	listener, err := s.Events.AddListener(projectName, allProjects, projectPermissionFunc, listenerConnection, types, excludeSources, recvFunc, excludeLocations)
++	listener, err := s.Events.AddListener(projectName, allProjects, canViewPrivilegedEvents, projectPermissionFunc, listenerConnection, types, excludeSources, recvFunc, excludeLocations)
+ 	if err != nil {
+ 		l.Warn("Failed to add event listener", logger.Ctx{"err": err})
+ 		return nil
+diff --git a/internal/server/events/events.go b/internal/server/events/events.go
+index 8842f3ebac..e1bc76a704 100644
+--- a/internal/server/events/events.go
++++ b/internal/server/events/events.go
+@@ -67,7 +67,7 @@ func (s *Server) SetLocalLocation(location string) {
+ }
+ 
+ // AddListener creates and returns a new event listener.
+-func (s *Server) AddListener(projectName string, allProjects bool, projectPermissionFunc auth.PermissionChecker, connection EventListenerConnection, messageTypes []string, excludeSources []EventSource, recvFunc EventHandler, excludeLocations []string) (*Listener, error) {
++func (s *Server) AddListener(projectName string, allProjects bool, serverEvents bool, projectPermissionFunc auth.PermissionChecker, connection EventListenerConnection, messageTypes []string, excludeSources []EventSource, recvFunc EventHandler, excludeLocations []string) (*Listener, error) {
+ 	if allProjects && projectName != "" {
+ 		return nil, errors.New("Cannot specify project name when listening for events on all projects")
+ 	}
+@@ -89,6 +89,7 @@ func (s *Server) AddListener(projectName string, allProjects bool, projectPermis
+ 		},
+ 
+ 		allProjects:           allProjects,
++		serverEvents:          serverEvents,
+ 		projectName:           projectName,
+ 		projectPermissionFunc: projectPermissionFunc,
+ 		excludeSources:        excludeSources,
+@@ -203,6 +204,11 @@ func (s *Server) broadcast(event api.Event, eventSource EventSource) error {
+ 			continue
+ 		}
+ 
++		// Events without a project are server-wide and describe other projects' resources.
++		if event.Project == "" && !listener.serverEvents {
++			continue
++		}
++
+ 		if sourceInSlice(eventSource, listener.excludeSources) {
+ 			continue
+ 		}
+@@ -232,6 +238,7 @@ type Listener struct {
+ 	listenerCommon
+ 
+ 	allProjects           bool
++	serverEvents          bool
+ 	projectName           string
+ 	projectPermissionFunc auth.PermissionChecker
+ 	excludeSources        []EventSource
+diff --git a/internal/server/events/internalListener.go b/internal/server/events/internalListener.go
+index 3eae022fd5..00a02e643e 100644
+--- a/internal/server/events/internalListener.go
++++ b/internal/server/events/internalListener.go
+@@ -39,7 +39,7 @@ func (l *InternalListener) startListener() {
+ 	aEnd, bEnd := memorypipe.NewPipePair(l.listenerCtx)
+ 	listenerConnection := NewSimpleListenerConnection(aEnd)
+ 
+-	l.listener, err = l.server.AddListener("", true, nil, listenerConnection, []string{"lifecycle", "logging", "network-acl"}, []EventSource{EventSourcePull}, nil, nil)
++	l.listener, err = l.server.AddListener("", true, true, nil, listenerConnection, []string{"lifecycle", "logging", "network-acl"}, []EventSource{EventSourcePull}, nil, nil)
+ 	if err != nil {
+ 		return
+ 	}

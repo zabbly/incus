@@ -1,0 +1,41 @@
+From 4730bc046bcdfd0c64a01760f2f4a4ac6d6fd271 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Sat, 24 Oct 2026 00:46:22 -0400
+Subject: [PATCH] incusd/project: Forbid raw.idmap mapping onto container root
+ in restricted projects
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A restricted project with restricted.idmap set (as incus-user creates)
+accepted a raw.idmap entry mapping the user's own host id onto container
+id 0, making the user the on-disk owner of the instance directory and
+its root files, which led to host root.
+
+Refuse a raw.idmap entry that maps onto container id 0.
+
+This addresses GHSA-4375-qwr5-8vjj (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 6ccd99b6b564c6299169f17c8b0df0230b1d1f71)
+---
+ internal/server/project/permissions.go | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/internal/server/project/permissions.go b/internal/server/project/permissions.go
+index f022fa06ed..8562d6ca88 100644
+--- a/internal/server/project/permissions.go
++++ b/internal/server/project/permissions.go
+@@ -1048,6 +1048,12 @@ func checkRestrictions(project api.Project, instances []api.Instance, profiles [
+ 					if !entry.HostIDsCoveredBy(allowedIDMapHostUIDs, allowedIDMapHostGIDs) {
+ 						return fmt.Errorf(`Use of low-level "raw.idmap" element %d on %s %q of project %q is forbidden`, i, entityTypeLabel, entityName, project.Name)
+ 					}
++
++					// Container root must keep coming from the daemon's own allocation, otherwise a host
++					// user mapped onto it would own the instance directory and its on-disk root files.
++					if entry.NSID == 0 {
++						return fmt.Errorf(`Use of low-level "raw.idmap" element %d on %s %q of project %q is forbidden`, i, entityTypeLabel, entityName, project.Name)
++					}
+ 				}
+ 
+ 				// Skip the other checks.

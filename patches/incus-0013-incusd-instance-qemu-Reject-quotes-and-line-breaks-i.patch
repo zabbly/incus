@@ -1,0 +1,150 @@
+From c4c71e24bd5c811421d122b824953fed4d4a75df Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Sat, 24 Oct 2026 00:49:29 -0400
+Subject: [PATCH] incusd/instance/qemu: Reject quotes and line breaks in
+ qemu.conf values
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The qemu.conf writer wrote every value as a quoted string with no
+escaping, so a disk device path (which has no validator) containing a
+quote and a line break could inject arbitrary config sections, such as a
+control monitor, bypassing restricted.virtual-machines.lowlevel.
+
+Refuse quotes and line breaks at the writer, and reject such a path on a
+VM disk device.
+
+This addresses GHSA-r69f-pwfc-cwrr (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit fe08d120248a2ede38300e8f1ca46fa124c1a687)
+---
+ internal/server/device/disk.go                |  5 +++
+ .../server/instance/drivers/driver_qemu.go    |  6 +++-
+ .../drivers/driver_qemu_config_test.go        |  8 ++++-
+ .../instance/drivers/driver_qemu_templates.go | 32 +++++++++++++++----
+ 4 files changed, 43 insertions(+), 8 deletions(-)
+
+diff --git a/internal/server/device/disk.go b/internal/server/device/disk.go
+index a5473238d7..69c1719c72 100644
+--- a/internal/server/device/disk.go
++++ b/internal/server/device/disk.go
+@@ -664,6 +664,11 @@ func (d *disk) validateConfig(instConf instance.ConfigReader, partialValidation
+ 		return fmt.Errorf("Invalid options ceph.cluster_name/ceph.user_name for source %q", d.config["source"])
+ 	}
+ 
++	// A VM disk path ends up in a quoted qemu.conf value, which has no escaping.
++	if d.inst != nil && d.inst.Type() == instancetype.VM && strings.ContainsAny(d.config["path"], "\"\r\n") {
++		return errors.New(`Disk "path" may not contain quotes or line breaks`)
++	}
++
+ 	if (d.config["source"] == diskSourceTmpfs || d.config["source"] == diskSourceTmpfsOverlay) && d.config["path"] == "" {
+ 		return errors.New(`Missing mount "path" setting`)
+ 	}
+diff --git a/internal/server/instance/drivers/driver_qemu.go b/internal/server/instance/drivers/driver_qemu.go
+index 136e74deeb..521f5ebb4f 100644
+--- a/internal/server/instance/drivers/driver_qemu.go
++++ b/internal/server/instance/drivers/driver_qemu.go
+@@ -5082,7 +5082,11 @@ func (d *qemu) generateQemuConfig(bs *qemuBootState, mountInfo *storagePools.Mou
+ // It writes the config file inside the VM's log path.
+ func (d *qemu) writeQemuConfigFile(configPath string) error {
+ 	// Write the config file to disk.
+-	sb := qemuStringifyCfg(d.conf...)
++	sb, err := qemuStringifyCfg(d.conf...)
++	if err != nil {
++		return err
++	}
++
+ 	return os.WriteFile(configPath, []byte(sb.String()), 0o640)
+ }
+ 
+diff --git a/internal/server/instance/drivers/driver_qemu_config_test.go b/internal/server/instance/drivers/driver_qemu_config_test.go
+index a8bbc7ab67..0599087ecc 100644
+--- a/internal/server/instance/drivers/driver_qemu_config_test.go
++++ b/internal/server/instance/drivers/driver_qemu_config_test.go
+@@ -18,7 +18,13 @@ func TestQemuConfigTemplates(t *testing.T) {
+ 
+ 	runTest := func(expected string, sections []cfg.Section) {
+ 		t.Run(expected, func(t *testing.T) {
+-			actual := normalize(qemuStringifyCfg(sections...).String())
++			sb, err := qemuStringifyCfg(sections...)
++			if err != nil {
++				t.Errorf("Unexpected error: %v", err)
++				return
++			}
++
++			actual := normalize(sb.String())
+ 			expected = normalize(expected)
+ 			if actual != expected {
+ 				t.Errorf("Expected: %s. Got: %s", expected, actual)
+diff --git a/internal/server/instance/drivers/driver_qemu_templates.go b/internal/server/instance/drivers/driver_qemu_templates.go
+index 60b1ebace1..9448446731 100644
+--- a/internal/server/instance/drivers/driver_qemu_templates.go
++++ b/internal/server/instance/drivers/driver_qemu_templates.go
+@@ -9,25 +9,42 @@ import (
+ 	"github.com/lxc/incus/v7/shared/osarch"
+ )
+ 
+-func writeHeader(sb *strings.Builder, comment string, name string) {
++func writeHeader(sb *strings.Builder, comment string, name string) error {
++	// The config format has no escaping, so a line break would let a value inject arbitrary entries.
++	if strings.ContainsAny(comment, "\r\n") || strings.ContainsAny(name, "\r\n") {
++		return fmt.Errorf("Invalid QEMU config section %q: Line breaks aren't allowed", name)
++	}
++
+ 	if comment != "" {
+ 		fmt.Fprintf(sb, "# %s\n", comment)
+ 	}
+ 
+ 	fmt.Fprintf(sb, "[%s]\n", name)
++
++	return nil
+ }
+ 
+-func writeEntry(sb *strings.Builder, key string, value string) {
++func writeEntry(sb *strings.Builder, key string, value string) error {
++	// Quoted values have no escaping, so a quote or line break would let a value inject arbitrary entries.
++	if strings.ContainsAny(key, "\r\n") || strings.ContainsAny(value, "\"\r\n") {
++		return fmt.Errorf("Invalid QEMU config value for %q: Quotes and line breaks aren't allowed", key)
++	}
++
+ 	if value != "" {
+ 		fmt.Fprintf(sb, "%s = \"%s\"\n", key, value)
+ 	}
++
++	return nil
+ }
+ 
+-func qemuStringifyCfg(conf ...cfg.Section) *strings.Builder {
++func qemuStringifyCfg(conf ...cfg.Section) (*strings.Builder, error) {
+ 	sb := &strings.Builder{}
+ 
+ 	for _, section := range conf {
+-		writeHeader(sb, section.Comment, section.Name)
++		err := writeHeader(sb, section.Comment, section.Name)
++		if err != nil {
++			return nil, err
++		}
+ 
+ 		keys := make([]string, 0, len(section.Entries))
+ 		for key := range section.Entries {
+@@ -36,13 +53,16 @@ func qemuStringifyCfg(conf ...cfg.Section) *strings.Builder {
+ 
+ 		sort.Strings(keys)
+ 		for _, key := range keys {
+-			writeEntry(sb, key, section.Entries[key])
++			err := writeEntry(sb, key, section.Entries[key])
++			if err != nil {
++				return nil, fmt.Errorf("Failed writing QEMU config section %q: %w", section.Name, err)
++			}
+ 		}
+ 
+ 		sb.WriteString("\n")
+ 	}
+ 
+-	return sb
++	return sb, nil
+ }
+ 
+ func qemuMachineType(architecture int) string {

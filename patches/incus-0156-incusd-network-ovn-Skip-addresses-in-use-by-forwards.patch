@@ -1,0 +1,81 @@
+From 67bea78c3625b80cf4270116372eaa9995987b8d Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:05:18 -0500
+Subject: [PATCH] incusd/network/ovn: Skip addresses in use by forwards when
+ allocating uplink IPs
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This addresses GHSA-fg2p-r659-c4q8 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 91eed0e944b118debac1d74800dad72fa9f01f4e)
+---
+ internal/server/network/driver_ovn.go | 25 +++++++++++++++++++++----
+ 1 file changed, 21 insertions(+), 4 deletions(-)
+
+diff --git a/internal/server/network/driver_ovn.go b/internal/server/network/driver_ovn.go
+index e494a8ea55..c8663a204c 100644
+--- a/internal/server/network/driver_ovn.go
++++ b/internal/server/network/driver_ovn.go
+@@ -2020,7 +2020,13 @@ func (n *ovn) allocateUplinkPortIPs(uplinkNet Network, routerMAC net.HardwareAdd
+ 
+ 	// Decide whether we need to allocate new IP(s) and go to the expense of retrieving all allocated IPs.
+ 	if (uplinkIPv4Net != nil && routerExtPortIPv4 == nil) || (uplinkIPv6Net != nil && routerExtPortIPv6 == nil) {
+-		err := n.state.DB.Cluster.Transaction(context.TODO(), func(ctx context.Context, tx *db.ClusterTx) error {
++		// Forwards, load balancers and external routes may also use addresses from the uplink ranges.
++		externalSubnetsInUse, err := n.getExternalSubnetInUse(uplinkNet.Name())
++		if err != nil {
++			return nil, err
++		}
++
++		err = n.state.DB.Cluster.Transaction(context.TODO(), func(ctx context.Context, tx *db.ClusterTx) error {
+ 			allAllocatedIPv4, allAllocatedIPv6, err := n.uplinkAllAllocatedIPs(ctx, tx, uplinkNet.Name())
+ 			if err != nil {
+ 				return fmt.Errorf("Failed to get all allocated IPs for uplink: %w", err)
+@@ -2045,7 +2051,7 @@ func (n *ovn) allocateUplinkPortIPs(uplinkNet Network, routerMAC net.HardwareAdd
+ 					return fmt.Errorf("Failed to parse uplink IPv4 OVN ranges: %w", err)
+ 				}
+ 
+-				routerExtPortIPv4, err = n.uplinkAllocateIP(ipRanges, allAllocatedIPv4)
++				routerExtPortIPv4, err = n.uplinkAllocateIP(ipRanges, allAllocatedIPv4, externalSubnetsInUse)
+ 				if err != nil {
+ 					return fmt.Errorf("Failed to allocate uplink IPv4 address: %w", err)
+ 				}
+@@ -2070,7 +2076,7 @@ func (n *ovn) allocateUplinkPortIPs(uplinkNet Network, routerMAC net.HardwareAdd
+ 						return fmt.Errorf("Failed to parse uplink IPv6 OVN ranges: %w", err)
+ 					}
+ 
+-					routerExtPortIPv6, err = n.uplinkAllocateIP(ipRanges, allAllocatedIPv6)
++					routerExtPortIPv6, err = n.uplinkAllocateIP(ipRanges, allAllocatedIPv6, externalSubnetsInUse)
+ 					if err != nil {
+ 						return fmt.Errorf("Failed to allocate uplink IPv6 address: %w", err)
+ 					}
+@@ -2158,7 +2164,7 @@ func (n *ovn) uplinkAllAllocatedIPs(ctx context.Context, tx *db.ClusterTx, uplin
+ }
+ 
+ // uplinkAllocateIP allocates a free IP from one of the IP ranges.
+-func (n *ovn) uplinkAllocateIP(ipRanges []*iprange.Range, allAllocated []net.IP) (net.IP, error) {
++func (n *ovn) uplinkAllocateIP(ipRanges []*iprange.Range, allAllocated []net.IP, externalSubnetsInUse []externalSubnetUsage) (net.IP, error) {
+ 	for _, ipRange := range ipRanges {
+ 		inc := big.NewInt(1)
+ 
+@@ -2193,6 +2199,17 @@ func (n *ovn) uplinkAllocateIP(ipRanges []*iprange.Range, allAllocated []net.IP)
+ 				continue
+ 			}
+ 
++			// Skip past any external subnet in use that contains the IP.
++			subnetIndex := slices.IndexFunc(externalSubnetsInUse, func(usage externalSubnetUsage) bool {
++				return SubnetContainsIP(&usage.subnet, ipAddress)
++			})
++
++			if subnetIndex >= 0 {
++				startBig.SetBytes(dhcpalloc.GetIP(&externalSubnetsInUse[subnetIndex].subnet, -1))
++				startBig.Add(startBig, inc)
++				continue
++			}
++
+ 			return ipAddress, nil
+ 		}
+ 	}

@@ -1,0 +1,93 @@
+From 997537d7e46abdc46539718ebf87fc7089f255be Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:03:40 -0500
+Subject: [PATCH] incusd: Don't make instance hooks wait for autostart to
+ finish
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The stop and resize hooks waited for the daemon to be fully ready, but
+autostart runs before that point and waits on those very hooks when an
+instance fails to start, so one broken autostart instance held every
+other one back. The hooks now wait on the state only.
+
+boot.autostart.delay is also a low-level key in restricted projects, as
+it is slept on by the daemon during startup.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 0e491c8bfaf5deaf3ceab040aa5df2b7bd18fa90)
+---
+ cmd/incusd/api_internal.go | 12 ++++++------
+ cmd/incusd/daemon.go       |  5 +++++
+ 2 files changed, 11 insertions(+), 6 deletions(-)
+
+diff --git a/cmd/incusd/api_internal.go b/cmd/incusd/api_internal.go
+index 13e06f11ca..c8b0699401 100644
+--- a/cmd/incusd/api_internal.go
++++ b/cmd/incusd/api_internal.go
+@@ -463,8 +463,8 @@ func internalContainerOnStart(d *Daemon, r *http.Request) response.Response {
+ }
+ 
+ func internalContainerOnStopNS(d *Daemon, r *http.Request) response.Response {
+-	// Wait until daemon is fully started.
+-	<-d.waitReady.Done()
++	// Wait until the daemon state is ready, autostart may still be in progress.
++	<-d.stateReady.Done()
+ 
+ 	s := d.State()
+ 
+@@ -496,8 +496,8 @@ func internalContainerOnStopNS(d *Daemon, r *http.Request) response.Response {
+ }
+ 
+ func internalContainerOnStop(d *Daemon, r *http.Request) response.Response {
+-	// Wait until daemon is fully started.
+-	<-d.waitReady.Done()
++	// Wait until the daemon state is ready, autostart may still be in progress.
++	<-d.stateReady.Done()
+ 
+ 	s := d.State()
+ 
+@@ -526,8 +526,8 @@ func internalContainerOnStop(d *Daemon, r *http.Request) response.Response {
+ }
+ 
+ func internalVirtualMachineOnResize(d *Daemon, r *http.Request) response.Response {
+-	// Wait until daemon is fully started.
+-	<-d.waitReady.Done()
++	// Wait until the daemon state is ready, autostart may still be in progress.
++	<-d.stateReady.Done()
+ 
+ 	s := d.State()
+ 
+diff --git a/cmd/incusd/daemon.go b/cmd/incusd/daemon.go
+index 6a07f9a134..8b4d41d263 100644
+--- a/cmd/incusd/daemon.go
++++ b/cmd/incusd/daemon.go
+@@ -136,6 +136,7 @@ type Daemon struct {
+ 	// Status control.
+ 	setupChan      chan struct{}      // Closed when basic Daemon setup is completed
+ 	waitReady      *cancel.Canceller  // Cancelled when fully ready
++	stateReady     *cancel.Canceller  // Cancelled once the state can serve instance hooks
+ 	shutdownCtx    context.Context    // Cancelled when shutdown starts.
+ 	shutdownCancel context.CancelFunc // Cancels the shutdownCtx to indicate shutdown starting.
+ 	shutdownDoneCh chan error         // Receives the result of the d.Stop() function and tells the daemon to end.
+@@ -212,6 +213,7 @@ func newDaemon(config *DaemonConfig, osInfo *sys.OS) *Daemon {
+ 		os:             osInfo,
+ 		setupChan:      make(chan struct{}),
+ 		waitReady:      cancel.New(context.Background()),
++		stateReady:     cancel.New(context.Background()),
+ 		shutdownCtx:    shutdownCtx,
+ 		shutdownCancel: shutdownCancel,
+ 		shutdownDoneCh: make(chan error),
+@@ -1846,6 +1848,9 @@ func (d *Daemon) init() error {
+ 	// Start all background tasks
+ 	d.tasks.Start(d.shutdownCtx)
+ 
++	// Instance hooks may run during autostart, the state is ready for them.
++	d.stateReady.Cancel()
++
+ 	// Restore instances
+ 	instancesStart(d.State(), instances)
+ 

@@ -1,0 +1,85 @@
+From b409c62a08ad4cd8a24892a106858f441892da7f Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:02:21 -0500
+Subject: [PATCH] incusd: Reject template entries without a definition
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A null template in metadata.yaml was accepted by the metadata API and
+dereferenced on the next start.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 940246cefd0c7701482054343941f5c8b6cd6f1e)
+---
+ cmd/incus-agent/templates.go                    | 4 ++++
+ cmd/incusd/instance_metadata.go                 | 7 +++++++
+ internal/server/instance/drivers/driver_lxc.go  | 4 ++++
+ internal/server/instance/drivers/driver_qemu.go | 4 ++++
+ 4 files changed, 19 insertions(+)
+
+diff --git a/cmd/incus-agent/templates.go b/cmd/incus-agent/templates.go
+index cf69b0659d..734faaacba 100644
+--- a/cmd/incus-agent/templates.go
++++ b/cmd/incus-agent/templates.go
+@@ -36,6 +36,10 @@ func templatesApply(path string) ([]string, error) {
+ 	files := []string{}
+ 	for tplPath, tpl := range metadata.Templates {
+ 		err = func(tplPath string, tpl *api.ImageMetadataTemplate) error {
++			if tpl == nil {
++				return nil
++			}
++
+ 			filePath := filepath.Join(path, fmt.Sprintf("%s.out", tpl.Template))
+ 
+ 			if !util.PathExists(filePath) {
+diff --git a/cmd/incusd/instance_metadata.go b/cmd/incusd/instance_metadata.go
+index 7338cfbf71..f7644a671b 100644
+--- a/cmd/incusd/instance_metadata.go
++++ b/cmd/incusd/instance_metadata.go
+@@ -383,6 +383,13 @@ func instanceMetadataPut(d *Daemon, r *http.Request) response.Response {
+ }
+ 
+ func doInstanceMetadataUpdate(s *state.State, inst instance.Instance, metadata api.ImageMetadata, r *http.Request) response.Response {
++	// Every template needs a definition.
++	for tplPath, tpl := range metadata.Templates {
++		if tpl == nil {
++			return response.BadRequest(fmt.Errorf("Template %q has no definition", tplPath))
++		}
++	}
++
+ 	// Convert YAML.
+ 	data, err := yaml.Dump(metadata, yaml.WithV2Defaults())
+ 	if err != nil {
+diff --git a/internal/server/instance/drivers/driver_lxc.go b/internal/server/instance/drivers/driver_lxc.go
+index 5aaf5b1089..a6d8ffeba6 100644
+--- a/internal/server/instance/drivers/driver_lxc.go
++++ b/internal/server/instance/drivers/driver_lxc.go
+@@ -7810,6 +7810,10 @@ func (d *lxc) templateApplyNow(trigger instance.TemplateTrigger) error {
+ 	// Go through the templates.
+ 	for tplPath, tpl := range metadata.Templates {
+ 		err = func(tplPath string, tpl *api.ImageMetadataTemplate) error {
++			if tpl == nil {
++				return fmt.Errorf("Template %q has no definition", tplPath)
++			}
++
+ 			var w *os.File
+ 
+ 			// Check if the template should be applied now
+diff --git a/internal/server/instance/drivers/driver_qemu.go b/internal/server/instance/drivers/driver_qemu.go
+index a958a23b9a..f3b7e79722 100644
+--- a/internal/server/instance/drivers/driver_qemu.go
++++ b/internal/server/instance/drivers/driver_qemu.go
+@@ -4334,6 +4334,10 @@ func (d *qemu) templateApplyNow(trigger instance.TemplateTrigger, path string) e
+ 	// Go through the templates.
+ 	for tplPath, tpl := range metadata.Templates {
+ 		err = func(tplPath string, tpl *api.ImageMetadataTemplate) error {
++			if tpl == nil {
++				return fmt.Errorf("Template %q has no definition", tplPath)
++			}
++
+ 			var w *os.File
+ 
+ 			// Check if the template should be applied now.

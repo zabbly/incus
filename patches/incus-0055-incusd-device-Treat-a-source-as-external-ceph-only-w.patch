@@ -1,0 +1,70 @@
+From b99ebce2441264c061cb06ef82a6bff5ccd57be1 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Sat, 24 Oct 2026 00:47:53 -0400
+Subject: [PATCH] incusd/device: Treat a source as external ceph only without a
+ pool
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+startVM checked the "ceph:" prefix of a disk source before the pool, so
+a restricted client could create a custom volume named like a ceph
+source, attach it with a pool set, and have incusd open an arbitrary RBD
+image with the host's ceph key; a slash-less source crashed the daemon.
+
+Make the ceph/cephfs helpers require no pool, require a slash in an
+external ceph source, and refuse a pool on any special source.
+
+This addresses GHSA-4375-qwr5-8vjj (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 5b95445dcd952c83fe928e6676ba99211ab597b9)
+---
+ internal/server/device/disk.go | 16 +++++++++++++---
+ 1 file changed, 13 insertions(+), 3 deletions(-)
+
+diff --git a/internal/server/device/disk.go b/internal/server/device/disk.go
+index 1643d09fd7..3392ac52e0 100644
+--- a/internal/server/device/disk.go
++++ b/internal/server/device/disk.go
+@@ -194,12 +194,14 @@ func (d *disk) CanMigrate() bool {
+ 
+ // sourceIsCephFs returns true if the disks source config setting is a CephFS share.
+ func (d *disk) sourceIsCephFs() bool {
+-	return strings.HasPrefix(d.config["source"], "cephfs:")
++	// The source of a disk with a pool is always a volume name, whatever it looks like.
++	return d.config["pool"] == "" && strings.HasPrefix(d.config["source"], "cephfs:")
+ }
+ 
+ // sourceIsCeph returns true if the disks source config setting is a Ceph RBD.
+ func (d *disk) sourceIsCeph() bool {
+-	return strings.HasPrefix(d.config["source"], "ceph:")
++	// The source of a disk with a pool is always a volume name, whatever it looks like.
++	return d.config["pool"] == "" && strings.HasPrefix(d.config["source"], "ceph:")
+ }
+ 
+ // CanHotPlug returns whether the device can be managed whilst the instance is running.
+@@ -639,7 +641,7 @@ func (d *disk) validateConfig(instConf instance.ConfigReader, partialValidation
+ 		return errors.New(`Root disk entry must have a "pool" property set`)
+ 	}
+ 
+-	if d.config["pool"] != "" && slices.Contains([]string{diskSourceCloudInit, diskSourceAgent}, d.config["source"]) {
++	if d.config["pool"] != "" && IsSpecialDisk(d.config["source"]) {
+ 		return fmt.Errorf(`Disk entry with source %q cannot have a "pool" property set`, d.config["source"])
+ 	}
+ 
+@@ -669,6 +671,14 @@ func (d *disk) validateConfig(instConf instance.ConfigReader, partialValidation
+ 		return errors.New(`Disk "path" may not contain quotes or line breaks`)
+ 	}
+ 
++	// An external ceph or cephfs source must name a <pool>/<volume> or <fs>/<path>, so a start can't index past a missing slash.
++	if d.sourceIsCeph() || d.sourceIsCephFs() {
++		_, cephSource, _ := strings.Cut(d.config["source"], ":")
++		if !strings.Contains(cephSource, "/") {
++			return fmt.Errorf("Invalid ceph or cephfs source %q, expected <name>/<path>", d.config["source"])
++		}
++	}
++
+ 	if (d.config["source"] == diskSourceTmpfs || d.config["source"] == diskSourceTmpfsOverlay) && d.config["path"] == "" {
+ 		return errors.New(`Missing mount "path" setting`)
+ 	}

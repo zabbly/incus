@@ -1,0 +1,228 @@
+From ca061675785ea989258e1a244abf6decee282164 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:13:43 -0500
+Subject: [PATCH] incusd: Keep one tenant's snapshots from blocking everyone
+ else's
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The scheduled snapshot tasks stopped at the first instance or volume
+that failed, matched schedules by searching for the next tick inside the
+database transaction, and accepted a snapshots.pattern that can't be
+rendered. One tenant could thereby stall or skip other projects'
+snapshots. Schedules are now matched in constant time and capped at 64
+entries, patterns are validated, and a failure is logged and skipped.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit ee19e37754b69ad77e738fab6ccdf7d4eda3c890)
+---
+ cmd/incusd/instance.go                 | 10 ++++++----
+ cmd/incusd/snapshot_common.go          | 11 +++--------
+ cmd/incusd/storage_volumes_snapshot.go | 24 ++++++++++++++++++------
+ internal/instance/config.go            | 14 +++++++++++++-
+ internal/server/storage/utils.go       |  2 +-
+ shared/validate/validate.go            |  8 ++++++--
+ 6 files changed, 47 insertions(+), 22 deletions(-)
+
+diff --git a/cmd/incusd/instance.go b/cmd/incusd/instance.go
+index 949173973e..a30b0c9cba 100644
+--- a/cmd/incusd/instance.go
++++ b/cmd/incusd/instance.go
+@@ -654,22 +654,23 @@ func autoCreateInstanceSnapshots(ctx context.Context, s *state.State, instances
+ 
+ 		l := logger.AddContext(logger.Ctx{"project": inst.Project().Name, "instance": inst.Name()})
+ 
++		// One instance's failure must not cost the others their snapshot.
+ 		snapshotName, err := instance.NextSnapshotName(s, inst, "snap%d")
+ 		if err != nil {
+ 			l.Error("Error retrieving next snapshot name", logger.Ctx{"err": err})
+-			return err
++			continue
+ 		}
+ 
+ 		expiry, err := internalInstance.GetExpiry(time.Now(), inst.ExpandedConfig()["snapshots.expiry"])
+ 		if err != nil {
+ 			l.Error("Error getting snapshots.expiry date")
+-			return err
++			continue
+ 		}
+ 
+ 		err = inst.Snapshot(snapshotName, expiry, false)
+ 		if err != nil {
+ 			l.Error("Error creating snapshot", logger.Ctx{"snapshot": snapshotName, "err": err})
+-			return err
++			continue
+ 		}
+ 	}
+ 
+@@ -694,7 +695,8 @@ func pruneExpiredInstanceSnapshots(ctx context.Context, snapshots []instance.Ins
+ 		err = snapshot.Delete(true, true)
+ 		instSnapshotsPruneRunning.Delete(snapshot.ID())
+ 		if err != nil {
+-			return fmt.Errorf("Failed to delete expired instance snapshot %q in project %q: %w", snapshot.Name(), snapshot.Project().Name, err)
++			logger.Error("Failed to delete expired instance snapshot", logger.Ctx{"project": snapshot.Project().Name, "snapshot": snapshot.Name(), "err": err})
++			continue
+ 		}
+ 
+ 		logger.Debug("Deleted instance snapshot", logger.Ctx{"project": snapshot.Project().Name, "snapshot": snapshot.Name()})
+diff --git a/cmd/incusd/snapshot_common.go b/cmd/incusd/snapshot_common.go
+index b686929314..9868103fc5 100644
+--- a/cmd/incusd/snapshot_common.go
++++ b/cmd/incusd/snapshot_common.go
+@@ -107,16 +107,11 @@ func cronSpecIsNow(spec string) (bool, error) {
+ 	// the time comparison below.
+ 	now = now.Truncate(time.Minute)
+ 
+-	// Calculate the next scheduled time based on the snapshots.schedule
+-	// pattern and the time now.
+-	next, err := gronx.NextTickAfter(spec, now, false)
++	// Check whether the schedule matches the coming minute, searching for the next tick is far costlier.
++	due, err := gronx.New().IsDue(spec, now.Add(time.Minute))
+ 	if err != nil {
+ 		return false, fmt.Errorf("Could not parse cron '%s': %w", spec, err)
+ 	}
+ 
+-	if !now.Add(time.Minute).Equal(next) {
+-		return false, nil
+-	}
+-
+-	return true, nil
++	return due, nil
+ }
+diff --git a/cmd/incusd/storage_volumes_snapshot.go b/cmd/incusd/storage_volumes_snapshot.go
+index 08b5f1dc4c..3e6e51d777 100644
+--- a/cmd/incusd/storage_volumes_snapshot.go
++++ b/cmd/incusd/storage_volumes_snapshot.go
+@@ -1677,16 +1677,21 @@ func pruneExpiredCustomVolumeSnapshots(ctx context.Context, s *state.State, expi
+ 			continue // Deletion of this snapshot is already running, skip.
+ 		}
+ 
++		l := logger.AddContext(logger.Ctx{"project": v.ProjectName, "pool": v.PoolName, "volume": v.Name})
++
++		// One volume's failure must not keep the others' snapshots around.
+ 		pool, err := storagePools.LoadByName(s, v.PoolName)
+ 		if err != nil {
+ 			customVolSnapshotsPruneRunning.Delete(v.ID)
+-			return fmt.Errorf("Error loading pool for volume snapshot %q (project %q, pool %q): %w", v.Name, v.ProjectName, v.PoolName, err)
++			l.Error("Error loading pool for volume snapshot", logger.Ctx{"err": err})
++			continue
+ 		}
+ 
+ 		err = pool.DeleteCustomVolumeSnapshot(v.ProjectName, v.Name, nil)
+ 		customVolSnapshotsPruneRunning.Delete(v.ID)
+ 		if err != nil {
+-			return fmt.Errorf("Error deleting custom volume snapshot %q (project %q, pool %q): %w", v.Name, v.ProjectName, v.PoolName, err)
++			l.Error("Error deleting custom volume snapshot", logger.Ctx{"err": err})
++			continue
+ 		}
+ 	}
+ 
+@@ -1701,24 +1706,31 @@ func autoCreateCustomVolumeSnapshots(ctx context.Context, s *state.State, volume
+ 			return err // Stop if context is cancelled.
+ 		}
+ 
++		l := logger.AddContext(logger.Ctx{"project": v.ProjectName, "pool": v.PoolName, "volume": v.Name})
++
++		// One volume's failure must not cost the others their snapshot.
+ 		snapshotName, err := volumeDetermineNextSnapshotName(ctx, s, v, "snap%d")
+ 		if err != nil {
+-			return fmt.Errorf("Error retrieving next snapshot name for volume %q (project %q, pool %q): %w", v.Name, v.ProjectName, v.PoolName, err)
++			l.Error("Error retrieving next snapshot name", logger.Ctx{"err": err})
++			continue
+ 		}
+ 
+ 		expiry, err := internalInstance.GetExpiry(time.Now(), v.Config["snapshots.expiry"])
+ 		if err != nil {
+-			return fmt.Errorf("Error getting snapshot expiry for volume %q (project %q, pool %q): %w", v.Name, v.ProjectName, v.PoolName, err)
++			l.Error("Error getting snapshot expiry", logger.Ctx{"err": err})
++			continue
+ 		}
+ 
+ 		pool, err := storagePools.LoadByName(s, v.PoolName)
+ 		if err != nil {
+-			return fmt.Errorf("Error loading pool for volume %q (project %q, pool %q): %w", v.Name, v.ProjectName, v.PoolName, err)
++			l.Error("Error loading pool for volume", logger.Ctx{"err": err})
++			continue
+ 		}
+ 
+ 		err = pool.CreateCustomVolumeSnapshot(v.ProjectName, v.Name, snapshotName, expiry, false, nil)
+ 		if err != nil {
+-			return fmt.Errorf("Error creating snapshot for volume %q (project %q, pool %q): %w", v.Name, v.ProjectName, v.PoolName, err)
++			l.Error("Error creating snapshot", logger.Ctx{"err": err})
++			continue
+ 		}
+ 	}
+ 
+diff --git a/internal/instance/config.go b/internal/instance/config.go
+index edf69f5b5b..12ea4919cb 100644
+--- a/internal/instance/config.go
++++ b/internal/instance/config.go
+@@ -8,12 +8,24 @@ import (
+ 	"strings"
+ 	"time"
+ 
++	"github.com/flosch/pongo2/v6"
++
+ 	scriptletLoad "github.com/lxc/incus/v7/internal/server/scriptlet/load"
+ 	"github.com/lxc/incus/v7/shared/api"
+ 	"github.com/lxc/incus/v7/shared/units"
+ 	"github.com/lxc/incus/v7/shared/validate"
+ )
+ 
++// IsSnapshotPattern checks that a snapshot name pattern is a valid template.
++func IsSnapshotPattern(value string) error {
++	_, err := pongo2.FromString(value)
++	if err != nil {
++		return fmt.Errorf("Invalid snapshot pattern: %w", err)
++	}
++
++	return nil
++}
++
+ // IsUserConfig returns true if the config key is a user configuration.
+ func IsUserConfig(key string) bool {
+ 	return strings.HasPrefix(key, "user.")
+@@ -489,7 +501,7 @@ var InstanceConfigKeysAny = map[string]func(value string) error{
+ 	//  defaultdesc: `snap%d`
+ 	//  liveupdate: no
+ 	//  shortdesc: Template for the snapshot name
+-	"snapshots.pattern": validate.IsAny,
++	"snapshots.pattern": IsSnapshotPattern,
+ 
+ 	// gendoc:generate(entity=instance, group=snapshots, key=snapshots.expiry)
+ 	// Specify an expression like `1M 2H 3d 4w 5m 6y`.
+diff --git a/internal/server/storage/utils.go b/internal/server/storage/utils.go
+index 5142da13a2..30c762eb10 100644
+--- a/internal/server/storage/utils.go
++++ b/internal/server/storage/utils.go
+@@ -511,7 +511,7 @@ func poolAndVolumeCommonRules(vol *drivers.Volume) map[string]func(string) error
+ 			return err
+ 		},
+ 		"snapshots.schedule": validate.Optional(validate.IsCron([]string{"@hourly", "@daily", "@midnight", "@weekly", "@monthly", "@annually", "@yearly"})),
+-		"snapshots.pattern":  validate.IsAny,
++		"snapshots.pattern":  internalInstance.IsSnapshotPattern,
+ 	}
+ 
+ 	// Options relevant for custom filesystem volumes.
+diff --git a/shared/validate/validate.go b/shared/validate/validate.go
+index d6173d13fa..7bcd76fe22 100644
+--- a/shared/validate/validate.go
++++ b/shared/validate/validate.go
+@@ -750,8 +750,12 @@ func IsCron(aliases []string) func(value string) error {
+ 
+ 		// Can be comma+space separated (just commas are valid cron pattern).
+ 		value = strings.ToLower(value)
+-		triggers := strings.SplitSeq(value, ", ")
+-		for trigger := range triggers {
++		triggers := strings.Split(value, ", ")
++		if len(triggers) > 64 {
++			return errors.New("Too many cron expressions, at most 64 are allowed")
++		}
++
++		for _, trigger := range triggers {
+ 			err := isValid(trigger)
+ 			if err != nil {
+ 				return err

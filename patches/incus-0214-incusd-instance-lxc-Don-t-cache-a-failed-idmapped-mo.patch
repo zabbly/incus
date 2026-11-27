@@ -1,0 +1,71 @@
+From 3c175703a4e0a947f8acd064042ae6eb5ce1fed6 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:08:12 -0500
+Subject: [PATCH] incusd/instance/lxc: Don't cache a failed idmapped mount
+ probe
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The probe needs a user namespace, and when it couldn't get one the
+filesystem was recorded as unable to do idmapped mounts for the life
+of the daemon, so later containers on it were shifted on disk instead.
+
+This addresses GHSA-28m6-7v43-rr8m (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 69a8efdabc3cc1c53475caaa811fc9c421c17334)
+---
+ internal/server/instance/drivers/driver_lxc.go |  9 ++++++++-
+ shared/idmap/shift_linux.go                    | 12 +++++++++---
+ 2 files changed, 17 insertions(+), 4 deletions(-)
+
+diff --git a/internal/server/instance/drivers/driver_lxc.go b/internal/server/instance/drivers/driver_lxc.go
+index 45ca2c0945..7b7763dec1 100644
+--- a/internal/server/instance/drivers/driver_lxc.go
++++ b/internal/server/instance/drivers/driver_lxc.go
+@@ -1482,7 +1482,14 @@ func (d *lxc) IdmappedStorage(fspath string, fstype string) idmap.StorageType {
+ 		}
+ 	}
+ 
+-	if idmap.CanIdmapMount(fspath, fstype) {
++	supported, err := idmap.CanIdmapMount(fspath, fstype)
++	if err != nil {
++		// Don't record an answer the probe couldn't give.
++		d.logger.Warn("Failed to probe for idmapped mount support", logger.Ctx{"path": fspath, "err": err})
++		return mode
++	}
++
++	if supported {
+ 		// Use idmapped mounts.
+ 		mode = idmap.StorageTypeIdmapped
+ 	}
+diff --git a/shared/idmap/shift_linux.go b/shared/idmap/shift_linux.go
+index 3de6fea3a3..b5b8003f19 100644
+--- a/shared/idmap/shift_linux.go
++++ b/shared/idmap/shift_linux.go
+@@ -699,9 +699,10 @@ const (
+ )
+ 
+ // CanIdmapMount checks if the provided path and filesystem can use VFS idmapped mounts.
+-func CanIdmapMount(path string, fstype string) bool {
++// An error means the probe itself couldn't run, so the answer isn't known.
++func CanIdmapMount(path string, fstype string) (bool, error) {
+ 	if util.IsTrue(os.Getenv("INCUS_IDMAPPED_MOUNTS_DISABLE")) {
+-		return false
++		return false, nil
+ 	}
+ 
+ 	cpath := C.CString(path)
+@@ -709,5 +710,10 @@ func CanIdmapMount(path string, fstype string) bool {
+ 	cfstype := C.CString(fstype)
+ 	defer C.free(unsafe.Pointer(cfstype))
+ 
+-	return bool(C.create_detached_idmapped_mount(cpath, cfstype) == 0)
++	ret := C.create_detached_idmapped_mount(cpath, cfstype)
++	if ret == -C.EBADF {
++		return false, errors.New("Failed to create the user namespace for the probe")
++	}
++
++	return ret == 0, nil
+ }

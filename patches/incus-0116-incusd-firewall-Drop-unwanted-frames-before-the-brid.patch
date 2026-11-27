@@ -1,0 +1,86 @@
+From 0b1aa6ee460a1a4d1b22f67176ceeb1b217124d4 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:59:44 -0500
+Subject: [PATCH] incusd/firewall: Drop unwanted frames before the bridge
+ filter accepts
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The rule dropping frames that are neither ARP nor IP came after the ACL
+accept rules, so a plain allow rule let 802.1ad-tagged frames carry a
+forged source past the IP filtering. It was also missing when a family
+was blocked entirely.
+
+This addresses GHSA-fg2p-r659-c4q8 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 5f46e3d87589bb3fc6335a98af09db6eca64a316)
+---
+ .../server/firewall/drivers/drivers_nftables.go  |  4 ++--
+ .../drivers/drivers_nftables_templates.go        | 16 ++++++++--------
+ 2 files changed, 10 insertions(+), 10 deletions(-)
+
+diff --git a/internal/server/firewall/drivers/drivers_nftables.go b/internal/server/firewall/drivers/drivers_nftables.go
+index ee8488e9cc..8b843aa847 100644
+--- a/internal/server/firewall/drivers/drivers_nftables.go
++++ b/internal/server/firewall/drivers/drivers_nftables.go
+@@ -375,8 +375,8 @@ func (d Nftables) InstanceSetupBridgeFilter(projectName string, instanceName str
+ 		tplFields["macFiltering"] = true
+ 	}
+ 
+-	// Filter unwanted ethernet frames when using IP filtering.
+-	if len(IPv4Nets)+len(IPv6Nets) > 0 {
++	// Filter unwanted ethernet frames when using IP filtering, including when a family is blocked.
++	if IPv4Nets != nil || IPv6Nets != nil {
+ 		tplFields["filterUnwantedFrames"] = true
+ 		tplFields["macFiltering"] = true
+ 	}
+diff --git a/internal/server/firewall/drivers/drivers_nftables_templates.go b/internal/server/firewall/drivers/drivers_nftables_templates.go
+index f00c8f9171..fb447f232f 100644
+--- a/internal/server/firewall/drivers/drivers_nftables_templates.go
++++ b/internal/server/firewall/drivers/drivers_nftables_templates.go
+@@ -218,6 +218,10 @@ chain in{{.chainSeparator}}{{.deviceLabel}} {
+ 	iifname "{{.hostName}}" ether type ip6 icmpv6 type 136 @nh,528,48 != {{.hwAddrHex}} drop
+ 	{{ end }}
+ 
++	{{ if .filterUnwantedFrames }}
++	iifname "{{.hostName}}" ether type != {arp, ip, ip6} drop
++	{{ end }}
++
+ 	{{ if or .aclInDropRules .aclInRejectRules .aclInAcceptRules .aclOutDropRules .aclOutAcceptRules .aclInDefaultRule .ipv4NetsList }}
+ 	iifname "{{.hostName}}" ether type ip ip saddr 0.0.0.0 ip daddr 255.255.255.255 udp dport 67 accept
+ 	{{ end }}
+@@ -280,10 +284,6 @@ chain in{{.chainSeparator}}{{.deviceLabel}} {
+ 	{{.}}
+ 	{{ end }}
+ 
+-	{{ if .filterUnwantedFrames }}
+-	iifname "{{.hostName}}" ether type != {arp, ip, ip6} drop
+-	{{ end }}
+-
+ 	{{.aclInDefaultRule}}
+ }
+ 
+@@ -297,6 +297,10 @@ chain fwd{{.chainSeparator}}{{.deviceLabel}} {
+ 	iifname "{{.hostName}}" ether type ip6 icmpv6 type 136 @nh,528,48 != {{.hwAddrHex}} drop
+ 	{{ end }}
+ 
++	{{ if .filterUnwantedFrames }}
++	iifname "{{.hostName}}" ether type != {arp, ip, ip6} drop
++	{{ end }}
++
+ 	# IPv4 filtering
+ 	{{ if .ipv4NetsList }}
+ 	iifname "{{.hostName}}" ether type ip ip saddr 0.0.0.0 ip daddr 255.255.255.255 udp dport 67 accept
+@@ -343,10 +347,6 @@ chain fwd{{.chainSeparator}}{{.deviceLabel}} {
+ 	{{.}}
+ 	{{ end }}
+ 
+-	{{ if .filterUnwantedFrames }}
+-	iifname "{{.hostName}}" ether type != {arp, ip, ip6} drop
+-	{{ end }}
+-
+ 	{{ if or .aclInDropRules .aclInRejectRulesConverted .aclInAcceptRules .aclOutDropRules .aclOutAcceptRules .aclInDefaultRuleConverted .aclOutDefaultRule }}
+ 	iifname "{{.hostName}}" ether type arp accept
+ 	iifname "{{.hostName}}" ip6 nexthdr ipv6-icmp icmpv6 type { nd-neighbor-solicit, nd-neighbor-advert } accept

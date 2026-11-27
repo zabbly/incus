@@ -1,0 +1,52 @@
+From 4392872298aa5ade5503a2327156f9a7a37c4cc1 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Sat, 24 Oct 2026 00:17:25 -0400
+Subject: [PATCH] incusd/storage: Validate initial.mode as an octal mode
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+initial.mode was validated as a decimal integer but parsed as octal when
+the mount path is created, so a value like 888 passed validation and
+failed the rebuild after it had deleted the volume, leaving a database
+record a client could then alias with an ISO volume.
+
+Validate it the way the mount path creation parses it.
+
+This addresses GHSA-42x8-664j-84w8 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit a352cc6a9a94501ace5f696ba1fb29f8891ad7ec)
+---
+ internal/server/storage/utils.go | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/internal/server/storage/utils.go b/internal/server/storage/utils.go
+index c83cf00b47..a4887fa7c5 100644
+--- a/internal/server/storage/utils.go
++++ b/internal/server/storage/utils.go
+@@ -9,6 +9,7 @@ import (
+ 	"os"
+ 	"path/filepath"
+ 	"slices"
++	"strconv"
+ 	"strings"
+ 	"time"
+ 
+@@ -517,7 +518,15 @@ func poolAndVolumeCommonRules(vol *drivers.Volume) map[string]func(string) error
+ 		rules["security.unmapped"] = validate.Optional(validate.IsBool)
+ 		rules["initial.uid"] = validate.Optional(validate.IsInt64)
+ 		rules["initial.gid"] = validate.Optional(validate.IsInt64)
+-		rules["initial.mode"] = validate.Optional(validate.IsInt64)
++		rules["initial.mode"] = validate.Optional(func(value string) error {
++			// Parsed as octal when the mount path is created, so reject what that would reject.
++			_, err := strconv.ParseUint(value, 8, 12)
++			if err != nil {
++				return fmt.Errorf("Invalid initial.mode: %w", err)
++			}
++
++			return nil
++		})
+ 	}
+ 
+ 	// security.shared is only relevant for custom block volumes.

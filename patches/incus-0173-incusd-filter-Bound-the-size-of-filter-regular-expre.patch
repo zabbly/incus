@@ -1,0 +1,97 @@
+From a546a895d31637bf5351dabefb5c62dd79e072c9 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:08:12 -0500
+Subject: [PATCH] incusd/filter: Bound the size of filter regular expressions
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A counted repetition in a filter clause compiled to millions of
+instructions, recompiled for every listed object.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit afbe68dc4a9955da55ad10d845c0c2843f95dbb3)
+---
+ internal/filter/clause.go |  7 +++++++
+ internal/filter/match.go  | 35 ++++++++++++++++++++++++++++++++++-
+ 2 files changed, 41 insertions(+), 1 deletion(-)
+
+diff --git a/internal/filter/clause.go b/internal/filter/clause.go
+index f1269e8056..67ec6fa889 100644
+--- a/internal/filter/clause.go
++++ b/internal/filter/clause.go
+@@ -30,12 +30,19 @@ type ClauseSet struct {
+ 	ParseStringSlice func(Clause) ([]string, error)
+ }
+ 
++// maxFilterSize bounds a filter string, each clause is matched against every object.
++const maxFilterSize = 4096
++
+ // Parse a user-provided filter string.
+ func Parse(s string, op OperatorSet) (*ClauseSet, error) {
+ 	if !op.isValid() {
+ 		return nil, errors.New("Invalid operator set")
+ 	}
+ 
++	if len(s) > maxFilterSize {
++		return nil, errors.New("Filter is too large")
++	}
++
+ 	clauses := []Clause{}
+ 
+ 	parts := strings.Fields(s)
+diff --git a/internal/filter/match.go b/internal/filter/match.go
+index 677b7010e5..d6d2dc7ec0 100644
+--- a/internal/filter/match.go
++++ b/internal/filter/match.go
+@@ -6,6 +6,7 @@ import (
+ 	"fmt"
+ 	"reflect"
+ 	"regexp"
++	"regexp/syntax"
+ 	"strconv"
+ 	"strings"
+ )
+@@ -92,7 +93,39 @@ func DefaultParseRegexp(c Clause) (*regexp.Regexp, error) {
+ 		regexpValue = "^" + regexpValue + "$"
+ 	}
+ 
+-	return regexp.Compile("(?i)" + regexpValue)
++	regexpValue = "(?i)" + regexpValue
++
++	// Counted repetitions expand at compile time, refuse large programs before compiling.
++	parsed, err := syntax.Parse(regexpValue, syntax.Perl)
++	if err != nil {
++		return nil, err
++	}
++
++	if regexpSize(parsed) > regexpMaxSize {
++		return nil, errors.New("Regular expression is too large")
++	}
++
++	return regexp.Compile(regexpValue)
++}
++
++// regexpMaxSize bounds the estimated program size of a filter regular expression.
++const regexpMaxSize = 4096
++
++// regexpSize estimates the compiled size of a parsed regular expression.
++func regexpSize(re *syntax.Regexp) int {
++	size := 1
++	for _, sub := range re.Sub {
++		size += regexpSize(sub)
++	}
++
++	switch re.Op {
++	case syntax.OpLiteral:
++		size = len(re.Rune)
++	case syntax.OpRepeat:
++		size *= max(re.Min, re.Max, 1)
++	}
++
++	return size
+ }
+ 
+ // DefaultParseStringSlice converts the value of the clause to a slice of string.

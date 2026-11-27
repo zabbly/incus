@@ -1,0 +1,61 @@
+From 5a89442e2cd57655ba8ad22ea0a41c2be6e9a387 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Sat, 24 Oct 2026 00:45:48 -0400
+Subject: [PATCH] incusd/device: Forbid guest root on restricted VM disk shares
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A VM share from a restricted source path ran virtiofsd with ID
+translation only when raw.idmap was set, which a restricted client can
+unset, so guest root acted as host root on the shared directory and
+could plant a setuid-root file.
+
+Translate even with an empty map for a restricted source path, forbidding
+every guest ID.
+
+This addresses GHSA-4375-qwr5-8vjj (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 4b7a1b380b3d3cf905591b8c22f846394fc11910)
+---
+ internal/server/device/device_utils_disk.go | 5 +++--
+ internal/server/device/disk.go              | 2 +-
+ 2 files changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/internal/server/device/device_utils_disk.go b/internal/server/device/device_utils_disk.go
+index 3e2fd1a638..3edeb452a1 100644
+--- a/internal/server/device/device_utils_disk.go
++++ b/internal/server/device/device_utils_disk.go
+@@ -368,7 +368,7 @@ func DiskVMVirtiofsSupported(inst instance.Instance) (string, error) {
+ // Returns UnsupportedError error if the host system or instance does not support virtiosfd, returns normal error
+ // type if process cannot be started for other reasons.
+ // Returns revert function and listener file handle on success.
+-func DiskVMVirtiofsdStart(execPath string, inst instance.Instance, socketPath string, pidPath string, logPath string, sharePath string, idmaps []idmap.Entry, cacheOption string) (func(), net.Listener, error) {
++func DiskVMVirtiofsdStart(execPath string, inst instance.Instance, socketPath string, pidPath string, logPath string, sharePath string, idmaps []idmap.Entry, restricted bool, cacheOption string) (func(), net.Listener, error) {
+ 	reverter := revert.New()
+ 	defer reverter.Fail()
+ 
+@@ -429,7 +429,8 @@ func DiskVMVirtiofsdStart(execPath string, inst instance.Instance, socketPath st
+ 	// Start the virtiofsd process in non-daemon mode.
+ 	args := []string{"--fd=3", fmt.Sprintf("--cache=%s", cacheOption), fmt.Sprintf("--shared-dir=%s", sharePath)}
+ 
+-	if len(idmaps) > 0 {
++	// For a restricted source path, translate even with an empty map so guest root is forbidden on it.
++	if restricted || len(idmaps) > 0 {
+ 		idmapSet := &idmap.Set{Entries: idmaps}
+ 		sort.Sort(idmapSet)
+ 
+diff --git a/internal/server/device/disk.go b/internal/server/device/disk.go
+index e4cb399c6b..1643d09fd7 100644
+--- a/internal/server/device/disk.go
++++ b/internal/server/device/disk.go
+@@ -1806,7 +1806,7 @@ func (d *disk) startVM() (*deviceConfig.RunConfig, error) {
+ 					logPath := filepath.Join(d.inst.LogPath(), fmt.Sprintf("disk.%s.log", d.name))
+ 					_ = os.Remove(logPath) // Remove old log if needed.
+ 
+-					revertFunc, unixListener, err := DiskVMVirtiofsdStart(d.state.OS.ExecPath, d.inst, sockPath, pidPath, logPath, mount.DevPath, rawIDMaps.Entries, d.config["io.cache"])
++					revertFunc, unixListener, err := DiskVMVirtiofsdStart(d.state.OS.ExecPath, d.inst, sockPath, pidPath, logPath, mount.DevPath, rawIDMaps.Entries, d.restrictedParentSourcePath != "", d.config["io.cache"])
+ 					if err != nil {
+ 						var errUnsupported UnsupportedError
+ 						if d.bus != "virtiofs" && errors.As(err, &errUnsupported) {

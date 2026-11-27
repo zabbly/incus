@@ -1,0 +1,39 @@
+From 1ffffd1b983cd8e7bee83652f480f2c403d42095 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:59:19 -0500
+Subject: [PATCH] incusd/images: Check the export target against the project's
+ image servers
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The push target of an image export skipped the restricted.images.servers
+check every image download applies.
+
+This addresses GHSA-chhj-pwx6-9cx3 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 48d23c5c934fbd6e7bae1a2c5a6015c64655faca)
+---
+ cmd/incusd/images.go | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/cmd/incusd/images.go b/cmd/incusd/images.go
+index dcf930d983..f920f7ccb6 100644
+--- a/cmd/incusd/images.go
++++ b/cmd/incusd/images.go
+@@ -4813,6 +4813,14 @@ func imageExportPost(d *Daemon, r *http.Request) response.Response {
+ 		return response.SmartError(err)
+ 	}
+ 
++	// Check if the project allows using the target server.
++	err = s.DB.Cluster.Transaction(r.Context(), func(ctx context.Context, tx *db.ClusterTx) error {
++		return projectutils.AllowImageDownload(tx, projectName, req.Target)
++	})
++	if err != nil {
++		return response.SmartError(err)
++	}
++
+ 	// Connect to the target and push the image
+ 	args := &incus.ConnectionArgs{
+ 		TLSServerCert: req.Certificate,

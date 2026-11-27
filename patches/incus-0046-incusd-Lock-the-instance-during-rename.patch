@@ -1,0 +1,77 @@
+From d8129cae3959f76c22b1e37389e38033363a4849 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Sat, 24 Oct 2026 00:29:45 -0400
+Subject: [PATCH] incusd: Lock the instance during rename
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Rename took no operation lock, though the lock is keyed by name, so a
+container renamed while its image was still unpacking left the unpack
+with no lock under the new name. A client could then plant a symlink
+through the file API and have tar write image entries onto host files.
+
+Take an exclusive rename lock, so a busy instance can't be renamed.
+
+This addresses GHSA-42x8-664j-84w8 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 59c2989350831b020cf0de669e77ad10d1dc7430)
+---
+ internal/server/instance/drivers/driver_lxc.go          | 8 ++++++++
+ internal/server/instance/drivers/driver_qemu.go         | 8 ++++++++
+ internal/server/instance/operationlock/operationlock.go | 3 +++
+ 3 files changed, 19 insertions(+)
+
+diff --git a/internal/server/instance/drivers/driver_lxc.go b/internal/server/instance/drivers/driver_lxc.go
+index 112f0b9246..38bd909463 100644
+--- a/internal/server/instance/drivers/driver_lxc.go
++++ b/internal/server/instance/drivers/driver_lxc.go
+@@ -4856,6 +4856,14 @@ func (d *lxc) Rename(newName string, applyTemplateTrigger bool) error {
+ 		return errors.New("Renaming of running instance not allowed")
+ 	}
+ 
++	// Setup a new operation so a rename can't race another operation on the instance.
++	op, err := operationlock.CreateWaitGet(d.Project().Name, d.Name(), d.op, operationlock.ActionRename, nil, false, false)
++	if err != nil {
++		return fmt.Errorf("Failed to create instance rename operation: %w", err)
++	}
++
++	defer op.Done(nil)
++
+ 	// Clean things up.
+ 	d.cleanup()
+ 
+diff --git a/internal/server/instance/drivers/driver_qemu.go b/internal/server/instance/drivers/driver_qemu.go
+index db62baf649..db0a19f9ec 100644
+--- a/internal/server/instance/drivers/driver_qemu.go
++++ b/internal/server/instance/drivers/driver_qemu.go
+@@ -7244,6 +7244,14 @@ func (d *qemu) Rename(newName string, applyTemplateTrigger bool) error {
+ 		return errors.New("Renaming of running instance not allowed")
+ 	}
+ 
++	// Setup a new operation so a rename can't race another operation on the instance.
++	op, err := operationlock.CreateWaitGet(d.Project().Name, d.Name(), d.op, operationlock.ActionRename, nil, false, false)
++	if err != nil {
++		return fmt.Errorf("Failed to create instance rename operation: %w", err)
++	}
++
++	defer op.Done(nil)
++
+ 	// Clean things up.
+ 	d.cleanup()
+ 
+diff --git a/internal/server/instance/operationlock/operationlock.go b/internal/server/instance/operationlock/operationlock.go
+index 4724e98542..9349535e89 100644
+--- a/internal/server/instance/operationlock/operationlock.go
++++ b/internal/server/instance/operationlock/operationlock.go
+@@ -36,6 +36,9 @@ const ActionUpdate Action = "update"
+ // ActionDelete for deleting an instance.
+ const ActionDelete Action = "delete"
+ 
++// ActionRename for renaming an instance.
++const ActionRename Action = "rename"
++
+ // ActionMigrate for migrating an instance.
+ const ActionMigrate Action = "migrate"
+ 

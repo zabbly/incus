@@ -1,0 +1,44 @@
+From e6fc1b6786541771b0e8f94f46e9fa6ea261c8d2 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Fri, 23 Oct 2026 22:49:41 -0400
+Subject: [PATCH] incusd: Block remote clients during startup
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The internal and os API trees were exempt from the startup gate for
+every client, so a CA-trusted restricted client could run /internal/sql
+before the trust store and authorization config were loaded, when it was
+still treated as unrestricted.
+
+Keep the exemption for the unix socket and cluster members only.
+
+This addresses GHSA-9m5m-cr24-m367 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 23f31ee2c5b46c034c2f993cd031107f787d46f2)
+---
+ cmd/incusd/daemon.go | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/cmd/incusd/daemon.go b/cmd/incusd/daemon.go
+index 662d457278..a323e8f058 100644
+--- a/cmd/incusd/daemon.go
++++ b/cmd/incusd/daemon.go
+@@ -815,6 +815,16 @@ func (d *Daemon) createCmd(restAPI *http.ServeMux, apiVersion string, c APIEndpo
+ 			}
+ 		}
+ 
++		// Block remote clients on startup, before the trust store and authorization config are loaded.
++		if !slices.Contains([]string{"unix", "cluster"}, protocol) {
++			select {
++			case <-d.setupChan:
++			default:
++				_ = response.Unavailable(errors.New("Daemon is starting up")).Render(w)
++				return
++			}
++		}
++
+ 		// Restrict internal queries to remote, non-cluster, clients
+ 		if apiVersion == "internal" && !slices.Contains([]string{"unix", "cluster"}, protocol) {
+ 			internalAllowed := func() bool {

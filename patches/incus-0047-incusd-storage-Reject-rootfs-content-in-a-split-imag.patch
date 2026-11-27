@@ -1,0 +1,46 @@
+From a3eb382ab8860640cf08107bf76271dbcbd407af Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Sat, 24 Oct 2026 00:30:14 -0400
+Subject: [PATCH] incusd/storage: Reject rootfs content in a split image
+ metadata tarball
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A split image is unpacked in two runs: the metadata tarball into the
+volume, then the rootfs archive into the rootfs directory. The metadata
+tarball could carry its own rootfs/ members, leaving a symlink there
+that redirected the second run's writes onto host files as root.
+
+Refuse a non-empty rootfs directory before the rootfs archive is
+unpacked into it.
+
+This addresses GHSA-f5f6-6x9q-gh3f (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 94da0211ba3a62ba2e971dc7a2a5d23899e8f80d)
+---
+ internal/server/storage/utils.go | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/internal/server/storage/utils.go b/internal/server/storage/utils.go
+index a4887fa7c5..f5e64cb929 100644
+--- a/internal/server/storage/utils.go
++++ b/internal/server/storage/utils.go
+@@ -637,6 +637,16 @@ func ImageUnpack(imageFile string, vol drivers.Volume, destBlockFile string, sys
+ 
+ 		// Check for separate root file.
+ 		if util.PathExists(imageRootfsFile) {
++			// Reject rootfs content from the metadata tarball, which could redirect the rootfs unpack.
++			entries, err := os.ReadDir(rootfsPath)
++			if err != nil && !errors.Is(err, fs.ErrNotExist) {
++				return -1, err
++			}
++
++			if len(entries) > 0 {
++				return -1, fmt.Errorf("Image metadata tarball contains rootfs content: %s", imageFile)
++			}
++
+ 			err = os.MkdirAll(rootfsPath, 0o755)
+ 			if err != nil {
+ 				return -1, errors.New("Error creating rootfs directory")

@@ -1,0 +1,138 @@
+From a25125f1d71570fbf7f9a5d856cd69e455129a93 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:03:22 -0500
+Subject: [PATCH] incusd/network/zone: Keep zone inputs to a single zone file
+ line
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The built-in DNS server renders zones to text and parses them back, so
+a line break in a record entry, a wildcard record name, dns.contact or
+dns.nameservers added zone file lines of the client's choosing, and a
+lease hostname with zone file syntax broke every transfer of the zone.
+
+This addresses GHSA-fg2p-r659-c4q8 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit b3ddfb47b8f383cb84a45bc8143e438623dd23ee)
+---
+ internal/server/network/zone/record.go |  8 +++++
+ internal/server/network/zone/zone.go   | 45 +++++++++++++++++++++++---
+ 2 files changed, 48 insertions(+), 5 deletions(-)
+
+diff --git a/internal/server/network/zone/record.go b/internal/server/network/zone/record.go
+index 31d77ba9f4..59ba40e66e 100644
+--- a/internal/server/network/zone/record.go
++++ b/internal/server/network/zone/record.go
+@@ -2,9 +2,12 @@ package zone
+ 
+ import (
+ 	"context"
++	"errors"
+ 	"fmt"
+ 	"net/http"
+ 	"slices"
++	"strings"
++	"unicode"
+ 
+ 	"github.com/miekg/dns"
+ 
+@@ -261,6 +264,11 @@ func (d *zone) validateEntries(info api.NetworkZoneRecordPut) error {
+ 			entry.TTL = 300
+ 		}
+ 
++		// The parser only reads one line, so the entry must fit on it.
++		if strings.ContainsAny(entry.Type+entry.Value, "\r\n") || strings.ContainsFunc(entry.Type, unicode.IsSpace) {
++			return errors.New("Bad zone record entry: line breaks aren't allowed")
++		}
++
+ 		_, err := dns.NewRR(fmt.Sprintf("record %d IN %s %s", entry.TTL, entry.Type, entry.Value))
+ 		if err != nil {
+ 			return fmt.Errorf("Bad zone record entry: %w", err)
+diff --git a/internal/server/network/zone/zone.go b/internal/server/network/zone/zone.go
+index 385afd5bcf..108ddc9896 100644
+--- a/internal/server/network/zone/zone.go
++++ b/internal/server/network/zone/zone.go
+@@ -149,6 +149,32 @@ func (d *zone) Etag() []any {
+ 	return []any{d.info.Name, d.info.Description, d.info.Config}
+ }
+ 
++// validateContact checks a contact, which may be written as an e-mail address.
++func validateContact(contact string) error {
++	return validateDomainName(strings.Replace(contact, "@", ".", 1))
++}
++
++// validateDomainName checks that every label of a name fits on a zone file line.
++func validateDomainName(name string) error {
++	for label := range strings.SplitSeq(strings.TrimSuffix(name, "."), ".") {
++		if label == "*" {
++			continue
++		}
++
++		if len(label) == 0 || len(label) > 63 {
++			return fmt.Errorf("Invalid DNS name %q", name)
++		}
++
++		for _, r := range label {
++			if r != '-' && r != '_' && (r < '0' || r > '9') && (r < 'a' || r > 'z') && (r < 'A' || r > 'Z') {
++				return fmt.Errorf("Invalid DNS name %q", name)
++			}
++		}
++	}
++
++	return nil
++}
++
+ // validateName checks name is valid.
+ func (d *zone) validateName(name string) error {
+ 	// Allow root records.
+@@ -156,11 +182,14 @@ func (d *zone) validateName(name string) error {
+ 		return nil
+ 	}
+ 
+-	// Allow wildcards.
+-	if strings.HasPrefix(name, "*.") {
+-		return nil
++	err := validateDomainName(name)
++	if err != nil {
++		return err
+ 	}
+ 
++	// Allow wildcards.
++	name = strings.TrimPrefix(name, "*.")
++
+ 	// Allow underscore prefix (SRV, TXT and other service records).
+ 	name = strings.TrimPrefix(name, "_")
+ 
+@@ -179,7 +208,7 @@ func (d *zone) validateConfig(info *api.NetworkZonePut) error {
+ 	//  type: string set
+ 	//  required: no
+ 	//  shortdesc: Comma-separated list of DNS server FQDNs (for NS records)
+-	rules["dns.nameservers"] = validate.IsListOf(validate.IsAny)
++	rules["dns.nameservers"] = validate.Optional(validate.IsListOf(validateDomainName))
+ 
+ 	// gendoc:generate(entity=network_zone, group=common, key=dns.contact)
+ 	//
+@@ -187,7 +216,7 @@ func (d *zone) validateConfig(info *api.NetworkZonePut) error {
+ 	//  type: string
+ 	//  required: no
+ 	//  shortdesc: Admin contact email for DNS server
+-	rules["dns.contact"] = validate.Optional(validate.IsAny)
++	rules["dns.contact"] = validate.Optional(validateContact)
+ 
+ 	// gendoc:generate(entity=network_zone, group=common, key=network.nat)
+ 	//
+@@ -483,6 +512,12 @@ func (d *zone) Content() (*strings.Builder, error) {
+ 			isReverse := isReverse4 || isReverse6
+ 
+ 			genRecord := func(name string, ip net.IP) map[string]string {
++				// Skip names that can't be written to the zone file as they are.
++				err := validateDomainName(name)
++				if err != nil {
++					return nil
++				}
++
+ 				isV4 := ip.To4() != nil
+ 
+ 				// Skip disabled families.

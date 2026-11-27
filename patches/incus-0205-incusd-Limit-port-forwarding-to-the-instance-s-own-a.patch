@@ -1,0 +1,64 @@
+From cc62b17fff2b7b46e8e082dec029655974395a1f Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:07:41 -0500
+Subject: [PATCH] incusd: Limit port forwarding to the instance's own addresses
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The target address was only checked for being an IP, so can_connect_tcp
+on one instance reached anything that instance could route to, with the
+instance's source address.
+
+This addresses GHSA-8553-6xmq-7g3g (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 7f90c482b402305b4bb9c6b2a1d1c4ab853010cc)
+---
+ cmd/incusd/instance_port_forward.go | 26 +++++++++++++++++++++++++-
+ 1 file changed, 25 insertions(+), 1 deletion(-)
+
+diff --git a/cmd/incusd/instance_port_forward.go b/cmd/incusd/instance_port_forward.go
+index f530fafe0a..83ce3cc967 100644
+--- a/cmd/incusd/instance_port_forward.go
++++ b/cmd/incusd/instance_port_forward.go
+@@ -93,7 +93,8 @@ func instancePortForwardHandler(d *Daemon, r *http.Request) response.Response {
+ 		req.Address = "127.0.0.1"
+ 	}
+ 
+-	if net.ParseIP(req.Address) == nil {
++	address := net.ParseIP(req.Address)
++	if address == nil {
+ 		return response.BadRequest(fmt.Errorf("Invalid address %q", req.Address))
+ 	}
+ 
+@@ -122,6 +123,29 @@ func instancePortForwardHandler(d *Daemon, r *http.Request) response.Response {
+ 		return response.SmartError(err)
+ 	}
+ 
++	// The entitlement covers the instance, not whatever it can route to.
++	if !address.IsLoopback() {
++		hostInterfaces, _ := net.Interfaces()
++		state, err := inst.RenderState(hostInterfaces)
++		if err != nil {
++			return response.SmartError(err)
++		}
++
++		found := false
++		for _, network := range state.Network {
++			for _, entry := range network.Addresses {
++				if net.ParseIP(entry.Address).Equal(address) {
++					found = true
++					break
++				}
++			}
++		}
++
++		if !found {
++			return response.Forbidden(fmt.Errorf("Address %q isn't assigned to the instance", req.Address))
++		}
++	}
++
+ 	conn, err := inst.PortForwardConn(req.Address, req.Port)
+ 	if err != nil {
+ 		return response.SmartError(api.StatusErrorf(http.StatusInternalServerError, "Failed getting instance port forward connection: %v", err))

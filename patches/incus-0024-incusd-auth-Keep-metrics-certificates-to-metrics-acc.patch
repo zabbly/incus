@@ -1,0 +1,83 @@
+From e14ffb0af149d86cc52533f8bdd2e197ff6eed67 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Fri, 23 Oct 2026 22:48:10 -0400
+Subject: [PATCH] incusd/auth: Keep metrics certificates to metrics access
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+With core.trust_ca_certificates enabled, a CA-signed metrics certificate
+added without a project restriction authenticated as a full client and
+the router routed it to the allow driver, bypassing the metrics-only
+rule in the TLS driver.
+
+Reject metrics certificates outside the metrics endpoint at
+authentication, and classify every metrics certificate as restricted so
+it reaches the TLS driver.
+
+This addresses GHSA-9m5m-cr24-m367 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 73c9585fa3283dd1715ce910fc64c2d3081fbcdd)
+---
+ cmd/incusd/daemon.go                | 3 ++-
+ internal/server/auth/router.go      | 5 +++++
+ internal/server/auth/router_test.go | 8 ++++++--
+ 3 files changed, 13 insertions(+), 3 deletions(-)
+
+diff --git a/cmd/incusd/daemon.go b/cmd/incusd/daemon.go
+index ac26ec4268..662d457278 100644
+--- a/cmd/incusd/daemon.go
++++ b/cmd/incusd/daemon.go
+@@ -697,7 +697,8 @@ func (d *Daemon) Authenticate(w http.ResponseWriter, r *http.Request) (bool, str
+ 	// Validate regular TLS certificates.
+ 	if peerCert != nil {
+ 		trusted, username := localUtil.CheckTrustState(*peerCert, trustedCerts[certificate.TypeClient], d.endpoints.NetworkCert(), trustCACertificates)
+-		if trusted {
++		_, isMetrics := trustedCerts[certificate.TypeMetrics][username]
++		if trusted && !isMetrics {
+ 			return true, username, api.AuthenticationMethodTLS, nil, nil
+ 		}
+ 	}
+diff --git a/internal/server/auth/router.go b/internal/server/auth/router.go
+index 1c01ea731c..c92c957ddc 100644
+--- a/internal/server/auth/router.go
++++ b/internal/server/auth/router.go
+@@ -190,6 +190,11 @@ func (rt *Router) isRestrictedTLS(fingerprint string) bool {
+ 
+ 	cert := rt.certificates.GetAPICertificate(fingerprint)
+ 	if cert != nil {
++		// Metrics certificates only ever get metrics access, so route them to the TLS driver.
++		if cert.Type == api.CertificateTypeMetrics {
++			return true
++		}
++
+ 		return cert.Restricted
+ 	}
+ 
+diff --git a/internal/server/auth/router_test.go b/internal/server/auth/router_test.go
+index c6bc072784..50e8711dfe 100644
+--- a/internal/server/auth/router_test.go
++++ b/internal/server/auth/router_test.go
+@@ -28,8 +28,10 @@ func testCache(certs ...*api.Certificate) *certificate.Cache {
+ // TestClassify checks that classify maps a request's details to the expected client class.
+ func TestClassify(t *testing.T) {
+ 	cache := testCache(
+-		&api.Certificate{CertificatePut: api.CertificatePut{Type: "client"}, Fingerprint: "unrestricted"},
+-		&api.Certificate{CertificatePut: api.CertificatePut{Type: "client", Restricted: true, Projects: []string{"p1"}}, Fingerprint: "restricted"},
++		&api.Certificate{CertificatePut: api.CertificatePut{Type: api.CertificateTypeClient}, Fingerprint: "unrestricted"},
++		&api.Certificate{CertificatePut: api.CertificatePut{Type: api.CertificateTypeClient, Restricted: true, Projects: []string{"p1"}}, Fingerprint: "restricted"},
++		&api.Certificate{CertificatePut: api.CertificatePut{Type: api.CertificateTypeMetrics}, Fingerprint: "metrics"},
++		&api.Certificate{CertificatePut: api.CertificatePut{Type: api.CertificateTypeMetrics, Restricted: true, Projects: []string{"p1"}}, Fingerprint: "metrics-restricted"},
+ 	)
+ 
+ 	rt, err := NewRouter(context.Background(), logger.Log, cache)
+@@ -44,6 +46,8 @@ func TestClassify(t *testing.T) {
+ 		{"unix", "unix", "", clientClassUnix},
+ 		{"tls-unrestricted", api.AuthenticationMethodTLS, "unrestricted", clientClassTLS},
+ 		{"tls-restricted", api.AuthenticationMethodTLS, "restricted", clientClassTLSRestricted},
++		{"tls-metrics", api.AuthenticationMethodTLS, "metrics", clientClassTLSRestricted},
++		{"tls-metrics-restricted", api.AuthenticationMethodTLS, "metrics-restricted", clientClassTLSRestricted},
+ 		{"tls-unknown", api.AuthenticationMethodTLS, "ghost", clientClassTLSRestricted},
+ 		{"oidc", api.AuthenticationMethodOIDC, "", clientClassOIDC},
+ 		{"unknown", "other", "", clientClassDefault},

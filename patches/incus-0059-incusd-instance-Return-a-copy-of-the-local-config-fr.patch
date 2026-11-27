@@ -1,0 +1,48 @@
+From 9872f0114b49dcdc023f3feca068a979ab6563d8 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:28:56 -0500
+Subject: [PATCH] incusd/instance: Return a copy of the local config from
+ Render
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Callers applying overrides to the rendered config were otherwise
+modifying the instance's own config, which defeated the comparison
+against the current config in the project restriction checks.
+
+This addresses GHSA-5pf7-5wqc-rp52 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit be73955c9517e5cd63877d15aea526dc1bdc015d)
+---
+ internal/server/instance/drivers/driver_lxc.go  | 2 +-
+ internal/server/instance/drivers/driver_qemu.go | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/internal/server/instance/drivers/driver_lxc.go b/internal/server/instance/drivers/driver_lxc.go
+index 08a3defcb2..b0000a8214 100644
+--- a/internal/server/instance/drivers/driver_lxc.go
++++ b/internal/server/instance/drivers/driver_lxc.go
+@@ -4207,7 +4207,7 @@ func (d *lxc) Render() (any, any, error) {
+ 
+ 	instState.Description = d.description
+ 	instState.Architecture = architectureName
+-	instState.Config = d.localConfig
++	instState.Config = maps.Clone(d.localConfig)
+ 	instState.CreatedAt = d.creationDate
+ 	instState.Devices = d.localDevices.CloneNative()
+ 	instState.Ephemeral = d.ephemeral
+diff --git a/internal/server/instance/drivers/driver_qemu.go b/internal/server/instance/drivers/driver_qemu.go
+index 3ba8d51e93..b808d5d865 100644
+--- a/internal/server/instance/drivers/driver_qemu.go
++++ b/internal/server/instance/drivers/driver_qemu.go
+@@ -10944,7 +10944,7 @@ func (d *qemu) Render() (any, any, error) {
+ 
+ 	instState.Description = d.description
+ 	instState.Architecture = d.architectureName
+-	instState.Config = d.localConfig
++	instState.Config = maps.Clone(d.localConfig)
+ 	instState.CreatedAt = d.creationDate
+ 	instState.Devices = d.localDevices.CloneNative()
+ 	instState.Ephemeral = d.ephemeral

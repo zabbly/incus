@@ -1,0 +1,56 @@
+From 555906a01b7953d1be9524400e918bd7b7bdf6a6 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:38:10 -0500
+Subject: [PATCH] incusd/instance/qemu: Only mirror known UEFI variables file
+ names
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The qemu.nvram link target from an imported volume named the file
+copied into the run directory, which let it plant a qemu.pid file.
+A missing volatile.uuid no longer matches any QEMU process either.
+
+This addresses GHSA-4375-qwr5-8vjj (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 4d339a052a8823f8f9c8f13f8e6cd40b3e10e280)
+---
+ internal/server/instance/drivers/driver_qemu.go | 17 +++++++++++++++--
+ 1 file changed, 15 insertions(+), 2 deletions(-)
+
+diff --git a/internal/server/instance/drivers/driver_qemu.go b/internal/server/instance/drivers/driver_qemu.go
+index b808d5d865..a958a23b9a 100644
+--- a/internal/server/instance/drivers/driver_qemu.go
++++ b/internal/server/instance/drivers/driver_qemu.go
+@@ -3656,7 +3656,18 @@ func (d *qemu) nvramFileName() (string, error) {
+ 		return "", err
+ 	}
+ 
+-	return filepath.Base(target), nil
++	// The volume content isn't trusted, only a firmware variables name may be used.
++	name := filepath.Base(target)
++	names, err := d.nvramRunNames()
++	if err != nil {
++		return "", err
++	}
++
++	if !slices.Contains(names, name) {
++		return "", fmt.Errorf("Unexpected UEFI variables file name %q", name)
++	}
++
++	return name, nil
+ }
+ 
+ // nvramRunPath returns the local copy of the UEFI variables used while the VM runs.
+@@ -6819,7 +6830,9 @@ func (d *qemu) pid() (int, error) {
+ 	// The QEMU binary name varies by distribution (e.g. qemu-kvm on EL systems).
+ 	isQemu := bytes.Contains(cmdLine, []byte("qemu-system")) || bytes.Contains(cmdLine, []byte("qemu-kvm"))
+ 	instUUID := []byte(d.localConfig["volatile.uuid"])
+-	if !isQemu || !bytes.Contains(cmdLine, instUUID) {
++
++	// Without a UUID there is nothing to match the process against.
++	if !isQemu || len(instUUID) == 0 || !bytes.Contains(cmdLine, instUUID) {
+ 		return -1, errQemuPIDMismatch
+ 	}
+ 

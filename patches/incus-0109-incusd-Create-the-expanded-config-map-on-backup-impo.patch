@@ -1,0 +1,31 @@
+From 5ec15633a28777ac9759de9b71141e8ea5774a64 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:02:21 -0500
+Subject: [PATCH] incusd: Create the expanded config map on backup import
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit ff31ca5a8d3ee228bf6616b1d6df04a1a89609e2)
+---
+ cmd/incusd/api_internal.go | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/cmd/incusd/api_internal.go b/cmd/incusd/api_internal.go
+index 5f39a5fbe7..13e06f11ca 100644
+--- a/cmd/incusd/api_internal.go
++++ b/cmd/incusd/api_internal.go
+@@ -929,6 +929,10 @@ func internalImportFromBackup(ctx context.Context, s *state.State, projectName s
+ 		backupConf.Container.Config = map[string]string{}
+ 	}
+ 
++	if backupConf.Container.ExpandedConfig == nil {
++		backupConf.Container.ExpandedConfig = map[string]string{}
++	}
++
+ 	if backupConf.Container.Devices == nil {
+ 		backupConf.Container.Devices = make(map[string]map[string]string)
+ 	}

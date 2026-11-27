@@ -1,0 +1,32 @@
+From 0d30bb4932f39c94ab77ad15ea8334baaa03f7e5 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:57:45 -0500
+Subject: [PATCH] incusd/images: Use the reused image's fingerprint on transfer
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Without a source server, info is nil when an image from another
+project is reused and its file lives on another member.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 1c44de7cf35e0bda421e37cc9cb72f65d8e39185)
+---
+ cmd/incusd/daemon_images.go | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/cmd/incusd/daemon_images.go b/cmd/incusd/daemon_images.go
+index f9c9288847..995fa6c84e 100644
+--- a/cmd/incusd/daemon_images.go
++++ b/cmd/incusd/daemon_images.go
+@@ -320,7 +320,7 @@ func imageDownload(ctx context.Context, r *http.Request, s *state.State, op *ope
+ 			// Transfer image if needed (after database record has been created above).
+ 			if nodeAddress != "" {
+ 				// The image is available from another node, let's try to import it.
+-				err = instanceImageTransfer(s, r, args.ProjectName, info.Fingerprint, nodeAddress)
++				err = instanceImageTransfer(s, r, args.ProjectName, imgInfo.Fingerprint, nodeAddress)
+ 				if err != nil {
+ 					return nil, false, fmt.Errorf("Failed transferring image: %w", err)
+ 				}

@@ -1,0 +1,82 @@
+From 4279c5ee2a4568861c944633aa66a94f2b52121f Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Tue, 3 Nov 2026 13:23:43 -0500
+Subject: [PATCH] incusd/storage: Check project restrictions on instance volume
+ config
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The root disk's initial values, the backup index and the migration index
+header all feed into the instance volume config without the restricted
+project check applied to custom volumes, letting a restricted project
+pass block.create_options to the filesystem formatter.
+
+This addresses GHSA-cm79-v2v8-5grh (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 2a40ba9928fcfb025759d3c3fe7aac66a2ebb114)
+---
+ internal/server/project/permissions.go |  2 +-
+ internal/server/storage/backend.go     | 21 ++++++++++++++++++++-
+ 2 files changed, 21 insertions(+), 2 deletions(-)
+
+diff --git a/internal/server/project/permissions.go b/internal/server/project/permissions.go
+index 2dfb5ab8c7..f022fa06ed 100644
+--- a/internal/server/project/permissions.go
++++ b/internal/server/project/permissions.go
+@@ -1349,7 +1349,7 @@ func checkRestrictedVolumeConfig(tx *db.ClusterTx, info *projectInfo, poolName s
+ }
+ 
+ // AllowVolumeConfig returns an error if any project-specific restriction is
+-// violated by the effective config of a custom volume being created.
++// violated by the effective config of a volume being created.
+ func AllowVolumeConfig(tx *db.ClusterTx, projectName string, poolName string, config map[string]string) error {
+ 	info, err := fetchProject(tx, projectName, true)
+ 	if err != nil {
+diff --git a/internal/server/storage/backend.go b/internal/server/storage/backend.go
+index d3c30c05a7..6dbca0b1af 100644
+--- a/internal/server/storage/backend.go
++++ b/internal/server/storage/backend.go
+@@ -641,7 +641,10 @@ func (b *backend) applyInstanceRootDiskInitialValues(inst instance.Instance, vol
+ 		}
+ 	}
+ 
+-	return nil
++	// Check project restrictions against the resulting volume config.
++	return b.state.DB.Cluster.Transaction(b.state.ShutdownCtx, func(ctx context.Context, tx *db.ClusterTx) error {
++		return project.AllowVolumeConfig(tx, inst.Project().Name, b.name, volConfig)
++	})
+ }
+ 
+ // CreateInstance creates an empty instance.
+@@ -868,6 +871,14 @@ func (b *backend) CreateInstanceFromBackup(srcBackup backup.Info, srcData io.Rea
+ 		}
+ 	}
+ 
++	// Check project restrictions against the volume config from the backup.
++	err = b.state.DB.Cluster.Transaction(b.state.ShutdownCtx, func(ctx context.Context, tx *db.ClusterTx) error {
++		return project.AllowVolumeConfig(tx, srcBackup.Project, b.name, volumeConfig)
++	})
++	if err != nil {
++		return nil, nil, err
++	}
++
+ 	// Import dependent disks
+ 	err = b.createDependentVolumesFromBackup(srcBackup, srcData, op)
+ 	if err != nil {
+@@ -2351,6 +2362,14 @@ func (b *backend) CreateInstanceFromMigration(inst instance.Instance, conn io.Re
+ 	} else if srcInfo != nil && srcInfo.Config != nil && srcInfo.Config.Volume != nil {
+ 		volumeConfig = srcInfo.Config.Volume.Config
+ 		volumeDescription = srcInfo.Config.Volume.Description
++
++		// Check project restrictions against the volume config from the source.
++		err = b.state.DB.Cluster.Transaction(b.state.ShutdownCtx, func(ctx context.Context, tx *db.ClusterTx) error {
++			return project.AllowVolumeConfig(tx, inst.Project().Name, b.name, volumeConfig)
++		})
++		if err != nil {
++			return err
++		}
+ 	} else {
+ 		volumeConfig = make(map[string]string)
+ 		volumeDescription = args.Description

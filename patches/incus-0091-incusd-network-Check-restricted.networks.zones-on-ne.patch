@@ -1,0 +1,141 @@
+From 095cd365f4ed877f03984ec45b905ebe8c6a3a9c Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:36:20 -0500
+Subject: [PATCH] incusd/network: Check restricted.networks.zones on network
+ zone keys
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The zone keys of a network only checked that the zone exists, so a
+restricted project could publish records into any project's zone.
+
+This addresses GHSA-fg2p-r659-c4q8 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 77efd86ca7be87c4ed00441ecbf8fb0ec1bf3b86)
+---
+ internal/server/network/driver_common.go | 16 +++++++++++++++-
+ internal/server/network/zone/load.go     | 19 +++----------------
+ internal/server/project/project.go       | 16 ++++++++++++++++
+ 3 files changed, 34 insertions(+), 17 deletions(-)
+
+diff --git a/internal/server/network/driver_common.go b/internal/server/network/driver_common.go
+index f1ecbbf9d3..20601150be 100644
+--- a/internal/server/network/driver_common.go
++++ b/internal/server/network/driver_common.go
+@@ -23,6 +23,7 @@ import (
+ 	"github.com/lxc/incus/v7/internal/server/db"
+ 	dbCluster "github.com/lxc/incus/v7/internal/server/db/cluster"
+ 	"github.com/lxc/incus/v7/internal/server/network/acl"
++	"github.com/lxc/incus/v7/internal/server/project"
+ 	"github.com/lxc/incus/v7/internal/server/state"
+ 	internalUtil "github.com/lxc/incus/v7/internal/util"
+ 	"github.com/lxc/incus/v7/internal/version"
+@@ -176,6 +177,7 @@ func (n *common) validateZoneNames(config map[string]string) error {
+ 
+ 	var err error
+ 	var zones []dbCluster.NetworkZone
++	var p *api.Project
+ 	zoneProjects := make(map[string]string)
+ 
+ 	err = n.state.DB.Cluster.Transaction(context.TODO(), func(ctx context.Context, tx *db.ClusterTx) error {
+@@ -188,7 +190,14 @@ func (n *common) validateZoneNames(config map[string]string) error {
+ 			zoneProjects[zone.Name] = zone.Project
+ 		}
+ 
+-		return nil
++		dbProject, err := dbCluster.GetProject(ctx, tx.Tx(), n.project)
++		if err != nil {
++			return err
++		}
++
++		p, err = dbProject.ToAPI(ctx, tx.Tx())
++
++		return err
+ 	})
+ 	if err != nil {
+ 		return err
+@@ -210,6 +219,11 @@ func (n *common) validateZoneNames(config map[string]string) error {
+ 				return fmt.Errorf("Invalid %q, network zone %q not found", keyName, keyZoneName)
+ 			}
+ 
++			// A restricted project may only publish into the zones it was given.
++			if !project.NetworkZoneAllowed(p.Config, keyZoneName) {
++				return fmt.Errorf("Invalid %q, network zone %q not allowed in project", keyName, keyZoneName)
++			}
++
+ 			_, zoneProjectUsed := zoneProjectsUsed[zoneProjectName]
+ 			if zoneProjectUsed {
+ 				return fmt.Errorf("Invalid %q, contains multiple zones from the same project", keyName)
+diff --git a/internal/server/network/zone/load.go b/internal/server/network/zone/load.go
+index 3fdb791066..fe2151629a 100644
+--- a/internal/server/network/zone/load.go
++++ b/internal/server/network/zone/load.go
+@@ -4,15 +4,14 @@ import (
+ 	"context"
+ 	"fmt"
+ 	"net/http"
+-	"strings"
+ 
+ 	incus "github.com/lxc/incus/v7/client"
+ 	serverCluster "github.com/lxc/incus/v7/internal/server/cluster"
+ 	"github.com/lxc/incus/v7/internal/server/db"
+ 	"github.com/lxc/incus/v7/internal/server/db/cluster"
++	"github.com/lxc/incus/v7/internal/server/project"
+ 	"github.com/lxc/incus/v7/internal/server/state"
+ 	"github.com/lxc/incus/v7/shared/api"
+-	"github.com/lxc/incus/v7/shared/util"
+ )
+ 
+ // LoadByName loads and initializes a Network zone from the database by name.
+@@ -121,20 +120,8 @@ func Create(s *state.State, projectName string, zoneInfo *api.NetworkZonesPost)
+ 	}
+ 
+ 	// Validate restrictions.
+-	if util.IsTrue(p.Config["restricted"]) {
+-		found := false
+-		for entry := range strings.SplitSeq(p.Config["restricted.networks.zones"], ",") {
+-			entry = strings.TrimSpace(entry)
+-
+-			if zoneInfo.Name == entry || strings.HasSuffix(zoneInfo.Name, "."+entry) {
+-				found = true
+-				break
+-			}
+-		}
+-
+-		if !found {
+-			return api.StatusErrorf(http.StatusForbidden, "Project isn't allowed to use this DNS zone")
+-		}
++	if !project.NetworkZoneAllowed(p.Config, zoneInfo.Name) {
++		return api.StatusErrorf(http.StatusForbidden, "Project isn't allowed to use this DNS zone")
+ 	}
+ 
+ 	err = s.DB.Cluster.Transaction(context.TODO(), func(ctx context.Context, tx *db.ClusterTx) error {
+diff --git a/internal/server/project/project.go b/internal/server/project/project.go
+index 9539f64518..b4598461e1 100644
+--- a/internal/server/project/project.go
++++ b/internal/server/project/project.go
+@@ -270,6 +270,22 @@ func NetworkProjectForName(c *db.Cluster, projectName string, networkName string
+ 	return effectiveProjectName, p, nil
+ }
+ 
++// NetworkZoneAllowed returns whether a restricted project may use the named DNS zone.
++func NetworkZoneAllowed(reqProjectConfig map[string]string, zoneName string) bool {
++	if util.IsFalseOrEmpty(reqProjectConfig["restricted"]) {
++		return true
++	}
++
++	for entry := range strings.SplitSeq(reqProjectConfig["restricted.networks.zones"], ",") {
++		entry = strings.TrimSpace(entry)
++		if entry != "" && (zoneName == entry || strings.HasSuffix(zoneName, "."+entry)) {
++			return true
++		}
++	}
++
++	return false
++}
++
+ // NetworkAllowed returns whether access is allowed to a particular network based on projectConfig.
+ func NetworkAllowed(reqProjectConfig map[string]string, networkName string, isManaged bool) bool {
+ 	// If project is not restricted, then access to network is allowed.

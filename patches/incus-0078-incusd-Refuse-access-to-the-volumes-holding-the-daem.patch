@@ -1,0 +1,178 @@
+From 6af2b61edd886dd5dd5b6c7c9cfadb533c673123 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:39:52 -0500
+Subject: [PATCH] incusd: Refuse access to the volumes holding the daemon's
+ data
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The storage.*_volume custom volumes hold every project's backups,
+images and logs but were only guarded on rename, snapshot and delete,
+so a client restricted to the default project could export, read,
+write, rebuild, attach or migrate them.
+
+This addresses GHSA-8m9x-vx2q-7f9q (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit da3801e0f5d246bc19a1022312701c14848f216f)
+---
+ cmd/incusd/storage_volumes.go         | 16 ++++++++++++++++
+ cmd/incusd/storage_volumes_backup.go  |  5 +++++
+ cmd/incusd/storage_volumes_file.go    |  5 +++++
+ cmd/incusd/storage_volumes_rebuild.go |  5 +++++
+ cmd/incusd/storage_volumes_sftp.go    |  5 +++++
+ cmd/incusd/storage_volumes_utils.go   | 18 ++++++++++++++++++
+ internal/server/device/disk.go        | 12 ++++++++++++
+ 7 files changed, 66 insertions(+)
+
+diff --git a/cmd/incusd/storage_volumes.go b/cmd/incusd/storage_volumes.go
+index b7c2df34c3..11f9da5bf2 100644
+--- a/cmd/incusd/storage_volumes.go
++++ b/cmd/incusd/storage_volumes.go
+@@ -1010,6 +1010,17 @@ func storagePoolVolumesPost(d *Daemon, r *http.Request) response.Response {
+ 			return response.SmartError(err)
+ 		}
+ 
++		// Neither side of the copy may be a volume holding the daemon's data.
++		err = storagePoolVolumeUsedByDaemon(s, srcProjectName, srcPoolName, req.Source.Name)
++		if err != nil {
++			return response.SmartError(err)
++		}
++
++		err = storagePoolVolumeUsedByDaemon(s, projectName, poolName, req.Name)
++		if err != nil {
++			return response.SmartError(err)
++		}
++
+ 		if dbVolume != nil {
+ 			return doCustomVolumeRefresh(s, r, request.ProjectParam(r), projectName, poolName, &req)
+ 		}
+@@ -1377,6 +1388,11 @@ func storagePoolVolumePost(d *Daemon, r *http.Request) response.Response {
+ 		return response.SmartError(err)
+ 	}
+ 
++	err = storagePoolVolumeUsedByDaemon(s, projectName, srcPoolName, volumeName)
++	if err != nil {
++		return response.SmartError(err)
++	}
++
+ 	targetProjectName := projectName
+ 	if req.Project != "" {
+ 		targetProjectName, err = project.StorageVolumeProject(s.DB.Cluster, req.Project, db.StoragePoolVolumeTypeCustom)
+diff --git a/cmd/incusd/storage_volumes_backup.go b/cmd/incusd/storage_volumes_backup.go
+index deec9f3deb..777ff399bf 100644
+--- a/cmd/incusd/storage_volumes_backup.go
++++ b/cmd/incusd/storage_volumes_backup.go
+@@ -384,6 +384,11 @@ func storagePoolVolumeTypeCustomBackupsPost(d *Daemon, r *http.Request) response
+ 		return response.SmartError(err)
+ 	}
+ 
++	err = storagePoolVolumeUsedByDaemon(s, projectName, poolName, volumeName)
++	if err != nil {
++		return response.SmartError(err)
++	}
++
+ 	err = s.DB.Cluster.Transaction(r.Context(), func(ctx context.Context, tx *db.ClusterTx) error {
+ 		err := project.AllowBackupCreation(tx, projectName)
+ 		return err
+diff --git a/cmd/incusd/storage_volumes_file.go b/cmd/incusd/storage_volumes_file.go
+index 8be6d088ea..b77022c499 100644
+--- a/cmd/incusd/storage_volumes_file.go
++++ b/cmd/incusd/storage_volumes_file.go
+@@ -54,6 +54,11 @@ func storagePoolVolumeTypeFileHandler(d *Daemon, r *http.Request) response.Respo
+ 		return response.SmartError(err)
+ 	}
+ 
++	err = storagePoolVolumeUsedByDaemon(s, volumeProjectName, poolName, volumeName)
++	if err != nil {
++		return response.SmartError(err)
++	}
++
+ 	// Redirect to correct server if needed.
+ 	resp := forwardedResponseIfTargetIsRemote(s, r)
+ 	if resp != nil {
+diff --git a/cmd/incusd/storage_volumes_rebuild.go b/cmd/incusd/storage_volumes_rebuild.go
+index 5872d10135..5b565bcbfc 100644
+--- a/cmd/incusd/storage_volumes_rebuild.go
++++ b/cmd/incusd/storage_volumes_rebuild.go
+@@ -120,6 +120,11 @@ func storagePoolVolumeTypeRebuildPost(d *Daemon, r *http.Request) response.Respo
+ 		return response.SmartError(err)
+ 	}
+ 
++	err = storagePoolVolumeUsedByDaemon(s, volumeProjectName, poolName, volumeName)
++	if err != nil {
++		return response.SmartError(err)
++	}
++
+ 	// Check that the storage volume type is valid.
+ 	if !slices.Contains(supportedVolumeTypes, volumeType) {
+ 		return response.BadRequest(fmt.Errorf("Invalid storage volume type %q", volumeTypeName))
+diff --git a/cmd/incusd/storage_volumes_sftp.go b/cmd/incusd/storage_volumes_sftp.go
+index f4cd67bbdf..34474fb286 100644
+--- a/cmd/incusd/storage_volumes_sftp.go
++++ b/cmd/incusd/storage_volumes_sftp.go
+@@ -97,6 +97,11 @@ func storagePoolVolumeTypeSFTPHandler(d *Daemon, r *http.Request) response.Respo
+ 		return response.SmartError(err)
+ 	}
+ 
++	err = storagePoolVolumeUsedByDaemon(s, volumeProjectName, poolName, volumeName)
++	if err != nil {
++		return response.SmartError(err)
++	}
++
+ 	// The permission was checked on the targeted member's volume, so only serve that one.
+ 	target := request.QueryParam(r, "target")
+ 	if target != "" && target != s.ServerName {
+diff --git a/cmd/incusd/storage_volumes_utils.go b/cmd/incusd/storage_volumes_utils.go
+index fb7e5e1d5c..17e65fa6a7 100644
+--- a/cmd/incusd/storage_volumes_utils.go
++++ b/cmd/incusd/storage_volumes_utils.go
+@@ -189,6 +189,24 @@ func storagePoolVolumeBackupLoadByName(ctx context.Context, s *state.State, proj
+ 	return volBackup, nil
+ }
+ 
++// storagePoolVolumeUsedByDaemon refuses access to a custom volume holding the daemon's own data.
++func storagePoolVolumeUsedByDaemon(s *state.State, projectName string, poolName string, volumeName string) error {
++	if projectName != api.ProjectDefaultName {
++		return nil
++	}
++
++	frag, err := storagePools.VolumeUsedByDaemon(s, poolName, volumeName)
++	if err != nil {
++		return err
++	}
++
++	if frag != "" {
++		return api.StatusErrorf(http.StatusForbidden, "Volume is used by Incus itself")
++	}
++
++	return nil
++}
++
+ // storagePoolMemberAllowed checks that the project may place member-local storage on this cluster member.
+ func storagePoolMemberAllowed(s *state.State, r *http.Request, poolName string, projectName string) response.Response {
+ 	if !s.ServerClustered {
+diff --git a/internal/server/device/disk.go b/internal/server/device/disk.go
+index be1a295037..d83a7b8cfe 100644
+--- a/internal/server/device/disk.go
++++ b/internal/server/device/disk.go
+@@ -754,6 +754,18 @@ func (d *disk) validateConfig(instConf instance.ConfigReader, partialValidation
+ 				return fmt.Errorf("Failed loading custom volume: %w", err)
+ 			}
+ 
++			// Volumes holding the daemon's own data can't be attached.
++			if storageProjectName == api.ProjectDefaultName {
++				frag, err := storagePools.VolumeUsedByDaemon(d.state, d.pool.Name(), volName)
++				if err != nil {
++					return err
++				}
++
++				if frag != "" {
++					return errors.New("Volumes used by Incus itself cannot be attached")
++				}
++			}
++
+ 			// Check that block volumes are *only* attached to VM instances.
+ 			contentType, err := storagePools.VolumeContentTypeNameToContentType(dbVolume.ContentType)
+ 			if err != nil {

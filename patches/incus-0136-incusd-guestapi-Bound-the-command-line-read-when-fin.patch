@@ -1,0 +1,60 @@
+From bb4e30ec21de69a3d4bab2d6f6dcc95b0a3c734e Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:58:58 -0500
+Subject: [PATCH] incusd/guestapi: Bound the command line read when finding the
+ caller
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A process controls the size of its own command line, and the read
+happens before any check on the caller.
+
+This addresses GHSA-23fc-ggg4-5r2r (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 28203cf298665b2d95c87366d828ad03526f62d1)
+---
+ cmd/incusd/dev_incus.go | 15 ++++++++++++++-
+ 1 file changed, 14 insertions(+), 1 deletion(-)
+
+diff --git a/cmd/incusd/dev_incus.go b/cmd/incusd/dev_incus.go
+index 365960d8a6..8391278710 100644
+--- a/cmd/incusd/dev_incus.go
++++ b/cmd/incusd/dev_incus.go
+@@ -4,6 +4,7 @@ import (
+ 	"encoding/json"
+ 	"errors"
+ 	"fmt"
++	"io"
+ 	"net"
+ 	"net/http"
+ 	"os"
+@@ -456,6 +457,18 @@ func containerNameFromCgroup(content string) (string, bool) {
+ 	return "", false
+ }
+ 
++// readCmdline reads the start of a process command line, which the process itself controls.
++func readCmdline(pid int32) ([]byte, error) {
++	f, err := os.Open(fmt.Sprintf("/proc/%d/cmdline", pid))
++	if err != nil {
++		return nil, err
++	}
++
++	defer func() { _ = f.Close() }()
++
++	return io.ReadAll(io.LimitReader(f, 16*1024))
++}
++
+ func findContainerForPid(pid int32, s *state.State) (instance.Container, error) {
+ 	/*
+ 	 * Try and figure out which container a pid is in. There is probably a
+@@ -477,7 +490,7 @@ func findContainerForPid(pid int32, s *state.State) (instance.Container, error)
+ 	origpid := pid
+ 
+ 	for pid > 1 {
+-		cmdline, err := os.ReadFile(fmt.Sprintf("/proc/%d/cmdline", pid))
++		cmdline, err := readCmdline(pid)
+ 		if err != nil {
+ 			return nil, err
+ 		}

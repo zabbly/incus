@@ -1,0 +1,110 @@
+From 9bde96a64690f4afeb4a243d9cb9edd65db4875e Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:03:11 -0500
+Subject: [PATCH] incusd: Reload the trust cache when a project is deleted or
+ renamed
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The TLS authorizer matches restricted certificates by project name from
+a cache that only certificate changes refreshed, so a certificate kept
+its access to a deleted or renamed project's name until something else
+reloaded the cache, including a new project created under that name.
+
+This addresses GHSA-9m5m-cr24-m367 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 9e52d291ce573768901c0c3544473f69165141a3)
+---
+ cmd/incusd/api_project.go  | 12 ++++++++++
+ cmd/incusd/certificates.go | 46 ++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 58 insertions(+)
+
+diff --git a/cmd/incusd/api_project.go b/cmd/incusd/api_project.go
+index 14851dd643..8e13a3d2a9 100644
+--- a/cmd/incusd/api_project.go
++++ b/cmd/incusd/api_project.go
+@@ -1023,6 +1023,12 @@ func projectPost(d *Daemon, r *http.Request) response.Response {
+ 		projectUpdateShares(s.ShutdownCtx, s, name, projectConfig, nil)
+ 		projectUpdateShares(s.ShutdownCtx, s, req.Name, nil, projectConfig)
+ 
++		// Restricted certificates are cached by project name.
++		err = certificateCacheProjectRemoved(s.ShutdownCtx, s, name)
++		if err != nil {
++			return err
++		}
++
+ 		requestor := request.CreateRequestor(r)
+ 		s.Events.SendLifecycle(req.Name, lifecycle.ProjectRenamed.Event(req.Name, requestor, logger.Ctx{"old_name": name}))
+ 
+@@ -1422,6 +1428,12 @@ func projectDelete(d *Daemon, r *http.Request) response.Response {
+ 
+ 	projectUpdateShares(r.Context(), s, name, projectConfig, nil)
+ 
++	// Restricted certificates are cached by project name.
++	err = certificateCacheProjectRemoved(r.Context(), s, name)
++	if err != nil {
++		return response.SmartError(err)
++	}
++
+ 	requestor := request.CreateRequestor(r)
+ 	s.Events.SendLifecycle(name, lifecycle.ProjectDeleted.Event(name, requestor, nil))
+ 
+diff --git a/cmd/incusd/certificates.go b/cmd/incusd/certificates.go
+index 9191cafef6..17ca5f3cb6 100644
+--- a/cmd/incusd/certificates.go
++++ b/cmd/incusd/certificates.go
+@@ -292,6 +292,52 @@ func updateCertificateCache(d *Daemon) {
+ 	d.clientCerts.SetCertificates(certs)
+ }
+ 
++// certificateCacheProjectRemoved reloads the trust cache everywhere after a project name was deleted or renamed.
++func certificateCacheProjectRemoved(ctx context.Context, s *state.State, projectName string) error {
++	var stale *api.Certificate
++
++	err := s.DB.Cluster.Transaction(ctx, func(ctx context.Context, tx *db.ClusterTx) error {
++		dbCerts, err := dbCluster.GetCertificates(ctx, tx.Tx())
++		if err != nil {
++			return err
++		}
++
++		for _, dbCert := range dbCerts {
++			cert, err := dbCert.ToAPI(ctx, tx.Tx())
++			if err != nil {
++				return err
++			}
++
++			if slices.Contains(cert.Projects, projectName) {
++				stale = cert
++				return nil
++			}
++		}
++
++		return nil
++	})
++	if err != nil {
++		return err
++	}
++
++	// The cached project lists are what matter, the database link is already gone.
++	s.UpdateCertificateCache()
++
++	if stale == nil {
++		return nil
++	}
++
++	// Other members reload their cache on a certificate update notification.
++	notifier, err := cluster.NewNotifier(s, s.Endpoints.NetworkCert(), s.ServerCert(), cluster.NotifyAlive)
++	if err != nil {
++		return err
++	}
++
++	return notifier(func(client incus.InstanceServer) error {
++		return client.UpdateCertificate(stale.Fingerprint, stale.Writable(), "")
++	})
++}
++
+ // updateCertificateCacheFromLocal loads trusted server certificates from local database into memory.
+ func updateCertificateCacheFromLocal(d *Daemon) error {
+ 	s := d.State()

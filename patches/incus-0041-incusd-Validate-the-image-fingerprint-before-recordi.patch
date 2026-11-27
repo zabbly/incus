@@ -1,0 +1,56 @@
+From 55f9a6a796a79619b619f37313fd17eba963b507 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Sat, 24 Oct 2026 00:15:01 -0400
+Subject: [PATCH] incusd: Validate the image fingerprint before recording it
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The pulled image's fingerprint, taken from the remote server's reply,
+was only re-validated after the database record was created, so a
+traversal fingerprint survived as a record whose export and delete built
+a path from it, reaching any host file as root.
+
+Validate it, and require it to match the requested value, before the
+insert.
+
+This addresses GHSA-42x8-664j-84w8 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 1dbe4352187ba28fbc697d2194164a843053d05c)
+---
+ cmd/incusd/daemon_images.go | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/cmd/incusd/daemon_images.go b/cmd/incusd/daemon_images.go
+index c8c8a2d7b3..33176b72e4 100644
+--- a/cmd/incusd/daemon_images.go
++++ b/cmd/incusd/daemon_images.go
+@@ -612,6 +612,13 @@ func imageDownload(ctx context.Context, r *http.Request, s *state.State, op *ope
+ 		return nil, false, fmt.Errorf("Unsupported protocol: %v", protocol)
+ 	}
+ 
++	// Validate the fingerprint before recording it, as it is used as a file name and may have been
++	// replaced by the remote server's response.
++	err = validate.IsSHA256(fp)
++	if err != nil || info.Fingerprint != fp {
++		return nil, false, errors.New("Invalid image fingerprint")
++	}
++
+ 	// Override visibility
+ 	info.Public = args.Public
+ 
+@@ -645,13 +652,6 @@ func imageDownload(ctx context.Context, r *http.Request, s *state.State, op *ope
+ 	// Image is in the DB now, don't wipe on-disk files on failure
+ 	failure = false
+ 
+-	// Re-validate the fingerprint as it may have been updated from the remote
+-	// server's response, and it is used as a file name below.
+-	err = validate.IsSHA256(fp)
+-	if err != nil {
+-		return nil, false, errors.New("Invalid image fingerprint")
+-	}
+-
+ 	// Reuse an existing on-disk copy if present, otherwise move ours into place.
+ 	newDestName := filepath.Join(destDir, fp)
+ 	if util.PathExists(newDestName) {

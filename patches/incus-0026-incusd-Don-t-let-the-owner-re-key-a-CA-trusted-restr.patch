@@ -1,0 +1,57 @@
+From 61e0cb749752123d571ca9ae6a348fc0fcfd6e96 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Fri, 23 Oct 2026 22:50:53 -0400
+Subject: [PATCH] incusd: Don't let the owner re-key a CA-trusted restricted
+ certificate
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+In PKI mode with core.trust_ca_certificates, a restricted certificate is
+trusted through the CA, and its trust store entry only carries the
+restriction. The owner could replace or delete that entry, keeping CA
+trust while dropping the restriction.
+
+Refuse the self-service change and delete when the stored certificate
+would remain trusted through the CA.
+
+This addresses GHSA-9m5m-cr24-m367 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit e49e8365da58ce49fa3d9f3976b388a4a5c2bb4d)
+---
+ cmd/incusd/certificates.go | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
+
+diff --git a/cmd/incusd/certificates.go b/cmd/incusd/certificates.go
+index bc7f8dda5f..9220fbf85a 100644
+--- a/cmd/incusd/certificates.go
++++ b/cmd/incusd/certificates.go
+@@ -1146,6 +1146,14 @@ func doCertificateUpdate(d *Daemon, dbInfo api.Certificate, req api.CertificateP
+ 			}
+ 
+ 			certProjects = dbInfo.Projects
++
++			if req.Certificate != "" && dbInfo.Certificate != req.Certificate {
++				// A certificate trusted through the CA would stay trusted and only lose its restrictions.
++				trustedByCA, _ := localUtil.CheckTrustState(*oldCert, nil, s.Endpoints.NetworkCert(), s.GlobalConfig.TrustCACertificates())
++				if trustedByCA {
++					return response.Forbidden(errors.New("Certificate cannot be changed"))
++				}
++			}
+ 		}
+ 
+ 		if req.Certificate != "" && dbInfo.Certificate != req.Certificate {
+@@ -1272,6 +1280,12 @@ func certificateDelete(d *Daemon, r *http.Request) response.Response {
+ 				return response.InternalError(err)
+ 			}
+ 
++			// A certificate trusted through the CA would stay trusted and only lose its restrictions.
++			trustedByCA, _ := localUtil.CheckTrustState(*cert, nil, s.Endpoints.NetworkCert(), s.GlobalConfig.TrustCACertificates())
++			if trustedByCA {
++				return response.Forbidden(errors.New("Certificate cannot be deleted"))
++			}
++
+ 			trustedCerts := map[string]x509.Certificate{
+ 				certInfo.Name: *cert,
+ 			}

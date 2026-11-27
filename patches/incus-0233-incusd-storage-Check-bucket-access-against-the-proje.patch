@@ -1,0 +1,49 @@
+From 4e353ed77aef022e50abb8be0dca1d969d3de1cc Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Mon, 23 Nov 2026 10:55:43 -0500
+Subject: [PATCH] incusd/storage: Check bucket access against the project
+ holding the bucket
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This addresses GHSA-92jx-73cc-wf5v (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+---
+ cmd/incusd/storage_buckets.go | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/cmd/incusd/storage_buckets.go b/cmd/incusd/storage_buckets.go
+index c6f5afbab6..7720521fea 100644
+--- a/cmd/incusd/storage_buckets.go
++++ b/cmd/incusd/storage_buckets.go
+@@ -343,8 +343,8 @@ func storagePoolBucketsGet(d *Daemon, r *http.Request) response.Response {
+ 			location = bucket.Location
+ 		}
+ 
+-		// In all-projects mode each bucket must be checked against its own project.
+-		objectProjectName := requestProjectName
++		// Each bucket is checked against the project that holds it.
++		objectProjectName := bucketProjectName
+ 		if allProjects {
+ 			objectProjectName = bucket.Project
+ 		}
+@@ -405,7 +405,7 @@ func storagePoolBucketsGet(d *Daemon, r *http.Request) response.Response {
+ 					location = filteredDBBuckets[i].Location
+ 				}
+ 
+-				objectProjectName := requestProjectName
++				objectProjectName := bucketProjectName
+ 				if allProjects {
+ 					objectProjectName = filteredDBBuckets[i].Project
+ 				}
+@@ -610,7 +610,7 @@ func storagePoolBucketGet(d *Daemon, r *http.Request) response.Response {
+ 
+ 		// S3 keys are only returned to callers allowed to edit the bucket.
+ 		var canEdit bool
+-		err = s.Authorizer.CheckPermission(r.Context(), r, auth.ObjectStorageBucket(request.ProjectParam(r), poolName, bucketName, location), auth.EntitlementCanEdit)
++		err = s.Authorizer.CheckPermission(r.Context(), r, auth.ObjectStorageBucket(bucketProjectName, poolName, bucketName, location), auth.EntitlementCanEdit)
+ 		if err == nil {
+ 			canEdit = true
+ 		} else if !api.StatusErrorCheck(err, http.StatusForbidden) {

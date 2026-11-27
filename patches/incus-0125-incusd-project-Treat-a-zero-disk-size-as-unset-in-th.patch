@@ -1,0 +1,65 @@
+From 06bcef103fff1eb5d38e1399e7c2b0b2017be99f Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:58:57 -0500
+Subject: [PATCH] incusd/project: Treat a zero disk size as unset in the
+ aggregate check
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The storage drivers give a zero size the default block size or no quota
+at all, while the project accounting counted it as zero bytes.
+
+This addresses GHSA-9pvj-5r2h-r873 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit e5c05a2364fae70f0200e7e3e37ff2a25db11ed4)
+---
+ internal/server/project/permissions.go | 20 +++++++++++++++++++-
+ 1 file changed, 19 insertions(+), 1 deletion(-)
+
+diff --git a/internal/server/project/permissions.go b/internal/server/project/permissions.go
+index f11c8339b6..6baac4ece0 100644
+--- a/internal/server/project/permissions.go
++++ b/internal/server/project/permissions.go
+@@ -1850,7 +1850,7 @@ func getTotalsAcrossProjectEntities(info *projectInfo, keys []string, skipUnset
+ 				}
+ 
+ 				value, ok := volume.Config["size"]
+-				if !ok {
++				if !ok || value == "" {
+ 					if skipUnset {
+ 						continue
+ 					}
+@@ -1863,6 +1863,15 @@ func getTotalsAcrossProjectEntities(info *projectInfo, keys []string, skipUnset
+ 					return nil, fmt.Errorf(`Parse "size" for custom volume %q in project %q: %w`, volume.Name, info.Project.Name, err)
+ 				}
+ 
++				// The storage layer treats a zero size as unset.
++				if limit == 0 {
++					if skipUnset {
++						continue
++					}
++
++					return nil, fmt.Errorf(`Custom volume %q in project %q has no "size" config set`, volume.Name, info.Project.Name)
++				}
++
+ 				totals[key], err = addLimit(totals[key], limit)
+ 				if err != nil {
+ 					return nil, fmt.Errorf(`Invalid "size" for custom volume %q in project %q: %w`, volume.Name, info.Project.Name, err)
+@@ -1938,6 +1947,15 @@ func getInstanceLimits(inst api.Instance, keys []string, skipUnset bool) (map[st
+ 				return nil, fmt.Errorf("Failed parsing %q for instance %q in project %q", key, inst.Name, inst.Project)
+ 			}
+ 
++			// The storage layer treats a zero size as unset.
++			if limit == 0 {
++				if skipUnset {
++					continue
++				}
++
++				return nil, fmt.Errorf(`Instance %q in project %q has no "size" config set on the root device either directly or via a profile`, inst.Name, inst.Project)
++			}
++
+ 			// Add size.state accounting for VM root disks.
+ 			if inst.Type == instancetype.VM.String() {
+ 				sizeStateValue, ok := device["size.state"]

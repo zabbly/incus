@@ -1,0 +1,58 @@
+From e78e0139b718c8b0fd80029e67f5bb779f7f559d Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:02:21 -0500
+Subject: [PATCH] shared/ws: Stop reading a websocket once a read failed
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The wrapper kept calling NextReader on a closed connection, which the
+websocket library turns into a panic after enough attempts.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 688082d514b6196e28c3892d89db72848bdb5591)
+---
+ shared/ws/rwc.go | 16 ++++++++++++----
+ 1 file changed, 12 insertions(+), 4 deletions(-)
+
+diff --git a/shared/ws/rwc.go b/shared/ws/rwc.go
+index 8334c53041..d9d1940635 100644
+--- a/shared/ws/rwc.go
++++ b/shared/ws/rwc.go
+@@ -16,22 +16,30 @@ func NewWrapper(conn *websocket.Conn) io.ReadWriteCloser {
+ 
+ // wrapper implements ReadWriteCloser on top of a websocket connection.
+ type wrapper struct {
+-	conn   *websocket.Conn
+-	reader io.Reader
+-	mur    sync.Mutex
+-	muw    sync.Mutex
++	conn    *websocket.Conn
++	reader  io.Reader
++	readErr error
++	mur     sync.Mutex
++	muw     sync.Mutex
+ }
+ 
+ func (w *wrapper) Read(p []byte) (n int, err error) {
+ 	w.mur.Lock()
+ 	defer w.mur.Unlock()
+ 
++	// A websocket must not be read again once a read failed.
++	if w.readErr != nil {
++		return 0, w.readErr
++	}
++
+ 	// Get new message if no active one.
+ 	if w.reader == nil {
+ 		var mt int
+ 
+ 		mt, w.reader, err = w.conn.NextReader()
+ 		if err != nil {
++			w.readErr = err
++
+ 			if websocket.IsCloseError(err, websocket.CloseNormalClosure) {
+ 				logger.Debug("Websocket: Got normal closure", logger.Ctx{"address": w.conn.RemoteAddr().String()})
+ 				return 0, io.EOF

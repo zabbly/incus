@@ -1,0 +1,68 @@
+From d0368e202fdd92140034e925dfa38eddc0296fc9 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:33:31 -0500
+Subject: [PATCH] incusd: Only serve custom volumes on the file and SFTP
+ endpoints
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Both handlers accepted instance and image volume types in the URL but
+always served the custom volume of that name, so a permission on an
+instance volume gave file access to the custom volume.
+
+This addresses GHSA-8m9x-vx2q-7f9q (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit a63bf46f9fe4e394bd446b7afd81301eb9f325f3)
+---
+ cmd/incusd/storage_volumes_file.go | 5 ++---
+ cmd/incusd/storage_volumes_sftp.go | 5 ++---
+ 2 files changed, 4 insertions(+), 6 deletions(-)
+
+diff --git a/cmd/incusd/storage_volumes_file.go b/cmd/incusd/storage_volumes_file.go
+index 4292205e95..e3f3fe0fe4 100644
+--- a/cmd/incusd/storage_volumes_file.go
++++ b/cmd/incusd/storage_volumes_file.go
+@@ -4,7 +4,6 @@ import (
+ 	"errors"
+ 	"fmt"
+ 	"net/http"
+-	"slices"
+ 
+ 	"github.com/lxc/incus/v7/internal/server/db"
+ 	"github.com/lxc/incus/v7/internal/server/lifecycle"
+@@ -44,8 +43,8 @@ func storagePoolVolumeTypeFileHandler(d *Daemon, r *http.Request) response.Respo
+ 		return response.BadRequest(err)
+ 	}
+ 
+-	// Check that the storage volume type is valid.
+-	if !slices.Contains(supportedVolumeTypes, volumeType) {
++	// Only custom volumes are served, so the type must match the authorized object.
++	if volumeType != db.StoragePoolVolumeTypeCustom {
+ 		return response.BadRequest(fmt.Errorf("Invalid storage volume type %q", volumeTypeName))
+ 	}
+ 
+diff --git a/cmd/incusd/storage_volumes_sftp.go b/cmd/incusd/storage_volumes_sftp.go
+index f028d2706a..e1f8b1dc01 100644
+--- a/cmd/incusd/storage_volumes_sftp.go
++++ b/cmd/incusd/storage_volumes_sftp.go
+@@ -4,7 +4,6 @@ import (
+ 	"fmt"
+ 	"net"
+ 	"net/http"
+-	"slices"
+ 
+ 	"github.com/lxc/incus/v7/internal/server/cluster"
+ 	"github.com/lxc/incus/v7/internal/server/db"
+@@ -86,8 +85,8 @@ func storagePoolVolumeTypeSFTPHandler(d *Daemon, r *http.Request) response.Respo
+ 		return response.BadRequest(err)
+ 	}
+ 
+-	// Check that the storage volume type is valid.
+-	if !slices.Contains(supportedVolumeTypes, volumeType) {
++	// Only custom volumes are served, so the type must match the authorized object.
++	if volumeType != db.StoragePoolVolumeTypeCustom {
+ 		return response.BadRequest(fmt.Errorf("Invalid storage volume type %q", volumeTypeName))
+ 	}
+ 

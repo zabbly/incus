@@ -1,0 +1,46 @@
+From 91e5994a28c6bdbf312699d4c196d77c75074581 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Tue, 3 Nov 2026 09:35:02 -0500
+Subject: [PATCH] incusd: Authorize dependent volumes on backup import
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Instance backup import created the dependent custom volumes listed in
+the backup index in the effective storage project without checking the
+caller may create volumes there, so a client restricted to a project
+taking its volumes from default could create volumes in the default
+project with the backup's configuration.
+
+This addresses GHSA-hm9p-jjr8-3jp8 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 55351fbc8d686ef2cf9511b8334f2a7e75d63790)
+---
+ cmd/incusd/instances_post.go | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/cmd/incusd/instances_post.go b/cmd/incusd/instances_post.go
+index 62ff484489..de0a24b598 100644
+--- a/cmd/incusd/instances_post.go
++++ b/cmd/incusd/instances_post.go
+@@ -959,6 +959,19 @@ func createFromBackup(s *state.State, r *http.Request, projectName string, data
+ 
+ 	bInfo.Project = projectName
+ 
++	// Dependent volumes are created in the effective storage project, check that's allowed.
++	if len(bInfo.Config.DependentVolumes) > 0 {
++		storageProjectName, err := project.StorageVolumeProject(s.DB.Cluster, projectName, db.StoragePoolVolumeTypeCustom)
++		if err != nil {
++			return response.SmartError(err)
++		}
++
++		err = s.Authorizer.CheckPermission(r.Context(), r, auth.ObjectProject(storageProjectName), auth.EntitlementCanCreateStorageVolumes)
++		if err != nil {
++			return response.SmartError(err)
++		}
++	}
++
+ 	// Override pool.
+ 	if pool != "" {
+ 		bInfo.Pool = pool

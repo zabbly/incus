@@ -1,0 +1,67 @@
+From 02682e8884ad84bd6749899489b0dbcc7f58a79d Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Sat, 24 Oct 2026 00:18:59 -0400
+Subject: [PATCH] incusd: Restrict image delta base to an owned fingerprint
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The delta base name came from the remote simplestreams server and was
+mapped to a file under the images directory with no check, so a client
+could point xdelta3 at another project's image or, via a traversal name
+and a planted symlink, at any host file read as root.
+
+Only offer a delta source that is a SHA-256 the pulling project holds,
+and reject a malformed base name in the client library.
+
+This addresses GHSA-42x8-664j-84w8 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit d2b6eefe2880bd644701fd4f2a7eb605447a6799)
+---
+ client/simplestreams_images.go |  5 +++++
+ cmd/incusd/daemon_images.go    | 15 +++++++++++++++
+ 2 files changed, 20 insertions(+)
+
+diff --git a/client/simplestreams_images.go b/client/simplestreams_images.go
+index d00d03fb3d..1efaf4ee8b 100644
+--- a/client/simplestreams_images.go
++++ b/client/simplestreams_images.go
+@@ -218,6 +218,11 @@ func (r *ProtocolSimpleStreams) GetImageFile(fingerprint string, req ImageFileRe
+ 					continue
+ 				}
+ 
++				// The delta base comes from the server and is used to locate a local file.
++				if len(srcFingerprint) != 64 || strings.TrimLeft(srcFingerprint, "0123456789abcdef") != "" {
++					continue
++				}
++
+ 				// Check if we have the source file for the delta
+ 				srcPath := req.DeltaSourceRetriever(srcFingerprint, "rootfs")
+ 				if srcPath == "" {
+diff --git a/cmd/incusd/daemon_images.go b/cmd/incusd/daemon_images.go
+index 33176b72e4..32a0cd5a30 100644
+--- a/cmd/incusd/daemon_images.go
++++ b/cmd/incusd/daemon_images.go
+@@ -465,6 +465,21 @@ func imageDownload(ctx context.Context, r *http.Request, s *state.State, op *ope
+ 			ProgressHandler: progress,
+ 			Canceler:        canceler,
+ 			DeltaSourceRetriever: func(fingerprint string, file string) string {
++				// The base name comes from the remote server; only offer an image the project already holds.
++				if validate.IsSHA256(fingerprint) != nil {
++					return ""
++				}
++
++				var exists bool
++				err := s.DB.Cluster.Transaction(ctx, func(ctx context.Context, tx *db.ClusterTx) error {
++					var err error
++					exists, err = tx.ImageExists(ctx, args.ProjectName, fingerprint)
++					return err
++				})
++				if err != nil || !exists {
++					return ""
++				}
++
+ 				path := internalUtil.VarPath("images", fmt.Sprintf("%s.%s", fingerprint, file))
+ 				if util.PathExists(path) {
+ 					return path

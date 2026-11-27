@@ -1,0 +1,132 @@
+From 2f3f057f597b3d934a7e4d837ed6832508fbe077 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:09:45 -0500
+Subject: [PATCH] incusd/instance/qemu: Bound the QMP log
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The log took entries of any size and was only rotated at VM start, so
+a client-chosen name in a command could fill the host's log partition.
+Bitmap names are also validated before reaching QMP.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 6774af1b8442bb9a25db7e46e32107ee0e7fba64)
+---
+ cmd/incusd/instance_bitmap.go               |  6 +++
+ cmd/incusd/storage_volumes_bitmap.go        |  6 +++
+ internal/server/instance/drivers/qmp/log.go | 41 +++++++++++++++++++++
+ 3 files changed, 53 insertions(+)
+
+diff --git a/cmd/incusd/instance_bitmap.go b/cmd/incusd/instance_bitmap.go
+index 67ffc208f5..23fd6c4a0f 100644
+--- a/cmd/incusd/instance_bitmap.go
++++ b/cmd/incusd/instance_bitmap.go
+@@ -13,6 +13,7 @@ import (
+ 	"github.com/lxc/incus/v7/internal/server/request"
+ 	"github.com/lxc/incus/v7/internal/server/response"
+ 	"github.com/lxc/incus/v7/shared/api"
++	"github.com/lxc/incus/v7/shared/validate"
+ )
+ 
+ // swagger:operation POST /1.0/instances/{name}/bitmaps instances instance_bitmaps_post
+@@ -98,6 +99,11 @@ func instanceBitmapsPost(d *Daemon, r *http.Request) response.Response {
+ 		return response.BadRequest(err)
+ 	}
+ 
++	err = validate.IsAPIName(req.Name, false)
++	if err != nil {
++		return response.BadRequest(fmt.Errorf("Invalid bitmap name: %w", err))
++	}
++
+ 	rootDiskName, _, err := internalInstance.GetRootDiskDevice(inst.ExpandedDevices().CloneNative())
+ 	if err != nil {
+ 		return response.BadRequest(fmt.Errorf("Failed getting instance root disk: %w", err))
+diff --git a/cmd/incusd/storage_volumes_bitmap.go b/cmd/incusd/storage_volumes_bitmap.go
+index 34095ec8cb..ccc4b9c9f4 100644
+--- a/cmd/incusd/storage_volumes_bitmap.go
++++ b/cmd/incusd/storage_volumes_bitmap.go
+@@ -14,6 +14,7 @@ import (
+ 	localUtil "github.com/lxc/incus/v7/internal/server/util"
+ 	"github.com/lxc/incus/v7/internal/version"
+ 	"github.com/lxc/incus/v7/shared/api"
++	"github.com/lxc/incus/v7/shared/validate"
+ )
+ 
+ var storagePoolVolumeTypeBitmapsCmd = APIEndpoint{
+@@ -409,6 +410,11 @@ func storagePoolVolumeTypeBitmapsPost(d *Daemon, r *http.Request) response.Respo
+ 		return response.BadRequest(err)
+ 	}
+ 
++	err = validate.IsAPIName(req.Name, false)
++	if err != nil {
++		return response.BadRequest(fmt.Errorf("Invalid bitmap name: %w", err))
++	}
++
+ 	err = inst.CreateBitmap([]string{deviceName}, req)
+ 	if err != nil {
+ 		return response.SmartError(err)
+diff --git a/internal/server/instance/drivers/qmp/log.go b/internal/server/instance/drivers/qmp/log.go
+index 13b91e96d6..ca5c2aaeec 100644
+--- a/internal/server/instance/drivers/qmp/log.go
++++ b/internal/server/instance/drivers/qmp/log.go
+@@ -6,6 +6,12 @@ import (
+ 	"sync"
+ )
+ 
++// qmpLogMaxEntry bounds a single entry, commands carry client-chosen names.
++const qmpLogMaxEntry = 64 * 1024
++
++// qmpLogMaxSize is the size at which the log is rotated.
++const qmpLogMaxSize = 16 * 1024 * 1024
++
+ type qmpLog struct {
+ 	logFile string
+ 	log     *os.File
+@@ -59,9 +65,44 @@ func (ql *qmpLog) Write(p []byte) (n int, err error) {
+ 		return 0, nil
+ 	}
+ 
++	if len(p) > qmpLogMaxEntry {
++		p = append(p[:qmpLogMaxEntry:qmpLogMaxEntry], []byte("... (truncated)\n")...)
++	}
++
++	// Rotate once the file would exceed the limit, it's otherwise only rotated at VM start.
++	fi, err := ql.log.Stat()
++	if err == nil && fi.Size()+int64(len(p)) > qmpLogMaxSize {
++		err = ql.rotate()
++		if err != nil {
++			return 0, err
++		}
++	}
++
+ 	return ql.log.Write(p)
+ }
+ 
++// rotate moves the log aside and starts a new one, the lock must be held.
++func (ql *qmpLog) rotate() error {
++	_ = ql.log.Close()
++	ql.log = nil
++
++	_ = os.Remove(ql.logFile + ".old")
++
++	err := os.Rename(ql.logFile, ql.logFile+".old")
++	if err != nil {
++		return err
++	}
++
++	log, err := os.OpenFile(ql.logFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o600)
++	if err != nil {
++		return err
++	}
++
++	ql.log = log
++
++	return nil
++}
++
+ // Close closes the log and wait the channel clean.
+ func (ql *qmpLog) Close() error {
+ 	if ql == nil || ql.log == nil {

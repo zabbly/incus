@@ -1,0 +1,53 @@
+From e410b89fce3e08ab1644ef32468809c6e41dac09 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:08:24 -0500
+Subject: [PATCH] incusd/instance/lxc: Give exec a real file for every unused
+ stream
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A nil stream closed the descriptor forkexec attaches, so the command
+ended up writing to the helper's log files on the host instead.
+
+This addresses GHSA-44g3-g988-46rg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit e74c80b2933b2942ed3d8a8b6755a401352c80b0)
+---
+ .../server/instance/drivers/driver_lxc.go     | 22 +++++++++++++++++++
+ 1 file changed, 22 insertions(+)
+
+diff --git a/internal/server/instance/drivers/driver_lxc.go b/internal/server/instance/drivers/driver_lxc.go
+index fc6e4b1305..22cb1abb07 100644
+--- a/internal/server/instance/drivers/driver_lxc.go
++++ b/internal/server/instance/drivers/driver_lxc.go
+@@ -8522,6 +8522,28 @@ func (d *lxc) Exec(req api.InstanceExecPost, stdin *os.File, stdout *os.File, st
+ 		cmd.Env = append(os.Environ(), "LXC_MEMFD_REXEC=1")
+ 	}
+ 
++	// Every stream needs an open file, forkexec attaches them by descriptor number.
++	if stdin == nil || stdout == nil || stderr == nil {
++		devNull, err := os.OpenFile("/dev/null", os.O_RDWR, 0)
++		if err != nil {
++			return nil, err
++		}
++
++		defer logger.WarnOnError(devNull.Close, "Failed to close /dev/null")
++
++		if stdin == nil {
++			stdin = devNull
++		}
++
++		if stdout == nil {
++			stdout = devNull
++		}
++
++		if stderr == nil {
++			stderr = devNull
++		}
++	}
++
+ 	// Setup communication PIPE
+ 	rStatus, wStatus, err := os.Pipe()
+ 	defer logger.WarnOnError(rStatus.Close, "Failed to close pipe")

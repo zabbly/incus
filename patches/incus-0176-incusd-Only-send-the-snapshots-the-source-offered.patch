@@ -1,0 +1,110 @@
+From e35471d8ec11e0294f78359bd9bcd9fba30f4df7 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:09:06 -0500
+Subject: [PATCH] incusd: Only send the snapshots the source offered
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A migration target could name snapshots the source never offered, both
+on a refresh and for dependent volumes, and the names were used as path
+components on the source.
+
+Keep only the requested names that match the source's own snapshots.
+
+This addresses GHSA-42x8-664j-84w8 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 7652795ee69b018b4406bbfc2643c1bf12117a96)
+---
+ cmd/incusd/migrate_storage_volumes.go           |  2 +-
+ internal/server/instance/drivers/driver_lxc.go  |  2 +-
+ internal/server/instance/drivers/driver_qemu.go |  2 +-
+ internal/server/migration/migration_volumes.go  | 12 ++++++++++++
+ internal/server/storage/backend.go              | 10 ++++++++++
+ 5 files changed, 25 insertions(+), 3 deletions(-)
+
+diff --git a/cmd/incusd/migrate_storage_volumes.go b/cmd/incusd/migrate_storage_volumes.go
+index da8c091a51..dcfeba722d 100644
+--- a/cmd/incusd/migrate_storage_volumes.go
++++ b/cmd/incusd/migrate_storage_volumes.go
+@@ -209,7 +209,7 @@ func (s *migrationSourceWs) DoStorage(st *state.State, projectName string, poolN
+ 	// Only send the snapshots that the target requests when refreshing.
+ 	if respHeader.GetRefresh() {
+ 		volSourceArgs.Refresh = true
+-		volSourceArgs.Snapshots = respHeader.GetSnapshotNames()
++		volSourceArgs.Snapshots = localMigration.RequestedSnapshots(offerHeader.SnapshotNames, respHeader.GetSnapshotNames())
+ 		allSnapshots := volSourceArgs.Info.Config.VolumeSnapshots
+ 
+ 		// Ensure that only the requested snapshots are included in the migration index header.
+diff --git a/internal/server/instance/drivers/driver_lxc.go b/internal/server/instance/drivers/driver_lxc.go
+index 6ca6158c21..1e149fa6c6 100644
+--- a/internal/server/instance/drivers/driver_lxc.go
++++ b/internal/server/instance/drivers/driver_lxc.go
+@@ -6481,7 +6481,7 @@ func (d *lxc) MigrateSend(args instance.MigrateSendArgs) error {
+ 
+ 	// Only send the snapshots that the target requests when refreshing.
+ 	if respHeader.GetRefresh() {
+-		volSourceArgs.Snapshots = respHeader.GetSnapshotNames()
++		volSourceArgs.Snapshots = localMigration.RequestedSnapshots(offerHeader.SnapshotNames, respHeader.GetSnapshotNames())
+ 		allSnapshots := volSourceArgs.Info.Config.VolumeSnapshots
+ 
+ 		// Ensure that only the requested snapshots are included in the migration index header.
+diff --git a/internal/server/instance/drivers/driver_qemu.go b/internal/server/instance/drivers/driver_qemu.go
+index 37e9f134e8..fa8970ff37 100644
+--- a/internal/server/instance/drivers/driver_qemu.go
++++ b/internal/server/instance/drivers/driver_qemu.go
+@@ -9106,7 +9106,7 @@ func (d *qemu) MigrateSend(args instance.MigrateSendArgs) error {
+ 
+ 	// Only send the snapshots that the target requests when refreshing.
+ 	if respHeader.GetRefresh() {
+-		volSourceArgs.Snapshots = respHeader.GetSnapshotNames()
++		volSourceArgs.Snapshots = localMigration.RequestedSnapshots(offerHeader.SnapshotNames, respHeader.GetSnapshotNames())
+ 		allSnapshots := volSourceArgs.Info.Config.VolumeSnapshots
+ 
+ 		// Ensure that only the requested snapshots are included in the migration index header.
+diff --git a/internal/server/migration/migration_volumes.go b/internal/server/migration/migration_volumes.go
+index 5fc41eb0f1..95efaa1cf0 100644
+--- a/internal/server/migration/migration_volumes.go
++++ b/internal/server/migration/migration_volumes.go
+@@ -327,6 +327,18 @@ func ProtobufToDependentVolume(volume *migration.DependentVolume, migrationType
+ 	}
+ }
+ 
++// RequestedSnapshots returns the requested snapshot names that were offered, the target can't add any.
++func RequestedSnapshots(offered []string, requested []string) []string {
++	snapshots := make([]string, 0, len(requested))
++	for _, name := range requested {
++		if slices.Contains(offered, name) {
++			snapshots = append(snapshots, name)
++		}
++	}
++
++	return snapshots
++}
++
+ // VolumeSnapshotToProtobuf converts an api.StorageVolumeSnapshot into a migration.Snapshot.
+ func VolumeSnapshotToProtobuf(vol *api.StorageVolumeSnapshot) *migration.Snapshot {
+ 	config := []*migration.Config{}
+diff --git a/internal/server/storage/backend.go b/internal/server/storage/backend.go
+index 4db67c65b1..0f64476360 100644
+--- a/internal/server/storage/backend.go
++++ b/internal/server/storage/backend.go
+@@ -10452,7 +10452,17 @@ func (b *backend) migrateDependentVolumes(inst instance.Instance, conn io.ReadWr
+ 
+ 		snapshotNames := []string{}
+ 		if !args.VolumeOnly {
++			offered := make([]string, 0, len(diskConfig.VolumeSnapshots))
++			for _, snap := range diskConfig.VolumeSnapshots {
++				offered = append(offered, snap.Name)
++			}
++
+ 			for _, snap := range dependentVol.Snapshots {
++				// The target can only pick from the snapshots the volume has.
++				if !slices.Contains(offered, snap.GetName()) {
++					continue
++				}
++
+ 				// During a refresh only the new snapshots should be transferred. The root
+ 				// volume's args.Snapshots list has already been reduced to the snapshots the
+ 				// target is missing, and dependent volume snapshots share the same names, so

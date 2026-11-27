@@ -1,0 +1,46 @@
+From ce3ab088719c99ce576516df91a293a23ca10724 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:15:20 -0500
+Subject: [PATCH] incusd: Don't hold the publish lock during the instance
+ export
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The lock serializing image publishes was held for the whole export, so
+one slow export in any project stalled every other publish on the
+server. It now only covers the existence check and the record creation.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit afcd5de7e30a44b8dfd51cace754319e540d2208)
+---
+ cmd/incusd/images.go | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/cmd/incusd/images.go b/cmd/incusd/images.go
+index 1a4db240d9..bbebccc8dd 100644
+--- a/cmd/incusd/images.go
++++ b/cmd/incusd/images.go
+@@ -537,6 +537,10 @@ func imgPostInstanceInfo(ctx context.Context, s *state.State, r *http.Request, r
+ 	info.Fingerprint = fmt.Sprintf("%x", hash256.Sum(nil))
+ 	info.CreatedAt = time.Now().UTC()
+ 
++	// Only the check and record of the new image need serializing, not the export before it.
++	imagePublishLock.Lock()
++	defer imagePublishLock.Unlock()
++
+ 	err = s.DB.Cluster.Transaction(ctx, func(ctx context.Context, tx *db.ClusterTx) error {
+ 		_, _, err = tx.GetImage(ctx, info.Fingerprint, dbCluster.ImageFilter{Project: &projectName})
+ 
+@@ -1459,9 +1463,7 @@ func imagesPost(d *Daemon, r *http.Request) response.Response {
+ 				info, err = imgPostURLInfo(context.TODO(), s, r, req, op, projectName, budget)
+ 			default:
+ 				/* Processing image creation from container */
+-				imagePublishLock.Lock()
+ 				info, err = imgPostInstanceInfo(context.TODO(), s, r, req, op, builddir, budget)
+-				imagePublishLock.Unlock()
+ 			}
+ 		}
+ 

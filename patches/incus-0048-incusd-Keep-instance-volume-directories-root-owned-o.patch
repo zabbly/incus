@@ -1,0 +1,213 @@
+From 5c038bbc5b1b6e42f0aa2cbb407ba0c1a219fd87 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Sat, 24 Oct 2026 00:34:53 -0400
+Subject: [PATCH] incusd: Keep instance volume directories root-owned on
+ receive
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The instance directory is the only thing keeping local users out of a
+container's setuid files, but rsync, image unpack and backup unpack all
+applied the owner the incoming stream stated for the transfer root to
+that directory, letting the sender take ownership of it.
+
+Restore the directory's owner after an rsync receive, mount the receive
+nosuid/nodev, and reset the owner to root after image and backup unpack.
+
+This addresses GHSA-p8fx-6xxm-25wh (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 3722538295d6c59c730318f6505375757e534354)
+---
+ internal/linux/filesystem.go                  |  2 +-
+ internal/rsync/rsync.go                       | 26 ++++++++++++++++++-
+ .../server/instance/drivers/driver_lxc.go     |  4 +--
+ internal/server/storage/backend.go            |  3 ++-
+ .../storage/drivers/driver_cephfs_volumes.go  |  4 +--
+ .../server/storage/drivers/generic_vfs.go     |  3 ++-
+ internal/server/storage/drivers/utils.go      |  9 +++++++
+ internal/server/storage/utils.go              |  7 +++++
+ 8 files changed, 50 insertions(+), 8 deletions(-)
+
+diff --git a/internal/linux/filesystem.go b/internal/linux/filesystem.go
+index 14b279fac3..05f0ed8a50 100644
+--- a/internal/linux/filesystem.go
++++ b/internal/linux/filesystem.go
+@@ -372,7 +372,7 @@ func MountNoSymlinkFollow(path string) (func() error, error) {
+ 
+ 	defer func() { _ = unix.Close(fd) }()
+ 
+-	err = unix.MountSetattr(fd, "", unix.AT_EMPTY_PATH, &unix.MountAttr{Attr_set: unix.MOUNT_ATTR_NOSYMFOLLOW})
++	err = unix.MountSetattr(fd, "", unix.AT_EMPTY_PATH, &unix.MountAttr{Attr_set: unix.MOUNT_ATTR_NOSYMFOLLOW | unix.MOUNT_ATTR_NOSUID | unix.MOUNT_ATTR_NODEV})
+ 	if err != nil {
+ 		_ = unmount()
+ 		return nil, fmt.Errorf("Failed to set nosymfollow on %q: %w", path, err)
+diff --git a/internal/rsync/rsync.go b/internal/rsync/rsync.go
+index 63a92ed89a..7d11518cba 100644
+--- a/internal/rsync/rsync.go
++++ b/internal/rsync/rsync.go
+@@ -12,6 +12,7 @@ import (
+ 	"time"
+ 
+ 	"github.com/google/uuid"
++	"golang.org/x/sys/unix"
+ 
+ 	"github.com/lxc/incus/v7/internal/linux"
+ 	internalUtil "github.com/lxc/incus/v7/internal/util"
+@@ -316,7 +317,7 @@ func Send(name string, path string, conn io.ReadWriteCloser, tracker *ioprogress
+ // Recv sets up the receiving half of the websocket to rsync (the other
+ // half set up by rsync.Send), putting the contents in the directory specified
+ // by path.
+-func Recv(path string, conn io.ReadWriteCloser, tracker *ioprogress.ProgressTracker, features []string) error {
++func Recv(path string, conn io.ReadWriteCloser, tracker *ioprogress.ProgressTracker, features []string, keepTarget bool) error {
+ 	args := []string{
+ 		"--server",
+ 		"-vlogDtpre.iLsfx",
+@@ -335,6 +336,16 @@ func Recv(path string, conn io.ReadWriteCloser, tracker *ioprogress.ProgressTrac
+ 
+ 	args = append(args, []string{".", path}...)
+ 
++	// The target is the root of the transfer, so rsync applies the sender's owner and mode to it.
++	// Record them to restore afterwards, so the sender can't take ownership of the directory.
++	var target unix.Stat_t
++	if keepTarget {
++		err := unix.Stat(path, &target)
++		if err != nil {
++			return fmt.Errorf("Failed to stat %q: %w", path, err)
++		}
++	}
++
+ 	// Never follow symlinks under the target so the sender can't redirect writes outside of it.
+ 	unmount, err := linux.MountNoSymlinkFollow(path)
+ 	if err != nil {
+@@ -424,6 +435,19 @@ func Recv(path string, conn io.ReadWriteCloser, tracker *ioprogress.ProgressTrac
+ 		}
+ 	}
+ 
++	// Restore the target's owner and mode before the mount goes away.
++	if keepTarget {
++		err = unix.Chown(path, int(target.Uid), int(target.Gid))
++		if err != nil {
++			errs = append(errs, fmt.Errorf("Failed to restore owner of %q: %w", path, err))
++		}
++
++		err = unix.Chmod(path, target.Mode&0o7777)
++		if err != nil {
++			errs = append(errs, fmt.Errorf("Failed to restore mode of %q: %w", path, err))
++		}
++	}
++
+ 	if len(errs) > 0 {
+ 		return fmt.Errorf("Rsync receive failed: %s: %v (%s)", path, errs, string(output))
+ 	}
+diff --git a/internal/server/instance/drivers/driver_lxc.go b/internal/server/instance/drivers/driver_lxc.go
+index 38bd909463..50a280f44c 100644
+--- a/internal/server/instance/drivers/driver_lxc.go
++++ b/internal/server/instance/drivers/driver_lxc.go
+@@ -7384,7 +7384,7 @@ func (d *lxc) MigrateReceive(args instance.MigrateReceiveArgs) error {
+ 					d.logger.Debug("Waiting to receive pre-dump rsync")
+ 
+ 					// Transfer a CRIU pre-dump.
+-					err = rsync.Recv(internalUtil.AddSlash(imagesDir), stateConn, nil, rsyncFeatures)
++					err = rsync.Recv(internalUtil.AddSlash(imagesDir), stateConn, nil, rsyncFeatures, true)
+ 					if err != nil {
+ 						return fmt.Errorf("Failed receiving pre-dump rsync: %w", err)
+ 					}
+@@ -7414,7 +7414,7 @@ func (d *lxc) MigrateReceive(args instance.MigrateReceiveArgs) error {
+ 
+ 			// Final CRIU dump.
+ 			d.logger.Debug("About to receive final dump rsync")
+-			err = rsync.Recv(internalUtil.AddSlash(imagesDir), stateConn, nil, rsyncFeatures)
++			err = rsync.Recv(internalUtil.AddSlash(imagesDir), stateConn, nil, rsyncFeatures, true)
+ 			if err != nil {
+ 				return fmt.Errorf("Failed receiving final dump rsync: %w", err)
+ 			}
+diff --git a/internal/server/storage/backend.go b/internal/server/storage/backend.go
+index 15ff1714de..35d02bb8ba 100644
+--- a/internal/server/storage/backend.go
++++ b/internal/server/storage/backend.go
+@@ -9745,7 +9745,8 @@ func (b *backend) qcow2CreateVolumeFromMigration(vol drivers.Volume, projectName
+ 		b.logger.Debug("Receiving filesystem volume started", logger.Ctx{"volName": volName, "path": path, "features": volTargetArgs.MigrationType.Features})
+ 		defer b.logger.Debug("Receiving filesystem volume stopped", logger.Ctx{"volName": volName, "path": path})
+ 
+-		return rsync.Recv(path, conn, wrapper, volTargetArgs.MigrationType.Features)
++		// Keep the target directory's owner and mode for instance volumes, as the source controls them otherwise.
++		return rsync.Recv(path, conn, wrapper, volTargetArgs.MigrationType.Features, vol.Type() != drivers.VolumeTypeCustom)
+ 	}
+ 
+ 	recvBlockVol := func(volName string, conn io.ReadWriteCloser, path string) error {
+diff --git a/internal/server/storage/drivers/driver_cephfs_volumes.go b/internal/server/storage/drivers/driver_cephfs_volumes.go
+index 6b4ef0eace..cf434e44aa 100644
+--- a/internal/server/storage/drivers/driver_cephfs_volumes.go
++++ b/internal/server/storage/drivers/driver_cephfs_volumes.go
+@@ -202,7 +202,7 @@ func (d *cephfs) CreateVolumeFromMigration(vol Volume, conn io.ReadWriteCloser,
+ 				wrapper = localMigration.ProgressTracker(op, "fs_progress", snapshot.GetName())
+ 			}
+ 
+-			err = rsync.Recv(path, conn, wrapper, volTargetArgs.MigrationType.Features)
++			err = rsync.Recv(path, conn, wrapper, volTargetArgs.MigrationType.Features, false)
+ 			if err != nil {
+ 				return err
+ 			}
+@@ -234,7 +234,7 @@ func (d *cephfs) CreateVolumeFromMigration(vol Volume, conn io.ReadWriteCloser,
+ 			wrapper = localMigration.ProgressTracker(op, "fs_progress", vol.name)
+ 		}
+ 
+-		return rsync.Recv(path, conn, wrapper, volTargetArgs.MigrationType.Features)
++		return rsync.Recv(path, conn, wrapper, volTargetArgs.MigrationType.Features, false)
+ 	}, op)
+ 	if err != nil {
+ 		return err
+diff --git a/internal/server/storage/drivers/generic_vfs.go b/internal/server/storage/drivers/generic_vfs.go
+index 6c8125eadc..77fbf5e88c 100644
+--- a/internal/server/storage/drivers/generic_vfs.go
++++ b/internal/server/storage/drivers/generic_vfs.go
+@@ -323,7 +323,8 @@ func genericVFSCreateVolumeFromMigration(d Driver, initVolume func(vol Volume) (
+ 		d.Logger().Debug("Receiving filesystem volume started", logger.Ctx{"volName": volName, "path": path, "features": volTargetArgs.MigrationType.Features})
+ 		defer d.Logger().Debug("Receiving filesystem volume stopped", logger.Ctx{"volName": volName, "path": path})
+ 
+-		return rsync.Recv(path, conn, wrapper, volTargetArgs.MigrationType.Features)
++		// Keep the target directory's owner and mode for instance volumes, as the source controls them otherwise.
++		return rsync.Recv(path, conn, wrapper, volTargetArgs.MigrationType.Features, vol.Type() != VolumeTypeCustom)
+ 	}
+ 
+ 	recvBlockVol := func(volName string, conn io.ReadWriteCloser, path string) error {
+diff --git a/internal/server/storage/drivers/utils.go b/internal/server/storage/drivers/utils.go
+index 3590b8a2b9..6063e5febd 100644
+--- a/internal/server/storage/drivers/utils.go
++++ b/internal/server/storage/drivers/utils.go
+@@ -1283,6 +1283,15 @@ func UnpackVolume(d Driver, vol Volume, r io.ReadSeeker, tarArgs []string, unpac
+ 		if err != nil {
+ 			return fmt.Errorf("Error starting unpack: %w", err)
+ 		}
++
++		// The backup's top-level entry can set the owner of the volume's top directory; for instance
++		// volumes put it back to root so the directory and its setuid files aren't reachable by its owner.
++		if vol.Type() != VolumeTypeCustom {
++			err = os.Chown(mountPath, 0, 0)
++			if err != nil {
++				return err
++			}
++		}
+ 	}
+ 
+ 	// Extract block file to block volume.
+diff --git a/internal/server/storage/utils.go b/internal/server/storage/utils.go
+index f5e64cb929..132c190517 100644
+--- a/internal/server/storage/utils.go
++++ b/internal/server/storage/utils.go
+@@ -664,6 +664,13 @@ func ImageUnpack(imageFile string, vol drivers.Volume, destBlockFile string, sys
+ 			return -1, fmt.Errorf("Image is missing a rootfs: %s", imageFile)
+ 		}
+ 
++		// The image's "./" entry can change the owner of the volume's top directory; put it back so
++		// the instance directory stays root-owned and its setuid files aren't reachable by its owner.
++		err = os.Chown(destPath, 0, 0)
++		if err != nil {
++			return -1, err
++		}
++
+ 		// Done with this.
+ 		return 0, nil
+ 	}

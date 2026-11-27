@@ -1,0 +1,44 @@
+From f0b1f67b679bbc2b477932247977d3c2bbab51c4 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:07:40 -0500
+Subject: [PATCH] incusd/device/nic_bridged: Only count running instances of
+ other projects as conflicts
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A never started instance in one project could keep an instance of
+another project from starting by reusing its name, MAC or address.
+
+This addresses GHSA-fg2p-r659-c4q8 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 608d88ccca34e3469b1587ee43d482b17b955c50)
+---
+ internal/server/device/nic_bridged.go | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/internal/server/device/nic_bridged.go b/internal/server/device/nic_bridged.go
+index 913acbb41e..91e962e3b7 100644
+--- a/internal/server/device/nic_bridged.go
++++ b/internal/server/device/nic_bridged.go
+@@ -793,6 +793,19 @@ func (d *nicBridged) checkAddressConflict() error {
+ 			return nil
+ 		}
+ 
++		// Another project's instance only holds its addresses while running, so a stopped one
++		// can't be used to block instances outside of its project.
++		if inst.Project != d.inst.Project().Name {
++			otherInst, err := instance.LoadByProjectAndName(d.state, inst.Project, inst.Name)
++			if err != nil {
++				return err
++			}
++
++			if !otherInst.IsRunning() {
++				return nil
++			}
++		}
++
+ 		// Skip NICs connected to other VLANs (not perfect though as one NIC could
+ 		// explicitly specify the default untagged VLAN and these would be connected to
+ 		// same L2 even though the values are different, and there is a different default

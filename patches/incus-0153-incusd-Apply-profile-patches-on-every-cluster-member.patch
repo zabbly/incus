@@ -1,0 +1,50 @@
+From 7aa536c61be2b0454a6959ade4781a7a513f4f56 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:04:00 -0500
+Subject: [PATCH] incusd: Apply profile patches on every cluster member
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This addresses GHSA-fg2p-r659-c4q8 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 2d8dc776679aaeef51eda5d4ae5876d6d6729b9e)
+---
+ cmd/incusd/profiles.go | 20 +++++++++++++++++++-
+ 1 file changed, 19 insertions(+), 1 deletion(-)
+
+diff --git a/cmd/incusd/profiles.go b/cmd/incusd/profiles.go
+index c80d800d83..0e4804bfc5 100644
+--- a/cmd/incusd/profiles.go
++++ b/cmd/incusd/profiles.go
+@@ -818,10 +818,28 @@ func profilePatch(d *Daemon, r *http.Request) response.Response {
+ 		return response.SmartError(err)
+ 	}
+ 
++	err = doProfileUpdate(r.Context(), s, *p, name, profile, req)
++	if err != nil {
++		return response.SmartError(err)
++	}
++
++	// Notify all other nodes. If a node is down, it will be ignored.
++	notifier, err := cluster.NewNotifier(s, s.Endpoints.NetworkCert(), s.ServerCert(), cluster.NotifyAlive)
++	if err != nil {
++		return response.SmartError(err)
++	}
++
++	err = notifier(func(client incus.InstanceServer) error {
++		return client.UseProject(p.Name).UpdateProfile(name, profile.ProfilePut, "")
++	})
++	if err != nil {
++		return response.SmartError(err)
++	}
++
+ 	requestor := request.CreateRequestor(r)
+ 	s.Events.SendLifecycle(p.Name, lifecycle.ProfileUpdated.Event(name, p.Name, requestor, nil))
+ 
+-	return response.SmartError(doProfileUpdate(r.Context(), s, *p, name, profile, req))
++	return response.EmptySyncResponse
+ }
+ 
+ // swagger:operation POST /1.0/profiles/{name} profiles profile_post

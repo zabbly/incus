@@ -1,0 +1,40 @@
+From e224d72e93e36715bd3e54fd45dd42a7c2bce550 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:02:21 -0500
+Subject: [PATCH] incusd/db: Give every loaded instance a config map
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+An instance with no config rows was loaded with a nil map, which the
+next volatile key write panicked on.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 333fd4a980ee261e3770de922936611d31f112d6)
+---
+ internal/server/db/instances.go | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/internal/server/db/instances.go b/internal/server/db/instances.go
+index a80a9a39fa..39054e30af 100644
+--- a/internal/server/db/instances.go
++++ b/internal/server/db/instances.go
+@@ -383,9 +383,13 @@ func (c *ClusterTx) instanceConfigFill(ctx context.Context, snapshotsMode bool,
+ 		return err
+ 	}
+ 
+-	for instanceID, config := range configs {
+-		inst := instances[instanceID]
+-		inst.Config = config
++	// Walk the instances rather than the rows so one without config gets an empty map.
++	for instanceID, inst := range instances {
++		inst.Config = configs[instanceID]
++		if inst.Config == nil {
++			inst.Config = map[string]string{}
++		}
++
+ 		instances[instanceID] = inst
+ 	}
+ 

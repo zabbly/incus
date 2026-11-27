@@ -1,0 +1,69 @@
+From dd14ee9087f805404dfb628a8de90a00e4fd628b Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:02:32 -0500
+Subject: [PATCH] incusd/endpoints: Let the kernel pick the vsock port
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The listener drew ten ports from the 16-bit range and failed the daemon
+startup when all were taken, which a guest can arrange as the vsock port
+table is shared with containers. A kernel-assigned port comes from the
+full 32-bit range.
+
+This addresses GHSA-23fc-ggg4-5r2r (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 30981ba41f6c9d3199bc51c85c83384e28c024e1)
+---
+ internal/server/endpoints/vsock.go | 26 +++++---------------------
+ 1 file changed, 5 insertions(+), 21 deletions(-)
+
+diff --git a/internal/server/endpoints/vsock.go b/internal/server/endpoints/vsock.go
+index bb1c84cb05..3c6bf9bbbd 100644
+--- a/internal/server/endpoints/vsock.go
++++ b/internal/server/endpoints/vsock.go
+@@ -1,38 +1,22 @@
+ package endpoints
+ 
+ import (
+-	"errors"
+-	"math"
+-	"math/rand"
+ 	"net"
+ 
+ 	"github.com/mdlayher/vsock"
+-	"golang.org/x/sys/unix"
+ 
+ 	"github.com/lxc/incus/v7/internal/server/endpoints/listeners"
+ 	localtls "github.com/lxc/incus/v7/shared/tls"
+ )
+ 
+ func createVsockListener(cert *localtls.CertInfo) (net.Listener, error) {
+-	for range 10 {
+-		// Get random port between 1024 and 65535.
+-		port := 1024 + rand.Int31n(math.MaxUint16-1024)
+-
+-		// Setup listener on host context ID for inbound connections from the agent running inside VMs.
+-		listener, err := vsock.ListenContextID(vsock.Host, uint32(port), nil)
+-		if err != nil {
+-			// Try a different port.
+-			if errors.Is(err, unix.EADDRINUSE) {
+-				continue
+-			}
+-
+-			return nil, err
+-		}
+-
+-		return listeners.NewFancyTLSListener(listener, cert), nil
++	// Let the kernel pick a port from the full 32-bit range, which a guest can't exhaust.
++	listener, err := vsock.ListenContextID(vsock.Host, 0, nil)
++	if err != nil {
++		return nil, err
+ 	}
+ 
+-	return nil, errors.New("Failed finding free listen port for vsock listener")
++	return listeners.NewFancyTLSListener(listener, cert), nil
+ }
+ 
+ // VsockAddress returns the network address of the vsock endpoint, or nil if there's no vsock endpoint.

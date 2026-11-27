@@ -1,0 +1,45 @@
+From 2934f1b310cca03353126f7b07b47b69f59d5b86 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:58:57 -0500
+Subject: [PATCH] shared/validate: Check security tag duplicates with a map
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The duplicate check compared every tag against all previous ones, so a
+long list cost quadratic time on every instance update.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 25a0bc307e85c98a7dfdf5b151c2ff33d5b1c443)
+---
+ shared/validate/validate.go | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/shared/validate/validate.go b/shared/validate/validate.go
+index 3a2908a31c..d6173d13fa 100644
+--- a/shared/validate/validate.go
++++ b/shared/validate/validate.go
+@@ -562,18 +562,18 @@ func IsNetworkPortRange(value string) error {
+ func IsSecurityTagList(value string) error {
+ 	tagRegex := regexp.MustCompile(`^[a-z0-9]([a-z0-9._-]{0,62}[a-z0-9])?$`)
+ 
+-	seen := []string{}
++	seen := map[string]bool{}
+ 	for tag := range strings.SplitSeq(value, ",") {
+ 		tag = strings.TrimSpace(tag)
+ 		if !tagRegex.MatchString(tag) {
+ 			return fmt.Errorf("Invalid security tag %q", tag)
+ 		}
+ 
+-		if slices.Contains(seen, tag) {
++		if seen[tag] {
+ 			return fmt.Errorf("Duplicate security tag %q", tag)
+ 		}
+ 
+-		seen = append(seen, tag)
++		seen[tag] = true
+ 	}
+ 
+ 	return nil

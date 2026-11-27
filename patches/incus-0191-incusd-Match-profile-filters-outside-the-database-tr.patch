@@ -1,0 +1,72 @@
+From 2b3787da1d8869ee4e0ad149e4f4bb17ff945521 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:10:35 -0500
+Subject: [PATCH] incusd: Match profile filters outside the database
+ transaction
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The filter was evaluated while the listing transaction was open, so a
+regular expression chosen by the client held the single database
+connection for as long as it took to run.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit d20ab8b0856a04f677884b23fecd8a3d77820f02)
+---
+ cmd/incusd/profiles.go | 33 ++++++++++++++++++++++-----------
+ 1 file changed, 22 insertions(+), 11 deletions(-)
+
+diff --git a/cmd/incusd/profiles.go b/cmd/incusd/profiles.go
+index 0e4804bfc5..c0aed70ed4 100644
+--- a/cmd/incusd/profiles.go
++++ b/cmd/incusd/profiles.go
+@@ -252,17 +252,6 @@ func profilesGet(d *Daemon, r *http.Request) response.Response {
+ 
+ 				apiProfile.UsedBy = project.FilterUsedBy(s.Authorizer, r, apiProfile.UsedBy)
+ 
+-				if clauses != nil && len(clauses.Clauses) > 0 {
+-					match, err := filter.Match(*apiProfile, *clauses)
+-					if err != nil {
+-						return err
+-					}
+-
+-					if !match {
+-						continue
+-					}
+-				}
+-
+ 				fullResults = append(fullResults, *apiProfile)
+ 				linkResults = append(linkResults, apiProfile.URL(version.APIVersion, profile.Project).String())
+ 			}
+@@ -289,6 +278,28 @@ func profilesGet(d *Daemon, r *http.Request) response.Response {
+ 		return response.SmartError(err)
+ 	}
+ 
++	// Match the filter outside the transaction, the client decides how expensive it is.
++	if mustLoadObjects && clauses != nil && len(clauses.Clauses) > 0 {
++		matched := make([]api.Profile, 0, len(fullResults))
++		linkResults = make([]string, 0, len(fullResults))
++
++		for _, apiProfile := range fullResults {
++			match, err := filter.Match(apiProfile, *clauses)
++			if err != nil {
++				return response.SmartError(err)
++			}
++
++			if !match {
++				continue
++			}
++
++			matched = append(matched, apiProfile)
++			linkResults = append(linkResults, apiProfile.URL(version.APIVersion, apiProfile.Project).String())
++		}
++
++		fullResults = matched
++	}
++
+ 	if recursion {
+ 		return response.SyncResponse(true, fullResults)
+ 	}

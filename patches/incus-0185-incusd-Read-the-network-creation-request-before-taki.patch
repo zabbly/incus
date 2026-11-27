@@ -1,0 +1,46 @@
+From b4ed19078a8d361c413a8df320561fe3159f6628 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:04:34 -0500
+Subject: [PATCH] incusd: Read the network creation request before taking the
+ lock
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The body was read while holding the server-wide network creation lock,
+so a client that never sent its body blocked every network creation.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit abe54c944917c3f8b778b30461bf249b4d65eea8)
+---
+ cmd/incusd/networks.go | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/cmd/incusd/networks.go b/cmd/incusd/networks.go
+index 57a0d73ac4..52d65d741a 100644
+--- a/cmd/incusd/networks.go
++++ b/cmd/incusd/networks.go
+@@ -418,17 +418,17 @@ func networksPost(d *Daemon, r *http.Request) response.Response {
+ 		return response.SmartError(err)
+ 	}
+ 
+-	networkCreateLock.Lock()
+-	defer networkCreateLock.Unlock()
+-
+ 	req := api.NetworksPost{}
+ 
+-	// Parse the request.
++	// Parse the request before taking the lock, the client controls how long the read takes.
+ 	err = json.NewDecoder(r.Body).Decode(&req)
+ 	if err != nil {
+ 		return response.BadRequest(err)
+ 	}
+ 
++	networkCreateLock.Lock()
++	defer networkCreateLock.Unlock()
++
+ 	// Quick checks.
+ 	if req.Name == "" {
+ 		return response.BadRequest(errors.New("No name provided"))

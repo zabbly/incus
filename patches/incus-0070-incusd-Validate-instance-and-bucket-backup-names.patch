@@ -1,0 +1,66 @@
+From 3124caaeda51cbecfc37d211c1b7173426ba2840 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:32:10 -0500
+Subject: [PATCH] incusd: Validate instance and bucket backup names
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Only slashes were refused, so a backup named ".." resolved to the
+shared backups directory and could delete every project's backups.
+
+This addresses GHSA-8m9x-vx2q-7f9q (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 0a8cf850f857a57244c15ba7bd216b40435eaf2c)
+---
+ cmd/incusd/instance_backup.go        | 12 +++++++-----
+ cmd/incusd/storage_buckets_backup.go |  5 +++--
+ 2 files changed, 10 insertions(+), 7 deletions(-)
+
+diff --git a/cmd/incusd/instance_backup.go b/cmd/incusd/instance_backup.go
+index 6eda0ab003..59f1ac55a3 100644
+--- a/cmd/incusd/instance_backup.go
++++ b/cmd/incusd/instance_backup.go
+@@ -363,8 +363,9 @@ func instanceBackupsPost(d *Daemon, r *http.Request) response.Response {
+ 		}
+ 
+ 		// Validate the name.
+-		if strings.Contains(req.Name, "/") {
+-			return response.BadRequest(errors.New("Backup names may not contain slashes"))
++		err = validate.IsAPIName(req.Name, false)
++		if err != nil {
++			return response.BadRequest(fmt.Errorf("Invalid backup name: %w", err))
+ 		}
+ 
+ 		fullName = name + internalInstance.SnapshotDelimiter + req.Name
+@@ -625,9 +626,10 @@ func instanceBackupPost(d *Daemon, r *http.Request) response.Response {
+ 		return response.BadRequest(err)
+ 	}
+ 
+-	// Validate the name
+-	if strings.Contains(req.Name, "/") {
+-		return response.BadRequest(errors.New("Backup names may not contain slashes"))
++	// Validate the name.
++	err = validate.IsAPIName(req.Name, false)
++	if err != nil {
++		return response.BadRequest(fmt.Errorf("Invalid backup name: %w", err))
+ 	}
+ 
+ 	oldName := name + internalInstance.SnapshotDelimiter + backupName
+diff --git a/cmd/incusd/storage_buckets_backup.go b/cmd/incusd/storage_buckets_backup.go
+index 249bd43ccd..e02536b099 100644
+--- a/cmd/incusd/storage_buckets_backup.go
++++ b/cmd/incusd/storage_buckets_backup.go
+@@ -459,8 +459,9 @@ func storagePoolBucketBackupsPost(d *Daemon, r *http.Request) response.Response
+ 		}
+ 
+ 		// Validate the name.
+-		if strings.Contains(req.Name, "/") {
+-			return response.BadRequest(errors.New("Backup names may not contain slashes"))
++		err = validate.IsAPIName(req.Name, false)
++		if err != nil {
++			return response.BadRequest(fmt.Errorf("Invalid backup name: %w", err))
+ 		}
+ 
+ 		fullName = bucketName + internalInstance.SnapshotDelimiter + req.Name

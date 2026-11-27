@@ -1,0 +1,115 @@
+From a5846dafe302db2950db9a11e2cf7e1af8c0f0d6 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:34:18 -0500
+Subject: [PATCH] incusd/device: Validate the NIC host_name option
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The name went unchecked into the host's nftables rules and named the
+host interface to remove before creating the veth or tap. It is now a
+plain interface name, restricted projects can't set it, and only an
+interface recorded by the device itself is removed as stale.
+
+This addresses GHSA-fg2p-r659-c4q8 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit a82730a7461a84b150b5f554417fa86b90549a3f)
+---
+ cmd/incusd/api_project.go                   | 2 ++
+ doc/config_options.txt                      | 2 ++
+ internal/server/device/device_common.go     | 5 ++++-
+ internal/server/device/nic.go               | 2 +-
+ internal/server/metadata/configuration.json | 2 +-
+ internal/server/project/permissions.go      | 5 +++++
+ 6 files changed, 15 insertions(+), 3 deletions(-)
+
+diff --git a/cmd/incusd/api_project.go b/cmd/incusd/api_project.go
+index 681fa55b9c..14851dd643 100644
+--- a/cmd/incusd/api_project.go
++++ b/cmd/incusd/api_project.go
+@@ -1967,6 +1967,8 @@ func projectValidateConfig(s *state.State, config map[string]string) error {
+ 		// - When set to `block`, this option prevents using all network devices.
+ 		// - When set to `managed`, this option allows using network devices only if `network=` is set.
+ 		// - When set to `allow`, there is no restriction on which network devices can be used.
++		//
++		// Unless set to `allow`, the `host_name` option of network devices can't be set.
+ 		// ---
+ 		//  type: string
+ 		//  defaultdesc: `managed`
+diff --git a/doc/config_options.txt b/doc/config_options.txt
+index 5f97e45a75..8853d3942c 100644
+--- a/doc/config_options.txt
++++ b/doc/config_options.txt
+@@ -5217,6 +5217,8 @@ Possible values are `allow`, `block`, or `managed`.
+ - When set to `block`, this option prevents using all network devices.
+ - When set to `managed`, this option allows using network devices only if `network=` is set.
+ - When set to `allow`, there is no restriction on which network devices can be used.
++
++Unless set to `allow`, the `host_name` option of network devices can't be set.
+ ```
+ 
+ ```{config:option} restricted.devices.pci project-restricted
+diff --git a/internal/server/device/device_common.go b/internal/server/device/device_common.go
+index 626a9e34e5..adc1d50acd 100644
+--- a/internal/server/device/device_common.go
++++ b/internal/server/device/device_common.go
+@@ -141,12 +141,15 @@ func (d *deviceCommon) generateAndPersistHostName(saveData map[string]string, pr
+ 		}
+ 	}
+ 
++	// Only an interface this device recorded earlier may be removed.
++	stale := d.volatileGet()["host_name"] == saveData["host_name"]
++
+ 	err := d.volatileSet(map[string]string{"host_name": saveData["host_name"]})
+ 	if err != nil {
+ 		return err
+ 	}
+ 
+-	if network.InterfaceExists(saveData["host_name"]) {
++	if stale && network.InterfaceExists(saveData["host_name"]) {
+ 		err = network.InterfaceRemove(saveData["host_name"])
+ 		if err != nil {
+ 			return fmt.Errorf("Failed to remove stale interface %q: %w", saveData["host_name"], err)
+diff --git a/internal/server/device/nic.go b/internal/server/device/nic.go
+index 366140e982..b79f290d85 100644
+--- a/internal/server/device/nic.go
++++ b/internal/server/device/nic.go
+@@ -28,7 +28,7 @@ func nicValidationRules(requiredFields []string, optionalFields []string, instCo
+ 		"vlan.tagged":                          validate.IsAny,
+ 		"gvrp":                                 validate.Optional(validate.IsBool),
+ 		"hwaddr":                               validate.IsNetworkMAC,
+-		"host_name":                            validate.IsAny,
++		"host_name":                            validate.Optional(validate.IsInterfaceName),
+ 		"limits.ingress":                       validate.IsAny,
+ 		"limits.egress":                        validate.IsAny,
+ 		"limits.max":                           validate.IsAny,
+diff --git a/internal/server/metadata/configuration.json b/internal/server/metadata/configuration.json
+index abb61533dc..269ca3d681 100644
+--- a/internal/server/metadata/configuration.json
++++ b/internal/server/metadata/configuration.json
+@@ -5842,7 +5842,7 @@
+ 					{
+ 						"restricted.devices.nic": {
+ 							"defaultdesc": "`managed`",
+-							"longdesc": "Possible values are `allow`, `block`, or `managed`.\n\n- When set to `block`, this option prevents using all network devices.\n- When set to `managed`, this option allows using network devices only if `network=` is set.\n- When set to `allow`, there is no restriction on which network devices can be used.",
++							"longdesc": "Possible values are `allow`, `block`, or `managed`.\n\n- When set to `block`, this option prevents using all network devices.\n- When set to `managed`, this option allows using network devices only if `network=` is set.\n- When set to `allow`, there is no restriction on which network devices can be used.\n\nUnless set to `allow`, the `host_name` option of network devices can't be set.",
+ 							"shortdesc": "Which network devices can be used",
+ 							"type": "string"
+ 						}
+diff --git a/internal/server/project/permissions.go b/internal/server/project/permissions.go
+index 1dad282c8b..a03dcc98a2 100644
+--- a/internal/server/project/permissions.go
++++ b/internal/server/project/permissions.go
+@@ -947,6 +947,11 @@ func checkRestrictions(project api.Project, instances []api.Instance, profiles [
+ 					}
+ 				}
+ 
++				// The host-side interface name is the host's to pick.
++				if restrictionValue != "allow" && device["host_name"] != "" {
++					return errors.New("Setting the host interface name is forbidden")
++				}
++
+ 				// Check if the NIC's parent/network setting is allowed based on the
+ 				// restricted.devices.nic and restricted.networks.access settings.
+ 				if device["network"] != "" {

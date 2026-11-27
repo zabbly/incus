@@ -1,0 +1,200 @@
+From 8f3cf9a870a69dff17277a1d6a7c52ee053c8043 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:32:45 -0500
+Subject: [PATCH] incusd/storage: Keep the pool config out of exports and
+ migrations
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The pool record in backup.yaml is needed by recovery but may hold
+credentials, so it's stripped from the export index, the migration
+header and the backup file copies that leave the server. The file is
+no longer transferred on rsync migrations, the target writes its own.
+
+This addresses GHSA-44g3-g988-46rg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit ffe2ce33fe8b420ddce03f98e789e053b365e7d3)
+---
+ cmd/incusd/backup.go                          |  3 ++
+ .../server/backup/config/backup_config.go     | 14 +++++++
+ internal/server/storage/backend.go            | 41 ++++++++++++++++++-
+ .../server/storage/drivers/generic_vfs.go     |  5 +++
+ internal/server/storage/drivers/utils.go      | 10 +++++
+ 5 files changed, 71 insertions(+), 2 deletions(-)
+
+diff --git a/cmd/incusd/backup.go b/cmd/incusd/backup.go
+index 3265b14837..0c2dcfb807 100644
+--- a/cmd/incusd/backup.go
++++ b/cmd/incusd/backup.go
+@@ -261,6 +261,9 @@ func backupWriteIndex(sourceInst instance.Instance, pool storagePools.Pool, opti
+ 		return fmt.Errorf("Failed generating instance backup config: %w", err)
+ 	}
+ 
++	// Those allowed to export the instance may not be allowed to see the pool config.
++	config.StripPoolConfig()
++
+ 	indexInfo := backup.Info{
+ 		Name:             sourceInst.Name(),
+ 		Pool:             pool.Name(),
+diff --git a/internal/server/backup/config/backup_config.go b/internal/server/backup/config/backup_config.go
+index 31118860a4..8cc8a2962b 100644
+--- a/internal/server/backup/config/backup_config.go
++++ b/internal/server/backup/config/backup_config.go
+@@ -16,3 +16,17 @@ type Config struct {
+ 	Bucket           *api.StorageBucket           `yaml:"bucket,omitempty"`
+ 	BucketKeys       []*api.StorageBucketKey      `yaml:"bucket_keys,omitempty"`
+ }
++
++// StripPoolConfig drops the pool config, which may hold credentials, from the config and its dependent volumes.
++func (c *Config) StripPoolConfig() {
++	if c.Pool != nil {
++		// Copy the record as it may be the backend's own.
++		pool := *c.Pool
++		pool.Config = nil
++		c.Pool = &pool
++	}
++
++	for _, vol := range c.DependentVolumes {
++		vol.StripPoolConfig()
++	}
++}
+diff --git a/internal/server/storage/backend.go b/internal/server/storage/backend.go
+index 33d3ce26d8..e2aae9b36f 100644
+--- a/internal/server/storage/backend.go
++++ b/internal/server/storage/backend.go
+@@ -2632,6 +2632,12 @@ func (b *backend) CreateInstanceFromMigration(inst instance.Instance, conn io.Re
+ 		if err != nil {
+ 			return err
+ 		}
++
++		// The source's backup file isn't transferred, write our own.
++		err = b.UpdateInstanceBackupFile(inst, true, op)
++		if err != nil {
++			return err
++		}
+ 	}
+ 
+ 	reverter.Success()
+@@ -3048,6 +3054,18 @@ func (b *backend) MigrateInstance(inst instance.Instance, conn io.ReadWriteClose
+ 		}
+ 	}
+ 
++	// Leave the pool config out of the backup file during the transfer, the peer may not be allowed to see it.
++	if !args.ClusterMove && !args.FinalSync {
++		err = b.writeInstanceBackupFile(inst, true, true, op)
++		if err != nil {
++			return err
++		}
++
++		defer func() {
++			_ = b.UpdateInstanceBackupFile(inst, true, nil)
++		}()
++	}
++
+ 	// Detect if source pool driver doesn't support cheap temporary snapshots that allow consistent copy when
+ 	// running, or if the negotiated protocol is VM non-optimized, meaning a complete raw copy of the active
+ 	// volume is being sent.
+@@ -3209,8 +3227,8 @@ func (b *backend) BackupInstance(inst instance.Instance, tarWriter *instancewrit
+ 		return err
+ 	}
+ 
+-	// Ensure the backup file reflects current config.
+-	err = b.UpdateInstanceBackupFile(inst, snapshots, op)
++	// Refresh the backup file, leaving out the pool config as the exporter may not be allowed to see it.
++	err = b.writeInstanceBackupFile(inst, snapshots, true, op)
+ 	if err != nil {
+ 		return err
+ 	}
+@@ -5891,6 +5909,11 @@ func (b *backend) migrationIndexHeaderSend(l logger.Logger, indexHeaderVersion u
+ 
+ 	// Send migration index header frame to target if applicable and wait for receipt.
+ 	if indexHeaderVersion > 0 {
++		// Those allowed to migrate the instance may not be allowed to see the pool config.
++		if info.Config != nil {
++			info.Config.StripPoolConfig()
++		}
++
+ 		headerJSON, err := json.Marshal(info)
+ 		if err != nil {
+ 			return nil, fmt.Errorf("Failed encoding migration index header: %w", err)
+@@ -7677,6 +7700,11 @@ func (b *backend) UpdateInstanceBackupFile(inst instance.Instance, snapshots boo
+ 	l.Debug("UpdateInstanceBackupFile started")
+ 	defer l.Debug("UpdateInstanceBackupFile finished")
+ 
++	return b.writeInstanceBackupFile(inst, snapshots, false, op)
++}
++
++// writeInstanceBackupFile writes the instance's backup.yaml file, optionally without the pool config.
++func (b *backend) writeInstanceBackupFile(inst instance.Instance, snapshots bool, stripPoolConfig bool, op *operations.Operation) error {
+ 	// We only write backup files out for actual instances.
+ 	if inst.IsSnapshot() {
+ 		return nil
+@@ -7687,6 +7715,10 @@ func (b *backend) UpdateInstanceBackupFile(inst instance.Instance, snapshots boo
+ 		return err
+ 	}
+ 
++	if stripPoolConfig {
++		config.StripPoolConfig()
++	}
++
+ 	data, err := yaml.Dump(config, yaml.WithV2Defaults())
+ 	if err != nil {
+ 		return err
+@@ -9528,6 +9560,11 @@ func (b *backend) qcow2MigrateVolume(s *state.State, vol drivers.Volume, project
+ 		return drivers.ErrNotSupported
+ 	}
+ 
++	// The instance backup file holds the pool config, the target writes its own.
++	if vol.Type() == drivers.VolumeTypeContainer || vol.Type() == drivers.VolumeTypeVM {
++		rsyncArgs = append(rsyncArgs, "--exclude", "/backup.yaml")
++	}
++
+ 	// Convert the volume type name to our internal integer representation.
+ 	volumeDbType, err := VolumeTypeToDBType(vol.Type())
+ 	if err != nil {
+diff --git a/internal/server/storage/drivers/generic_vfs.go b/internal/server/storage/drivers/generic_vfs.go
+index 77fbf5e88c..97fe07239f 100644
+--- a/internal/server/storage/drivers/generic_vfs.go
++++ b/internal/server/storage/drivers/generic_vfs.go
+@@ -174,6 +174,11 @@ func genericVFSMigrateVolume(d Driver, s *state.State, vol Volume, conn io.ReadW
+ 		return ErrNotSupported
+ 	}
+ 
++	// The instance backup file holds the pool config, the target writes its own.
++	if vol.volType == VolumeTypeContainer || vol.volType == VolumeTypeVM {
++		rsyncArgs = append(rsyncArgs, "--exclude", "/backup.yaml")
++	}
++
+ 	// Define function to send a filesystem volume.
+ 	sendFSVol := func(vol Volume, conn io.ReadWriteCloser, mountPath string) error {
+ 		var wrapper *ioprogress.ProgressTracker
+diff --git a/internal/server/storage/drivers/utils.go b/internal/server/storage/drivers/utils.go
+index 6063e5febd..c58842dff5 100644
+--- a/internal/server/storage/drivers/utils.go
++++ b/internal/server/storage/drivers/utils.go
+@@ -1109,6 +1109,11 @@ func BackupVolume(d Driver, v Volume, writer instancewriter.InstanceWriter, moun
+ 					return nil
+ 				}
+ 
++				// Snapshot backup files hold the pool config.
++				if v.IsSnapshot() && srcPath == filepath.Join(mountPath, "backup.yaml") {
++					return nil
++				}
++
+ 				name := filepath.Join(prefix, strings.TrimPrefix(srcPath, mountPath))
+ 				err = writer.WriteFile(name, srcPath, fi, false)
+ 				if err != nil {
+@@ -1196,6 +1201,11 @@ func BackupVolume(d Driver, v Volume, writer instancewriter.InstanceWriter, moun
+ 			return fmt.Errorf("Error walking file during export: %q: %w", srcPath, err)
+ 		}
+ 
++		// Snapshot backup files hold the pool config.
++		if v.IsSnapshot() && srcPath == filepath.Join(mountPath, "backup.yaml") {
++			return nil
++		}
++
+ 		name := filepath.Join(prefix, strings.TrimPrefix(srcPath, mountPath))
+ 
+ 		// Write the file to the tarball with ignoreGrowth enabled so that if the

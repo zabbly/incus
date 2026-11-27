@@ -1,0 +1,571 @@
+From 878777e4e5495a7d25c443646fcde9cc2e24c797 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:04:52 -0500
+Subject: [PATCH] client: Bound the responses read from untrusted servers
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The daemon reads image server and VM agent replies whole into memory,
+and the API client or the guest chooses the server. Add an optional
+response size limit to the client and set it on those connections.
+
+This addresses GHSA-3jgx-fpg2-x499 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 84c0b32f774c7ef2169653ce08371678a1d29a0a)
+---
+ client/connection.go                          |  7 +++++
+ client/incus.go                               | 16 +++++++++--
+ client/incus_images.go                        |  5 +++-
+ client/incus_instances.go                     | 28 +++++++++----------
+ client/incus_network_acls.go                  |  2 +-
+ client/incus_server.go                        |  2 ++
+ client/incus_storage_buckets.go               |  6 ++--
+ client/incus_storage_volumes.go               | 12 ++++----
+ cmd/incusd/daemon_images.go                   | 20 +++++++------
+ cmd/incusd/images.go                          | 15 +++++-----
+ .../server/instance/drivers/driver_qemu.go    | 22 +++++++++------
+ shared/simplestreams/simplestreams.go         | 14 +++++++++-
+ 12 files changed, 98 insertions(+), 51 deletions(-)
+
+diff --git a/client/connection.go b/client/connection.go
+index 4de34d4985..68607a6918 100644
+--- a/client/connection.go
++++ b/client/connection.go
+@@ -38,6 +38,9 @@ type ConnectionArgs struct {
+ 	// User agent string
+ 	UserAgent string
+ 
++	// Maximum size of an API response read from the server, 0 for no limit
++	MaxResponseSize int64
++
+ 	// Authentication type
+ 	AuthType string
+ 
+@@ -136,6 +139,7 @@ func ConnectIncusHTTPWithContext(ctx context.Context, args *ConnectionArgs, clie
+ 		eventConns:         make(map[string]*websocket.Conn),
+ 		eventListeners:     make(map[string][]*EventListener),
+ 		skipEvents:         args.SkipGetEvents,
++		maxResponseSize:    args.MaxResponseSize,
+ 		tempPath:           args.TempPath,
+ 	}
+ 
+@@ -225,6 +229,7 @@ func ConnectIncusUnixWithContext(ctx context.Context, path string, args *Connect
+ 		eventConns:         make(map[string]*websocket.Conn),
+ 		eventListeners:     make(map[string][]*EventListener),
+ 		skipEvents:         args.SkipGetEvents,
++		maxResponseSize:    args.MaxResponseSize,
+ 		project:            projectName,
+ 		tempPath:           args.TempPath,
+ 	}
+@@ -302,6 +307,7 @@ func ConnectSimpleStreams(uri string, args *ConnectionArgs) (ImageServer, error)
+ 
+ 	// Get simplestreams client
+ 	ssClient := simplestreams.NewClient(uri, *httpClient, args.UserAgent)
++	ssClient.SetMaxSize(args.MaxResponseSize)
+ 	server.ssClient = ssClient
+ 
+ 	// Setup the cache
+@@ -393,6 +399,7 @@ func httpsIncus(ctx context.Context, requestURL string, args *ConnectionArgs) (I
+ 		eventConns:         make(map[string]*websocket.Conn),
+ 		eventListeners:     make(map[string][]*EventListener),
+ 		skipEvents:         args.SkipGetEvents,
++		maxResponseSize:    args.MaxResponseSize,
+ 		tempPath:           args.TempPath,
+ 	}
+ 
+diff --git a/client/incus.go b/client/incus.go
+index 84cb0e392f..799413adc1 100644
+--- a/client/incus.go
++++ b/client/incus.go
+@@ -56,6 +56,8 @@ type ProtocolIncus struct {
+ 	oidcClient *oidcClient
+ 
+ 	tempPath string
++
++	maxResponseSize int64
+ }
+ 
+ // Disconnect gets rid of any background goroutines.
+@@ -241,6 +243,15 @@ func (r *ProtocolIncus) RawOperation(method string, path string, data any, ETag
+ }
+ 
+ // Internal functions.
++// parseResponse parses a response, bounding how much of it is read when a limit is set.
++func (r *ProtocolIncus) parseResponse(resp *http.Response) (*api.Response, string, error) {
++	if r.maxResponseSize > 0 {
++		resp.Body = http.MaxBytesReader(nil, resp.Body, r.maxResponseSize)
++	}
++
++	return incusParseResponse(resp)
++}
++
+ func incusParseResponse(resp *http.Response) (*api.Response, string, error) {
+ 	// Get the ETag
+ 	etag := resp.Header.Get("ETag")
+@@ -348,7 +359,7 @@ func (r *ProtocolIncus) rawQuery(method string, url string, data any, ETag strin
+ 
+ 	defer logger.WarnOnError(resp.Body.Close, "Failed to close response body")
+ 
+-	return incusParseResponse(resp)
++	return r.parseResponse(resp)
+ }
+ 
+ // setURLQueryAttributes modifies the supplied URL's query string with the client's current target and project.
+@@ -498,7 +509,7 @@ func (r *ProtocolIncus) rawWebsocket(url string) (*websocket.Conn, error) {
+ 	conn, resp, err := r.DoWebsocket(dialer, url, req)
+ 	if err != nil {
+ 		if resp != nil {
+-			apiResp, _, parseErr := incusParseResponse(resp)
++			apiResp, _, parseErr := r.parseResponse(resp)
+ 			if parseErr != nil {
+ 				err = errors.Join(err, parseErr)
+ 			}
+@@ -561,6 +572,7 @@ func (r *ProtocolIncus) WithContext(ctx context.Context) InstanceServer {
+ 		skipEvents:           r.skipEvents,
+ 		oidcClient:           r.oidcClient,
+ 		tempPath:             r.tempPath,
++		maxResponseSize:      r.maxResponseSize,
+ 	}
+ }
+ 
+diff --git a/client/incus_images.go b/client/incus_images.go
+index 250d56e79f..ab6c1472c1 100644
+--- a/client/incus_images.go
++++ b/client/incus_images.go
+@@ -245,6 +245,9 @@ func incusDownloadImage(fingerprint string, uri string, userAgent string, do fun
+ 	defer close(doneCh)
+ 
+ 	if response.StatusCode != http.StatusOK {
++		// Only an error message is expected, bound it.
++		response.Body = http.MaxBytesReader(nil, response.Body, 1024*1024)
++
+ 		_, _, err := incusParseResponse(response)
+ 		if err != nil {
+ 			return nil, err
+@@ -622,7 +625,7 @@ func (r *ProtocolIncus) CreateImage(image api.ImagesPost, args *ImageCreateArgs)
+ 	defer logger.WarnOnError(resp.Body.Close, "Failed to close response body")
+ 
+ 	// Handle errors
+-	response, _, err := incusParseResponse(resp)
++	response, _, err := r.parseResponse(resp)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+diff --git a/client/incus_instances.go b/client/incus_instances.go
+index 92ce5c343b..515498f980 100644
+--- a/client/incus_instances.go
++++ b/client/incus_instances.go
+@@ -589,7 +589,7 @@ func (r *ProtocolIncus) CreateInstanceFromBackup(args InstanceBackupArgs) (Opera
+ 	defer logger.WarnOnError(resp.Body.Close, "Failed to close response body")
+ 
+ 	// Handle errors
+-	response, _, err := incusParseResponse(resp)
++	response, _, err := r.parseResponse(resp)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+@@ -1548,7 +1548,7 @@ func (r *ProtocolIncus) GetInstanceFile(instanceName string, filePath string) (i
+ 
+ 	// Check the return value for a cleaner error
+ 	if resp.StatusCode != http.StatusOK {
+-		_, _, err := incusParseResponse(resp)
++		_, _, err := r.parseResponse(resp)
+ 		if err != nil {
+ 			return nil, nil, err
+ 		}
+@@ -1669,7 +1669,7 @@ func (r *ProtocolIncus) CreateInstanceFile(instanceName string, filePath string,
+ 	}
+ 
+ 	// Check the return value for a cleaner error
+-	_, _, err = incusParseResponse(resp)
++	_, _, err = r.parseResponse(resp)
+ 	if err != nil {
+ 		return err
+ 	}
+@@ -1784,7 +1784,7 @@ func (r *ProtocolIncus) rawConn(method string, apiURL *url.URL, protocol string,
+ 	}
+ 
+ 	if resp.StatusCode != http.StatusSwitchingProtocols {
+-		_, _, err := incusParseResponse(resp)
++		_, _, err := r.parseResponse(resp)
+ 		if err != nil {
+ 			return nil, err
+ 		}
+@@ -2418,7 +2418,7 @@ func (r *ProtocolIncus) GetInstanceLogfile(name string, filename string) (io.Rea
+ 
+ 	// Check the return value for a cleaner error
+ 	if resp.StatusCode != http.StatusOK {
+-		_, _, err := incusParseResponse(resp)
++		_, _, err := r.parseResponse(resp)
+ 		if err != nil {
+ 			return nil, err
+ 		}
+@@ -2478,7 +2478,7 @@ func (r *ProtocolIncus) getInstanceExecOutputLogFile(name string, filename strin
+ 
+ 	// Check the return value for a cleaner error
+ 	if resp.StatusCode != http.StatusOK {
+-		_, _, err := incusParseResponse(resp)
++		_, _, err := r.parseResponse(resp)
+ 		if err != nil {
+ 			return nil, err
+ 		}
+@@ -2603,7 +2603,7 @@ func (r *ProtocolIncus) GetInstanceTemplateFile(instanceName string, templateNam
+ 
+ 	// Check the return value for a cleaner error
+ 	if resp.StatusCode != http.StatusOK {
+-		_, _, err := incusParseResponse(resp)
++		_, _, err := r.parseResponse(resp)
+ 		if err != nil {
+ 			return nil, err
+ 		}
+@@ -2650,7 +2650,7 @@ func (r *ProtocolIncus) CreateInstanceTemplateFile(instanceName string, template
+ 	resp, err := r.DoHTTP(req)
+ 	// Check the return value for a cleaner error
+ 	if resp.StatusCode != http.StatusOK {
+-		_, _, err := incusParseResponse(resp)
++		_, _, err := r.parseResponse(resp)
+ 		if err != nil {
+ 			return err
+ 		}
+@@ -2898,7 +2898,7 @@ func (r *ProtocolIncus) GetInstanceConsoleLog(instanceName string, _ *InstanceCo
+ 
+ 	// Check the return value for a cleaner error
+ 	if resp.StatusCode != http.StatusOK {
+-		_, _, err := incusParseResponse(resp)
++		_, _, err := r.parseResponse(resp)
+ 		if err != nil {
+ 			return nil, err
+ 		}
+@@ -3090,7 +3090,7 @@ func (r *ProtocolIncus) GetInstanceBackupFile(instanceName string, name string,
+ 	defer close(doneCh)
+ 
+ 	if response.StatusCode != http.StatusOK {
+-		_, _, err := incusParseResponse(response)
++		_, _, err := r.parseResponse(response)
+ 		if err != nil {
+ 			return nil, err
+ 		}
+@@ -3167,7 +3167,7 @@ func (r *ProtocolIncus) CreateInstanceBackupStream(instanceName string, backup a
+ 	defer close(doneCh)
+ 
+ 	if response.StatusCode != http.StatusOK {
+-		_, _, err = incusParseResponse(response)
++		_, _, err = r.parseResponse(response)
+ 		if err != nil {
+ 			return err
+ 		}
+@@ -3305,7 +3305,7 @@ func (r *ProtocolIncus) GetInstanceDebugMemory(name string, format string) (io.R
+ 
+ 	// Check the return value for a cleaner error
+ 	if resp.StatusCode != http.StatusOK {
+-		_, _, err := incusParseResponse(resp)
++		_, _, err := r.parseResponse(resp)
+ 		if err != nil {
+ 			return nil, err
+ 		}
+@@ -3383,7 +3383,7 @@ func (r *ProtocolIncus) getInstanceNVRAM(name string, guid string, varName strin
+ 
+ 	// Check the return value for a cleaner error
+ 	if resp.StatusCode != http.StatusOK {
+-		_, _, err := incusParseResponse(resp)
++		_, _, err := r.parseResponse(resp)
+ 		if err != nil {
+ 			return nil, err
+ 		}
+@@ -3555,7 +3555,7 @@ func (r *ProtocolIncus) UpdateRawInstanceNVRAMGUIDVar(name string, guid string,
+ 	}
+ 
+ 	// Handle errors
+-	_, _, err = incusParseResponse(resp)
++	_, _, err = r.parseResponse(resp)
+ 	if err != nil {
+ 		return err
+ 	}
+diff --git a/client/incus_network_acls.go b/client/incus_network_acls.go
+index 15480084c8..b984fb6c53 100644
+--- a/client/incus_network_acls.go
++++ b/client/incus_network_acls.go
+@@ -105,7 +105,7 @@ func (r *ProtocolIncus) GetNetworkACLLogfile(name string) (io.ReadCloser, error)
+ 
+ 	// Check the return value for a cleaner error
+ 	if resp.StatusCode != http.StatusOK {
+-		_, _, err := incusParseResponse(resp)
++		_, _, err := r.parseResponse(resp)
+ 		if err != nil {
+ 			return nil, err
+ 		}
+diff --git a/client/incus_server.go b/client/incus_server.go
+index d0821d2110..d0c18a3d2a 100644
+--- a/client/incus_server.go
++++ b/client/incus_server.go
+@@ -122,6 +122,7 @@ func (r *ProtocolIncus) UseProject(name string) InstanceServer {
+ 		skipEvents:           r.skipEvents,
+ 		oidcClient:           r.oidcClient,
+ 		tempPath:             r.tempPath,
++		maxResponseSize:      r.maxResponseSize,
+ 	}
+ }
+ 
+@@ -148,6 +149,7 @@ func (r *ProtocolIncus) UseTarget(name string) InstanceServer {
+ 		oidcClient:           r.oidcClient,
+ 		clusterTarget:        name,
+ 		tempPath:             r.tempPath,
++		maxResponseSize:      r.maxResponseSize,
+ 	}
+ }
+ 
+diff --git a/client/incus_storage_buckets.go b/client/incus_storage_buckets.go
+index e743732a40..399f9ee355 100644
+--- a/client/incus_storage_buckets.go
++++ b/client/incus_storage_buckets.go
+@@ -477,7 +477,7 @@ func (r *ProtocolIncus) GetStoragePoolBucketBackupFile(pool string, bucketName s
+ 	defer close(doneCh)
+ 
+ 	if response.StatusCode != http.StatusOK {
+-		_, _, err := incusParseResponse(response)
++		_, _, err := r.parseResponse(response)
+ 		if err != nil {
+ 			return nil, err
+ 		}
+@@ -549,7 +549,7 @@ func (r *ProtocolIncus) CreateStoragePoolBucketBackupStream(poolName string, buc
+ 	defer close(doneCh)
+ 
+ 	if response.StatusCode != http.StatusOK {
+-		_, _, err = incusParseResponse(response)
++		_, _, err = r.parseResponse(response)
+ 		if err != nil {
+ 			return err
+ 		}
+@@ -606,7 +606,7 @@ func (r *ProtocolIncus) CreateStoragePoolBucketFromBackup(pool string, args Stor
+ 	defer logger.WarnOnError(resp.Body.Close, "Failed to close response body")
+ 
+ 	// Handle errors.
+-	response, _, err := incusParseResponse(resp)
++	response, _, err := r.parseResponse(resp)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+diff --git a/client/incus_storage_volumes.go b/client/incus_storage_volumes.go
+index c24aa7e722..4b5527afe4 100644
+--- a/client/incus_storage_volumes.go
++++ b/client/incus_storage_volumes.go
+@@ -1086,7 +1086,7 @@ func (r *ProtocolIncus) GetStorageVolumeBackupFile(pool string, volName string,
+ 	defer close(doneCh)
+ 
+ 	if response.StatusCode != http.StatusOK {
+-		_, _, err := incusParseResponse(response)
++		_, _, err := r.parseResponse(response)
+ 		if err != nil {
+ 			return nil, err
+ 		}
+@@ -1158,7 +1158,7 @@ func (r *ProtocolIncus) CreateStorageVolumeBackupStream(pool string, volName str
+ 	defer close(doneCh)
+ 
+ 	if response.StatusCode != http.StatusOK {
+-		_, _, err = incusParseResponse(response)
++		_, _, err = r.parseResponse(response)
+ 		if err != nil {
+ 			return err
+ 		}
+@@ -1231,7 +1231,7 @@ func (r *ProtocolIncus) CreateStoragePoolVolumeFromISO(pool string, args Storage
+ 	defer logger.WarnOnError(resp.Body.Close, "Failed to close response body")
+ 
+ 	// Handle errors.
+-	response, _, err := incusParseResponse(resp)
++	response, _, err := r.parseResponse(resp)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+@@ -1290,7 +1290,7 @@ func (r *ProtocolIncus) CreateStoragePoolVolumeFromBackup(pool string, args Stor
+ 	defer logger.WarnOnError(resp.Body.Close, "Failed to close response body")
+ 
+ 	// Handle errors.
+-	response, _, err := incusParseResponse(resp)
++	response, _, err := r.parseResponse(resp)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+@@ -1400,7 +1400,7 @@ func (r *ProtocolIncus) GetStorageVolumeFile(pool string, volumeType string, vol
+ 
+ 	// Check the return value for a cleaner error
+ 	if resp.StatusCode != http.StatusOK {
+-		_, _, err := incusParseResponse(resp)
++		_, _, err := r.parseResponse(resp)
+ 		if err != nil {
+ 			return nil, nil, err
+ 		}
+@@ -1495,7 +1495,7 @@ func (r *ProtocolIncus) CreateStorageVolumeFile(pool string, volumeType string,
+ 	}
+ 
+ 	// Check the return value for a cleaner error
+-	_, _, err = incusParseResponse(resp)
++	_, _, err = r.parseResponse(resp)
+ 	if err != nil {
+ 		return err
+ 	}
+diff --git a/cmd/incusd/daemon_images.go b/cmd/incusd/daemon_images.go
+index c648fb6648..31acea3211 100644
+--- a/cmd/incusd/daemon_images.go
++++ b/cmd/incusd/daemon_images.go
+@@ -63,6 +63,9 @@ func imageOperationLock(ctx context.Context, fingerprint string) (locking.Unlock
+ 	return locking.Lock(ctx, fmt.Sprintf("ImageOperation_%s", fingerprint))
+ }
+ 
++// imageServerMaxResponseSize bounds the replies read from an image server, which the client chose.
++const imageServerMaxResponseSize = 64 * 1024 * 1024
++
+ // imageDownload resolves the image fingerprint and if not in the database, downloads it.
+ func imageDownload(ctx context.Context, r *http.Request, s *state.State, op *operations.Operation, args *imageDownloadArgs) (*api.Image, bool, error) {
+ 	var err error
+@@ -99,14 +102,15 @@ func imageDownload(ctx context.Context, r *http.Request, s *state.State, op *ope
+ 	// Attempt to resolve the alias
+ 	if args.Server != "" && slices.Contains([]string{"incus", "lxd", "oci", "simplestreams"}, protocol) {
+ 		clientArgs := &incus.ConnectionArgs{
+-			TLSServerCert: args.Certificate,
+-			UserAgent:     version.UserAgent,
+-			Proxy:         s.Proxy,
+-			CachePath:     s.OS.CacheDir,
+-			CacheExpiry:   time.Hour,
+-			SkipGetEvents: true,
+-			SkipGetServer: true,
+-			TempPath:      internalUtil.VarPath("images"),
++			TLSServerCert:   args.Certificate,
++			UserAgent:       version.UserAgent,
++			Proxy:           s.Proxy,
++			CachePath:       s.OS.CacheDir,
++			CacheExpiry:     time.Hour,
++			SkipGetEvents:   true,
++			SkipGetServer:   true,
++			TempPath:        internalUtil.VarPath("images"),
++			MaxResponseSize: imageServerMaxResponseSize,
+ 		}
+ 
+ 		if slices.Contains([]string{"incus", "lxd"}, protocol) {
+diff --git a/cmd/incusd/images.go b/cmd/incusd/images.go
+index 47cac028a6..3df8632445 100644
+--- a/cmd/incusd/images.go
++++ b/cmd/incusd/images.go
+@@ -4841,13 +4841,14 @@ func imageExportPost(d *Daemon, r *http.Request) response.Response {
+ 
+ 	// Connect to the target and push the image
+ 	args := &incus.ConnectionArgs{
+-		TLSServerCert: req.Certificate,
+-		UserAgent:     version.UserAgent,
+-		Proxy:         s.Proxy,
+-		CachePath:     s.OS.CacheDir,
+-		CacheExpiry:   time.Hour,
+-		SkipGetEvents: true,
+-		SkipGetServer: true,
++		TLSServerCert:   req.Certificate,
++		UserAgent:       version.UserAgent,
++		Proxy:           s.Proxy,
++		CachePath:       s.OS.CacheDir,
++		CacheExpiry:     time.Hour,
++		SkipGetEvents:   true,
++		SkipGetServer:   true,
++		MaxResponseSize: imageServerMaxResponseSize,
+ 	}
+ 
+ 	// Setup client
+diff --git a/internal/server/instance/drivers/driver_qemu.go b/internal/server/instance/drivers/driver_qemu.go
+index fc4f9932ab..37e9f134e8 100644
+--- a/internal/server/instance/drivers/driver_qemu.go
++++ b/internal/server/instance/drivers/driver_qemu.go
+@@ -114,6 +114,9 @@ const qemuNetDevIDPrefix = "incus_"
+ // qemuBlockDevIDPrefix used as part of the name given QEMU blockdevs generated from user added devices.
+ const qemuBlockDevIDPrefix = "incus_"
+ 
++// qemuAgentMaxResponseSize bounds the replies read from the agent, which the guest controls.
++const qemuAgentMaxResponseSize = 16 * 1024 * 1024
++
+ // qemuMountTagMaxLength defines the maximum number of characters allowed for the mount tag added to the QEMU configuration.
+ const qemuMountTagMaxLength = 30
+ 
+@@ -2648,8 +2651,9 @@ func (d *qemu) advertiseVsockAddress() error {
+ 	}
+ 
+ 	agentArgs := &incus.ConnectionArgs{
+-		SkipGetEvents: true,
+-		SkipGetServer: true,
++		SkipGetEvents:   true,
++		SkipGetServer:   true,
++		MaxResponseSize: qemuAgentMaxResponseSize,
+ 	}
+ 
+ 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+@@ -10811,7 +10815,7 @@ func (d *qemu) Exec(req api.InstanceExecPost, stdin *os.File, stdout *os.File, s
+ 		return nil, err
+ 	}
+ 
+-	agent, err := incus.ConnectIncusHTTP(nil, client)
++	agent, err := incus.ConnectIncusHTTP(&incus.ConnectionArgs{MaxResponseSize: qemuAgentMaxResponseSize}, client)
+ 	if err != nil {
+ 		d.logger.Error("Failed to connect to the agent", logger.Ctx{"err": err})
+ 		return nil, errors.New("Failed to connect to the agent")
+@@ -11242,7 +11246,7 @@ func (d *qemu) agentGetState() (*api.InstanceState, error) {
+ 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+ 	defer cancel()
+ 
+-	agent, err := incus.ConnectIncusHTTPWithContext(ctx, nil, client)
++	agent, err := incus.ConnectIncusHTTPWithContext(ctx, &incus.ConnectionArgs{MaxResponseSize: qemuAgentMaxResponseSize}, client)
+ 	if err != nil {
+ 		return nil, fmt.Errorf("Failed connecting to agent: %w", err)
+ 	}
+@@ -11701,8 +11705,9 @@ func (d *qemu) devIncusEventSend(eventType string, eventMessage map[string]any)
+ 	}
+ 
+ 	agentArgs := &incus.ConnectionArgs{
+-		SkipGetEvents: true,
+-		SkipGetServer: true,
++		SkipGetEvents:   true,
++		SkipGetServer:   true,
++		MaxResponseSize: qemuAgentMaxResponseSize,
+ 	}
+ 
+ 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+@@ -12104,8 +12109,9 @@ func (d *qemu) getAgentMetrics() (*metrics.MetricSet, error) {
+ 	}
+ 
+ 	agentArgs := &incus.ConnectionArgs{
+-		SkipGetEvents: true,
+-		SkipGetServer: true,
++		SkipGetEvents:   true,
++		SkipGetServer:   true,
++		MaxResponseSize: qemuAgentMaxResponseSize,
+ 	}
+ 
+ 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+diff --git a/shared/simplestreams/simplestreams.go b/shared/simplestreams/simplestreams.go
+index 380ea1bf5d..9d40cb206a 100644
+--- a/shared/simplestreams/simplestreams.go
++++ b/shared/simplestreams/simplestreams.go
+@@ -58,6 +58,13 @@ type SimpleStreams struct {
+ 
+ 	cachePath   string
+ 	cacheExpiry time.Duration
++
++	maxSize int64
++}
++
++// SetMaxSize bounds the size of the index and product files read from the server, 0 for no limit.
++func (s *SimpleStreams) SetMaxSize(size int64) {
++	s.maxSize = size
+ }
+ 
+ // SetCache configures the on-disk cache.
+@@ -159,7 +166,12 @@ func (s *SimpleStreams) cachedDownload(path string) ([]byte, error) {
+ 		return nil, fmt.Errorf("Unable to fetch %s: %s", uri, r.Status)
+ 	}
+ 
+-	body, err := io.ReadAll(r.Body)
++	var reader io.Reader = r.Body
++	if s.maxSize > 0 {
++		reader = http.MaxBytesReader(nil, r.Body, s.maxSize)
++	}
++
++	body, err := io.ReadAll(reader)
+ 	if err != nil {
+ 		return nil, err
+ 	}

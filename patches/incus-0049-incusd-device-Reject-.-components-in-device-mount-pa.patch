@@ -1,0 +1,147 @@
+From d77397f9a54828766eb2940c6a01a84ff567e859 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Sat, 24 Oct 2026 00:37:39 -0400
+Subject: [PATCH] incusd/device: Reject ".." components in device mount paths
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A disk, unix or tpm device path accepted ".." components and became an
+lxc.mount.entry target, which liblxc resolves against the host before
+pivot_root, so a restricted project could mount a host directory into
+its container and have incusd write host files as root.
+
+Validate those paths at device validation, and load the pool in
+postStop when validation left it unset.
+
+This addresses GHSA-4375-qwr5-8vjj (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit df5a6d7f9406426d9b737d019fc053c13b655786)
+---
+ internal/server/device/device_utils_generic.go | 13 +++++++++++++
+ internal/server/device/disk.go                 | 10 +++++++++-
+ internal/server/device/tpm.go                  | 18 ++++++++++++++++--
+ internal/server/device/unix_common.go          |  7 ++++++-
+ 4 files changed, 44 insertions(+), 4 deletions(-)
+
+diff --git a/internal/server/device/device_utils_generic.go b/internal/server/device/device_utils_generic.go
+index a1d47b2628..d414647989 100644
+--- a/internal/server/device/device_utils_generic.go
++++ b/internal/server/device/device_utils_generic.go
+@@ -2,6 +2,7 @@ package device
+ 
+ import (
+ 	"bufio"
++	"errors"
+ 	"fmt"
+ 	"os"
+ 	"path/filepath"
+@@ -13,6 +14,18 @@ import (
+ 	"github.com/lxc/incus/v7/shared/util"
+ )
+ 
++// validateInstancePath rejects a path that could escape the instance when used as a mount target,
++// as liblxc resolves ".." components against the host before pivot_root.
++func validateInstancePath(value string) error {
++	for _, part := range strings.Split(value, "/") {
++		if part == ".." {
++			return errors.New("Path may not contain \"..\" components")
++		}
++	}
++
++	return nil
++}
++
+ // deviceJoinPath joins together prefix and text delimited by a "." for device path generation.
+ func deviceJoinPath(parts ...string) string {
+ 	return strings.Join(parts, ".")
+diff --git a/internal/server/device/disk.go b/internal/server/device/disk.go
+index 69c1719c72..938919cb76 100644
+--- a/internal/server/device/disk.go
++++ b/internal/server/device/disk.go
+@@ -516,7 +516,7 @@ func (d *disk) validateConfig(instConf instance.ConfigReader, partialValidation
+ 		//  type: string
+ 		//  required: yes
+ 		//  shortdesc: Path inside the instance where the disk will be mounted (only for file system disk devices)
+-		"path": validate.IsAny,
++		"path": validateInstancePath,
+ 
+ 		// gendoc:generate(entity=devices, group=disk, key=io.cache)
+ 		// This controls what bus a disk device should be attached to.
+@@ -2882,6 +2882,14 @@ func (d *disk) postStop() error {
+ 		// Parse the volume name and path.
+ 		volName, _ := internalInstance.SplitVolumeSource(d.config["source"])
+ 
++		// The pool may not have been loaded if validation failed before start.
++		if d.pool == nil {
++			d.pool, err = storagePools.LoadByName(d.state, d.config["pool"])
++			if err != nil {
++				return fmt.Errorf("Failed to get storage pool %q: %w", d.config["pool"], err)
++			}
++		}
++
+ 		_, err = d.pool.UnmountCustomVolume(storageProjectName, volName, nil)
+ 		if err != nil && !errors.Is(err, storageDrivers.ErrInUse) {
+ 			return err
+diff --git a/internal/server/device/tpm.go b/internal/server/device/tpm.go
+index 084c21b9b0..f98ed25da0 100644
+--- a/internal/server/device/tpm.go
++++ b/internal/server/device/tpm.go
+@@ -92,7 +92,14 @@ func (d *tpm) validateConfig(instConf instance.ConfigReader, partialValidation b
+ 		//  default: -
+ 		//  required: for containers
+ 		//  shortdesc: Only for containers: path inside the instance (for example, `/dev/tpm0`)
+-		rules["path"] = validate.IsNotEmpty
++		rules["path"] = func(value string) error {
++			err := validate.IsNotEmpty(value)
++			if err != nil {
++				return err
++			}
++
++			return validateInstancePath(value)
++		}
+ 
+ 		// gendoc:generate(entity=devices, group=tpm, key=pathrm)
+ 		//
+@@ -101,7 +108,14 @@ func (d *tpm) validateConfig(instConf instance.ConfigReader, partialValidation b
+ 		//  default: -
+ 		//  required: for containers
+ 		//  shortdesc: Only for containers: resource manager path inside the instance (for example, `/dev/tpmrm0`)
+-		rules["pathrm"] = validate.IsNotEmpty
++		rules["pathrm"] = func(value string) error {
++			err := validate.IsNotEmpty(value)
++			if err != nil {
++				return err
++			}
++
++			return validateInstancePath(value)
++		}
+ 	} else {
+ 		rules["path"] = validate.Optional(validate.IsNotEmpty)
+ 		rules["pathrm"] = validate.Optional(validate.IsNotEmpty)
+diff --git a/internal/server/device/unix_common.go b/internal/server/device/unix_common.go
+index 6ec7b93894..77e1eb81c6 100644
+--- a/internal/server/device/unix_common.go
++++ b/internal/server/device/unix_common.go
+@@ -56,6 +56,11 @@ func (d *unixCommon) validateConfig(instConf instance.ConfigReader, partialValid
+ 				return nil
+ 			}
+ 
++			err := validateInstancePath(value)
++			if err != nil {
++				return err
++			}
++
+ 			if strings.HasPrefix(value, d.state.DevMonitor.PrefixPath()) {
+ 				return nil
+ 			}
+@@ -100,7 +105,7 @@ func (d *unixCommon) validateConfig(instConf instance.ConfigReader, partialValid
+ 		// ---
+ 		//  type: string
+ 		//  shortdesc: Path inside the instance (one of `source` and `path` must be set)
+-		"path": validate.IsAny,
++		"path": validateInstancePath,
+ 
+ 		// gendoc:generate(entity=devices, group=unix-char-block, key=required)
+ 		//

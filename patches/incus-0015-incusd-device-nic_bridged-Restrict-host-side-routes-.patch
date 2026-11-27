@@ -1,0 +1,138 @@
+From 521b3e40e88bb00f80bc2597bada91b76b5663f9 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:28:48 -0500
+Subject: [PATCH] incusd/device/nic_bridged: Restrict host-side routes in
+ restricted projects
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The route keys were installed in the host's routing table without any
+project check. They must now fall within the project's
+restricted.networks.subnets entries for the bridge.
+
+This addresses GHSA-cwm9-v375-rgvv (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 2039ff90024412e8b2290c0c327e7d34f65420e5)
+---
+ cmd/incusd/api_project.go                     |  1 +
+ doc/config_options.txt                        |  1 +
+ .../server/device/device_utils_network.go     | 48 +++++++++++++++++++
+ internal/server/device/nic_bridged.go         |  6 +++
+ internal/server/metadata/configuration.json   |  2 +-
+ 5 files changed, 57 insertions(+), 1 deletion(-)
+
+diff --git a/cmd/incusd/api_project.go b/cmd/incusd/api_project.go
+index 519625fed9..681fa55b9c 100644
+--- a/cmd/incusd/api_project.go
++++ b/cmd/incusd/api_project.go
+@@ -2047,6 +2047,7 @@ func projectValidateConfig(s *state.State, config map[string]string) error {
+ 		// gendoc:generate(entity=project, group=restricted, key=restricted.networks.subnets)
+ 		// Specify a comma-delimited list of network subnets from the uplink networks that are allocated for use in this project.
+ 		// Use the form `<uplink>:<subnet>`.
++		// Host-side routes on bridged NICs must fall within the subnets listed for their network.
+ 		// ---
+ 		//  type: string
+ 		//  defaultdesc: `block`
+diff --git a/doc/config_options.txt b/doc/config_options.txt
+index 20e4906544..5f97e45a75 100644
+--- a/doc/config_options.txt
++++ b/doc/config_options.txt
+@@ -5305,6 +5305,7 @@ Specify a comma-delimited list of network integrations that can be used by netwo
+ :type: "string"
+ Specify a comma-delimited list of network subnets from the uplink networks that are allocated for use in this project.
+ Use the form `<uplink>:<subnet>`.
++Host-side routes on bridged NICs must fall within the subnets listed for their network.
+ ```
+ 
+ ```{config:option} restricted.networks.uplinks project-restricted
+diff --git a/internal/server/device/device_utils_network.go b/internal/server/device/device_utils_network.go
+index d0c1ff30d5..e32f42f4ac 100644
+--- a/internal/server/device/device_utils_network.go
++++ b/internal/server/device/device_utils_network.go
+@@ -429,6 +429,54 @@ func networkVethFillFromVolatile(device deviceConfig.Device, volatile map[string
+ 	}
+ }
+ 
++// nicCheckRestrictedRoutes checks a NIC's host-side routes against the project's restricted.networks.subnets.
++func nicCheckRestrictedRoutes(p api.Project, config deviceConfig.Device, networkName string) error {
++	if !util.IsTrue(p.Config["restricted"]) || p.Config["restricted.devices.nic"] == "allow" {
++		return nil
++	}
++
++	var err error
++	var routes []*net.IPNet
++	for _, k := range []string{"ipv4.routes", "ipv6.routes", "ipv4.routes.external", "ipv6.routes.external"} {
++		if config[k] == "" {
++			continue
++		}
++
++		routes, err = network.SubnetParseAppend(routes, util.SplitNTrimSpace(config[k], ",", -1, false)...)
++		if err != nil {
++			return err
++		}
++	}
++
++	if len(routes) == 0 {
++		return nil
++	}
++
++	// Only the subnets listed for this network apply.
++	var allowed []*net.IPNet
++	for _, subnetRaw := range util.SplitNTrimSpace(p.Config["restricted.networks.subnets"], ",", -1, true) {
++		subnetNetwork, subnetStr, ok := strings.Cut(subnetRaw, ":")
++		if !ok || subnetNetwork != networkName {
++			continue
++		}
++
++		_, subnet, err := net.ParseCIDR(subnetStr)
++		if err != nil {
++			return err
++		}
++
++		allowed = append(allowed, subnet)
++	}
++
++	for _, route := range routes {
++		if !slices.ContainsFunc(allowed, func(subnet *net.IPNet) bool { return network.SubnetContains(subnet, route) }) {
++			return fmt.Errorf("Route %q not allowed in project", route.String())
++		}
++	}
++
++	return nil
++}
++
+ // networkNICRouteAdd applies any static host-side routes configured for an instance NIC.
+ // If viaIPv4 or viaIPv6 are non-empty, they are used as the next-hop gateway for routes of the matching family.
+ func networkNICRouteAdd(routeDev string, viaIPv4 string, viaIPv6 string, routes ...string) error {
+diff --git a/internal/server/device/nic_bridged.go b/internal/server/device/nic_bridged.go
+index 35a7a11725..913acbb41e 100644
+--- a/internal/server/device/nic_bridged.go
++++ b/internal/server/device/nic_bridged.go
+@@ -538,6 +538,12 @@ func (d *nicBridged) validateConfig(instConf instance.ConfigReader, partialValid
+ 			return err
+ 		}
+ 
++		// Host-side routes are restricted to the project's allowed subnets.
++		err = nicCheckRestrictedRoutes(instConf.Project(), d.config, d.config["network"])
++		if err != nil {
++			return err
++		}
++
+ 		// Apply network settings to NIC.
+ 		netConfig := d.network.Config()
+ 
+diff --git a/internal/server/metadata/configuration.json b/internal/server/metadata/configuration.json
+index 6ea4b23e3a..abb61533dc 100644
+--- a/internal/server/metadata/configuration.json
++++ b/internal/server/metadata/configuration.json
+@@ -5933,7 +5933,7 @@
+ 					{
+ 						"restricted.networks.subnets": {
+ 							"defaultdesc": "`block`",
+-							"longdesc": "Specify a comma-delimited list of network subnets from the uplink networks that are allocated for use in this project.\nUse the form `\u003cuplink\u003e:\u003csubnet\u003e`.",
++							"longdesc": "Specify a comma-delimited list of network subnets from the uplink networks that are allocated for use in this project.\nUse the form `\u003cuplink\u003e:\u003csubnet\u003e`.\nHost-side routes on bridged NICs must fall within the subnets listed for their network.",
+ 							"shortdesc": "Which network subnets are allocated for use in this project",
+ 							"type": "string"
+ 						}

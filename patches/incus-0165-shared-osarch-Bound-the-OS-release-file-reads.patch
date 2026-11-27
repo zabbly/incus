@@ -1,0 +1,78 @@
+From 415e80aad77eee50c49d374b44587b3f669c4a32 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:00:03 -0500
+Subject: [PATCH] shared/osarch: Bound the OS release file reads
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The user agent is built at package initialization, which in forkfile
+happens after entering the instance's root, so a large release file in
+the instance was read whole into the helper's memory.
+
+This addresses GHSA-23fc-ggg4-5r2r (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit c9bc0dde6ce056630940e690d7ff7d4e92197afd)
+---
+ shared/osarch/release.go | 22 +++++++++++++++++++---
+ 1 file changed, 19 insertions(+), 3 deletions(-)
+
+diff --git a/shared/osarch/release.go b/shared/osarch/release.go
+index 55897617bb..3ef2793ce1 100644
+--- a/shared/osarch/release.go
++++ b/shared/osarch/release.go
+@@ -3,6 +3,7 @@ package osarch
+ import (
+ 	"errors"
+ 	"fmt"
++	"io"
+ 	"io/fs"
+ 	"os"
+ 	"strings"
+@@ -10,11 +11,26 @@ import (
+ 	"github.com/lxc/incus/v7/shared/util"
+ )
+ 
++// releaseFileMaxSize bounds the release files, which may be an instance's when read from a helper.
++const releaseFileMaxSize = 64 * 1024
++
++// readReleaseFile reads at most releaseFileMaxSize bytes of a release file.
++func readReleaseFile(path string) ([]byte, error) {
++	f, err := os.Open(path)
++	if err != nil {
++		return nil, err
++	}
++
++	defer func() { _ = f.Close() }()
++
++	return io.ReadAll(io.LimitReader(f, releaseFileMaxSize))
++}
++
+ // GetOSRelease returns a map with Linux distribution information.
+ func GetOSRelease() (map[string]string, error) {
+ 	// Handle TrueNAS.
+ 	if util.PathExists("/usr/share/truenas") {
+-		content, err := os.ReadFile("/etc/version")
++		content, err := readReleaseFile("/etc/version")
+ 		if err == nil {
+ 			return map[string]string{
+ 				"NAME":       "TrueNAS Scale",
+@@ -25,7 +41,7 @@ func GetOSRelease() (map[string]string, error) {
+ 
+ 	// Add chromebook info
+ 	if util.PathExists("/run/cros_milestone") {
+-		content, err := os.ReadFile("/run/cros_milestone")
++		content, err := readReleaseFile("/run/cros_milestone")
+ 		if err == nil {
+ 			return map[string]string{
+ 				"NAME":       "Chrome OS",
+@@ -67,7 +83,7 @@ func GetOSRelease() (map[string]string, error) {
+ func getOSRelease(filename string) (map[string]string, error) {
+ 	osRelease := make(map[string]string)
+ 
+-	data, err := os.ReadFile(filename)
++	data, err := readReleaseFile(filename)
+ 	if err != nil {
+ 		if errors.Is(err, fs.ErrNotExist) {
+ 			return osRelease, nil

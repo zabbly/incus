@@ -1,0 +1,79 @@
+From d0e8235cea34b28a3a9a3cc08c5b3f305f45d902 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Fri, 20 Nov 2026 11:04:57 -0500
+Subject: [PATCH] incusd/images: Hold received image data to the project budget
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Only the size declared by the remote was checked on Incus and
+simplestreams pulls.
+
+This addresses GHSA-9pvj-5r2h-r873 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+---
+ cmd/incusd/daemon_images.go | 28 ++++++++++++++++++++++++----
+ 1 file changed, 24 insertions(+), 4 deletions(-)
+
+diff --git a/cmd/incusd/daemon_images.go b/cmd/incusd/daemon_images.go
+index 353f521748..73b2013867 100644
+--- a/cmd/incusd/daemon_images.go
++++ b/cmd/incusd/daemon_images.go
+@@ -67,16 +67,22 @@ func imageOperationLock(ctx context.Context, fingerprint string) (locking.Unlock
+ // imageDownloadIdleTimeout is how long a download may go without data before it's cancelled.
+ const imageDownloadIdleTimeout = time.Minute
+ 
+-// activityFile records when a download last wrote to its file.
++// activityFile records when a download last wrote to its file and how much it received.
+ type activityFile struct {
+ 	io.ReadWriteSeeker
+-	touch func()
++	touch  func()
++	charge func(n int) error
+ }
+ 
+ // Write records the activity and writes to the file.
+ func (f *activityFile) Write(p []byte) (int, error) {
+ 	f.touch()
+ 
++	err := f.charge(len(p))
++	if err != nil {
++		return 0, err
++	}
++
+ 	return f.ReadWriteSeeker.Write(p)
+ }
+ 
+@@ -479,6 +485,20 @@ func imageDownload(ctx context.Context, r *http.Request, s *state.State, op *ope
+ 	lastActivity.Store(time.Now().Unix())
+ 	touch := func() { lastActivity.Store(time.Now().Unix()) }
+ 
++	// The size is declared by the remote, so hold what is received to the budget.
++	var received atomic.Int64
++	charge := func(n int) error {
++		if protocol == "oci" || args.Budget < 0 {
++			return nil
++		}
++
++		if received.Add(int64(n)) > args.Budget {
++			return fmt.Errorf("Remote image exceeds allowed budget of %d", args.Budget)
++		}
++
++		return nil
++	}
++
+ 	watchdogDone := make(chan struct{})
+ 	defer close(watchdogDone)
+ 
+@@ -547,8 +567,8 @@ func imageDownload(ctx context.Context, r *http.Request, s *state.State, op *ope
+ 		// Download the image
+ 		var resp *incus.ImageFileResponse
+ 		request := incus.ImageFileRequest{
+-			MetaFile:        &activityFile{ReadWriteSeeker: dest, touch: touch},
+-			RootfsFile:      &activityFile{ReadWriteSeeker: destRootfs, touch: touch},
++			MetaFile:        &activityFile{ReadWriteSeeker: dest, touch: touch, charge: charge},
++			RootfsFile:      &activityFile{ReadWriteSeeker: destRootfs, touch: touch, charge: charge},
+ 			ProgressHandler: progress,
+ 			MaxUnpackedSize: args.Budget,
+ 			Canceler:        canceler,

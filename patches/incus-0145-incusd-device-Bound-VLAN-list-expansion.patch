@@ -1,0 +1,44 @@
+From 73e6cadff2c8dd1447c0cac03a653b1f6d65e50c Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:07:11 -0500
+Subject: [PATCH] incusd/device: Bound VLAN list expansion
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Repeated ranges in vlan.tagged were expanded without limit.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit c5ca1793a13d293d14e9ba22f8a8cebfb246c7f9)
+---
+ internal/server/device/device_utils_network.go | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/internal/server/device/device_utils_network.go b/internal/server/device/device_utils_network.go
+index b1000b78b8..4d1d6e2763 100644
+--- a/internal/server/device/device_utils_network.go
++++ b/internal/server/device/device_utils_network.go
+@@ -1765,6 +1765,9 @@ func isIPAvailable(ctx context.Context, address net.IP, parentInterface string)
+ 	return false, nil
+ }
+ 
++// networkVLANListMax bounds a VLAN list to the number of VLAN IDs.
++const networkVLANListMax = 4095
++
+ // networkVLANListExpand takes in a list of raw VLAN values (string) that includes
+ // different VLAN formats ("number" and "start-end") and convert them into a list of
+ // expanded VLAN values in integer.
+@@ -1776,6 +1779,11 @@ func networkVLANListExpand(rawVLANValues []string) ([]int, error) {
+ 			return nil, err
+ 		}
+ 
++		// There are only so many VLAN IDs.
++		if len(networkVLANList)+count > networkVLANListMax {
++			return nil, fmt.Errorf("Too many VLAN IDs (maximum is %d)", networkVLANListMax)
++		}
++
+ 		for i := start; i < start+count; i++ {
+ 			networkVLANList = append(networkVLANList, i)
+ 		}

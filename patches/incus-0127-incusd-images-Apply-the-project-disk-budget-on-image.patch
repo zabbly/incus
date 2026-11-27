@@ -1,0 +1,56 @@
+From 98cbecdf08fcb782e7747a2e8dee83785441beed Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:04:59 -0500
+Subject: [PATCH] incusd/images: Apply the project disk budget on image refresh
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Refresh downloaded the replacement with no budget, so re-pointing the
+source alias let a project store an image larger than its limits.disk.
+
+This addresses GHSA-9pvj-5r2h-r873 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 353e3c6a4586348881b262e6e1a27b1e56a03d83)
+---
+ cmd/incusd/images.go | 19 ++++++++++++++++++-
+ 1 file changed, 18 insertions(+), 1 deletion(-)
+
+diff --git a/cmd/incusd/images.go b/cmd/incusd/images.go
+index f920f7ccb6..b8fea6bf3f 100644
+--- a/cmd/incusd/images.go
++++ b/cmd/incusd/images.go
+@@ -2538,6 +2538,23 @@ func autoUpdateImage(ctx context.Context, s *state.State, op *operations.Operati
+ 		}
+ 	}
+ 
++	// Hold the replacement to the project's disk budget, the image it replaces still counts.
++	var budget int64
++	err = s.DB.Cluster.Transaction(ctx, func(ctx context.Context, tx *db.ClusterTx) error {
++		var err error
++
++		budget, err = projectutils.GetImageSpaceBudget(tx, projectName)
++
++		return err
++	})
++	if err != nil {
++		return nil, err
++	}
++
++	if budget >= 0 {
++		budget += info.Size
++	}
++
+ 	// Update the image on each pool where it currently exists.
+ 	hash := fingerprint
+ 	var newInfo *api.Image
+@@ -2559,7 +2576,7 @@ func autoUpdateImage(ctx context.Context, s *state.State, op *operations.Operati
+ 			Public:      info.Public,
+ 			StoragePool: poolName,
+ 			ProjectName: projectName,
+-			Budget:      -1,
++			Budget:      budget,
+ 		})
+ 		if err != nil {
+ 			logger.Error("Failed to update the image", logger.Ctx{"err": err, "fingerprint": fingerprint})

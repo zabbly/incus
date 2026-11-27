@@ -1,0 +1,117 @@
+From f1705a0d264c8d2c5c387b87a8cb848c7d7fe2b7 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Sun, 22 Nov 2026 07:51:11 -0500
+Subject: [PATCH] incusd/storage/zfs: Don't take the dataset type or mount
+ point from a stream
+
+An optimized restore or transfer of a volume declared as block content
+received the stream as it came, so a filesystem stream could be passed
+off as a block volume and keep the mount point recorded in it, which ZFS
+then mounted over that host path, again at every pool import.
+
+Defer the mount on every receive and check the type of what arrived
+against the content type the volume was declared with.
+
+This addresses GHSA-992p-fqxp-43w6 (CVE pending)
+
+(cherry picked from commit a26078cb8e1c0cfce9b7fbb5c8ebc2d53826593e)
+---
+ .../storage/drivers/driver_zfs_utils.go       | 29 ++++++++++++++++++-
+ .../storage/drivers/driver_zfs_volumes.go     | 15 ++++++----
+ 2 files changed, 38 insertions(+), 6 deletions(-)
+
+diff --git a/internal/server/storage/drivers/driver_zfs_utils.go b/internal/server/storage/drivers/driver_zfs_utils.go
+index d0d335adde..2bdcaefaa1 100644
+--- a/internal/server/storage/drivers/driver_zfs_utils.go
++++ b/internal/server/storage/drivers/driver_zfs_utils.go
+@@ -413,6 +413,33 @@ func (d *zfs) sendDataset(dataset string, parent string, volSrcArgs *migration.V
+ 	return nil
+ }
+ 
++// checkReceivedDataset returns an error if the dataset's type doesn't match the content type the
++// volume was declared with. The type of a received dataset comes from the stream, which the
++// sender controls, as do any properties it carries. Removing the dataset is left to the
++// caller's revert, so that an existing volume is never destroyed here.
++func (d *zfs) checkReceivedDataset(vol Volume) error {
++	// A snapshot receive lands in the holding dataset, which is what carries the type.
++	dataset, _, _ := strings.Cut(d.dataset(vol, false), "@")
++
++	expected := "filesystem"
++	if IsContentBlock(vol.ContentType()) || d.isBlockBacked(vol) {
++		expected = "volume"
++	}
++
++	// Read the property directly, as the cache predates the receive.
++	output, err := subprocess.RunCommand("zfs", "get", "-H", "-p", "-o", "value", "type", dataset)
++	if err != nil {
++		return err
++	}
++
++	current := strings.TrimSpace(output)
++	if current != expected {
++		return fmt.Errorf("Received dataset %q is a %s, not a %s", dataset, current, expected)
++	}
++
++	return nil
++}
++
+ func (d *zfs) receiveDataset(vol Volume, r io.Reader, tracker *ioprogress.ProgressTracker) error {
+ 	// Assemble zfs receive command.
+ 	args := []string{"receive", "-x", "mountpoint", "-F", "-u", d.dataset(vol, false)}
+@@ -434,7 +461,7 @@ func (d *zfs) receiveDataset(vol Volume, r io.Reader, tracker *ioprogress.Progre
+ 		return err
+ 	}
+ 
+-	return nil
++	return d.checkReceivedDataset(vol)
+ }
+ 
+ // ValidateZfsBlocksize validates blocksize property value on the pool.
+diff --git a/internal/server/storage/drivers/driver_zfs_volumes.go b/internal/server/storage/drivers/driver_zfs_volumes.go
+index f2c5623360..3be87caeb5 100644
+--- a/internal/server/storage/drivers/driver_zfs_volumes.go
++++ b/internal/server/storage/drivers/driver_zfs_volumes.go
+@@ -423,15 +423,20 @@ func (d *zfs) CreateVolumeFromBackup(vol Volume, srcBackup backup.Info, srcData
+ 			if hdr.Name == srcFile {
+ 				// Extract the backup.
+ 				if v.ContentType() == ContentTypeBlock || d.isBlockBacked(v) {
+-					err = subprocess.RunCommandWithFds(context.TODO(), tr, nil, "zfs", "receive", "-F", target)
++					err = subprocess.RunCommandWithFds(context.TODO(), tr, nil, "zfs", "receive", "-F", "-u", target)
+ 				} else {
+-					err = subprocess.RunCommandWithFds(context.TODO(), tr, nil, "zfs", "receive", "-x", "mountpoint", "-F", target)
++					err = subprocess.RunCommandWithFds(context.TODO(), tr, nil, "zfs", "receive", "-x", "mountpoint", "-F", "-u", target)
+ 				}
+ 
+ 				if err != nil {
+ 					return err
+ 				}
+ 
++				err = d.checkReceivedDataset(v)
++				if err != nil {
++					return err
++				}
++
+ 				cancelFunc()
+ 				return nil
+ 			}
+@@ -579,9 +584,9 @@ func (d *zfs) CreateVolumeFromBackup(vol Volume, srcBackup backup.Info, srcData
+ func (d *zfs) receiveFromZfsSender(vol Volume, sender *exec.Cmd) error {
+ 	var receiver *exec.Cmd
+ 	if vol.ContentType() == ContentTypeBlock || d.isBlockBacked(vol) {
+-		receiver = exec.Command("zfs", "receive", d.dataset(vol, false))
++		receiver = exec.Command("zfs", "receive", "-u", d.dataset(vol, false))
+ 	} else {
+-		receiver = exec.Command("zfs", "receive", "-x", "mountpoint", d.dataset(vol, false))
++		receiver = exec.Command("zfs", "receive", "-x", "mountpoint", "-u", d.dataset(vol, false))
+ 	}
+ 
+ 	// Configure the pipes.
+@@ -637,7 +642,7 @@ func (d *zfs) receiveFromZfsSender(vol Volume, sender *exec.Cmd) error {
+ 		return err
+ 	}
+ 
+-	return nil
++	return d.checkReceivedDataset(vol)
+ }
+ 
+ func (d *zfs) useSnapshotSendChain(srcVol Volume) (bool, error) {

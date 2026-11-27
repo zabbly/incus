@@ -1,0 +1,122 @@
+From 5ea8c0e43f88e6c6d1f9dbe305bc3abc347bce8c Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:11:12 -0500
+Subject: [PATCH] incusd/project: Check restrictions on snapshots received
+ through copy and migration
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Snapshots created from a migration header or a source instance's
+snapshots were recorded with whatever config and devices they carried,
+bypassing the project's restricted.* checks that apply to the instance.
+
+This addresses GHSA-5pf7-5wqc-rp52 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit a017fc7d93c5ac36f3c88079726d040005580f5f)
+---
+ cmd/incusd/instance.go                        |  8 +++++
+ .../server/instance/drivers/driver_lxc.go     |  8 +++++
+ .../server/instance/drivers/driver_qemu.go    |  8 +++++
+ internal/server/project/permissions.go        | 30 +++++++++++++++++++
+ 4 files changed, 54 insertions(+)
+
+diff --git a/cmd/incusd/instance.go b/cmd/incusd/instance.go
+index e1dac86d3d..949173973e 100644
+--- a/cmd/incusd/instance.go
++++ b/cmd/incusd/instance.go
+@@ -553,6 +553,14 @@ func instanceCreateAsCopy(s *state.State, opts instanceCreateAsCopyOpts, op *ope
+ 				CreationDate: srcSnap.CreationDate(),
+ 			}
+ 
++			// The snapshot config comes from the source, check it against the project.
++			err = s.DB.Cluster.Transaction(context.TODO(), func(ctx context.Context, tx *db.ClusterTx) error {
++				return project.AllowSnapshotImport(tx, snapInstArgs.Project, snapInstArgs)
++			})
++			if err != nil {
++				return nil, err
++			}
++
+ 			// Create the snapshots.
+ 			_, snapInstOp, cleanup, err := instance.CreateInternal(s, snapInstArgs, op, true, false, false)
+ 			if err != nil {
+diff --git a/internal/server/instance/drivers/driver_lxc.go b/internal/server/instance/drivers/driver_lxc.go
+index 1e149fa6c6..6b2e92870b 100644
+--- a/internal/server/instance/drivers/driver_lxc.go
++++ b/internal/server/instance/drivers/driver_lxc.go
+@@ -7312,6 +7312,14 @@ func (d *lxc) MigrateReceive(args instance.MigrateReceiveArgs) error {
+ 						}
+ 					}
+ 
++					// The snapshot config comes from the source, check it against the project.
++					err = d.state.DB.Cluster.Transaction(context.TODO(), func(ctx context.Context, tx *db.ClusterTx) error {
++						return project.AllowSnapshotImport(tx, d.project.Name, *snapArgs)
++					})
++					if err != nil {
++						return err
++					}
++
+ 					// Create the snapshot instance.
+ 					_, snapInstOp, cleanup, err := instance.CreateInternal(d.state, *snapArgs, d.op, true, false, false)
+ 					if err != nil {
+diff --git a/internal/server/instance/drivers/driver_qemu.go b/internal/server/instance/drivers/driver_qemu.go
+index fa8970ff37..10a5f86aa9 100644
+--- a/internal/server/instance/drivers/driver_qemu.go
++++ b/internal/server/instance/drivers/driver_qemu.go
+@@ -10366,6 +10366,14 @@ func (d *qemu) MigrateReceive(args instance.MigrateReceiveArgs) error {
+ 						}
+ 					}
+ 
++					// The snapshot config comes from the source, check it against the project.
++					err = d.state.DB.Cluster.Transaction(context.TODO(), func(ctx context.Context, tx *db.ClusterTx) error {
++						return project.AllowSnapshotImport(tx, d.project.Name, *snapArgs)
++					})
++					if err != nil {
++						return err
++					}
++
+ 					// Create the snapshot instance.
+ 					_, snapInstOp, cleanup, err := instance.CreateInternal(d.state, *snapArgs, d.op, true, false, false)
+ 					if err != nil {
+diff --git a/internal/server/project/permissions.go b/internal/server/project/permissions.go
+index 3e9ee4efe8..44a02686dd 100644
+--- a/internal/server/project/permissions.go
++++ b/internal/server/project/permissions.go
+@@ -2202,6 +2202,36 @@ func AllowBackupTarget(tx *db.ClusterTx, projectName string) error {
+ 	return nil
+ }
+ 
++// AllowSnapshotImport checks the project's restrictions against a snapshot received through a copy or migration.
++func AllowSnapshotImport(tx *db.ClusterTx, projectName string, args db.InstanceArgs) error {
++	info, err := fetchProject(tx, projectName, true)
++	if err != nil {
++		return err
++	}
++
++	if info == nil || !util.IsTrue(info.Project.Config["restricted"]) {
++		return nil
++	}
++
++	profiles := make([]string, 0, len(args.Profiles))
++	for _, profile := range args.Profiles {
++		profiles = append(profiles, profile.Name)
++	}
++
++	snap := api.Instance{
++		Name:    args.Name,
++		Project: projectName,
++		Type:    args.Type.String(),
++		InstancePut: api.InstancePut{
++			Config:   args.Config,
++			Devices:  args.Devices.CloneNative(),
++			Profiles: profiles,
++		},
++	}
++
++	return checkRestrictions(info.Project, []api.Instance{snap}, nil)
++}
++
+ // AllowSnapshotCreation returns an error if any project-specific restriction is violated
+ // when creating a new snapshot in a project.
+ func AllowSnapshotCreation(p *api.Project) error {

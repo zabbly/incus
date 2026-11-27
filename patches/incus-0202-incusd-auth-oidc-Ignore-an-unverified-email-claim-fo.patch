@@ -1,0 +1,37 @@
+From e753e9ce1420574ed5b4454f7437adffd0355bee Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:06:38 -0500
+Subject: [PATCH] incusd/auth/oidc: Ignore an unverified email claim for the
+ user name
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+An account could carry another user's address at the provider with
+email_verified set to false and be named, and so authorized, as them.
+
+This addresses GHSA-cp5w-98j2-x2hv (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 5cd369e7c7b3ba975fb84c26ecbca1f77fb58202)
+---
+ internal/server/auth/oidc/oidc.go | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/internal/server/auth/oidc/oidc.go b/internal/server/auth/oidc/oidc.go
+index 71058fde9c..dba314e931 100644
+--- a/internal/server/auth/oidc/oidc.go
++++ b/internal/server/auth/oidc/oidc.go
+@@ -132,6 +132,12 @@ func (o *Verifier) Auth(ctx context.Context, w http.ResponseWriter, r *http.Requ
+ 		return username, claims.Claims, nil
+ 	}
+ 
++	// An address the provider marks as unverified may belong to someone else.
++	verified, ok := claims.Claims["email_verified"].(bool)
++	if ok && !verified {
++		return claims.Subject, claims.Claims, nil
++	}
++
+ 	user, ok := claims.Claims["email"]
+ 	if ok && user != nil {
+ 		email, ok := user.(string)

@@ -1,0 +1,35 @@
+From 343b532be71331329ffdc70e61a0495d42e88c29 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:02:22 -0500
+Subject: [PATCH] incusd: Keep balancing CPUs when one instance has an invalid
+ CPU set
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A single instance with an empty or invalid CPU set, which a NUMA node
+without CPUs produces, aborted the whole rebalance and left every other
+instance's limits.cpu unapplied.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit f2d65d1ca1fc324d964c2aea7fa44629d3b98f46)
+---
+ cmd/incusd/devices.go | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/cmd/incusd/devices.go b/cmd/incusd/devices.go
+index d65ff22f9f..431927d8d7 100644
+--- a/cmd/incusd/devices.go
++++ b/cmd/incusd/devices.go
+@@ -529,7 +529,8 @@ func deviceTaskBalance(s *state.State) {
+ 			// Pinned
+ 			containerCpus, err := resources.ParseCpuset(cpulimit)
+ 			if err != nil {
+-				return
++				logger.Warn("Skipping instance with an invalid CPU set", logger.Ctx{"instance": c.Name(), "project": c.Project().Name, "cpuset": cpulimit, "err": err})
++				continue
+ 			}
+ 
+ 			if conf["limits.cpu"] != "" && len(numaCpus) > 0 {

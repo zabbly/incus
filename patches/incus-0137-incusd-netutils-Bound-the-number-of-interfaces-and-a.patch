@@ -1,0 +1,59 @@
+From a795866636adc906d0de414bc8fdfd4463b36eca Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:59:14 -0500
+Subject: [PATCH] incusd/netutils: Bound the number of interfaces and addresses
+ collected
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The owner of a network namespace decides how many addresses it holds
+and each one costs the daemon memory on every state query.
+
+This addresses GHSA-23fc-ggg4-5r2r (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 9e0d4c50332780aa29b1fc3db9b26b9247d1745f)
+---
+ internal/netutils/netns_getifaddrs.c | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/internal/netutils/netns_getifaddrs.c b/internal/netutils/netns_getifaddrs.c
+index be185997d1..9f1fd9b995 100644
+--- a/internal/netutils/netns_getifaddrs.c
++++ b/internal/netutils/netns_getifaddrs.c
+@@ -85,10 +85,14 @@ struct ifaddrs_storage {
+ 	char name[IFNAMSIZ + 1];
+ };
+ 
++/* Interfaces plus addresses, the namespace owner controls how many there are. */
++#define IFADDRS_MAX_ENTRIES 8192
++
+ struct ifaddrs_ctx {
+ 	struct ifaddrs_storage *first;
+ 	struct ifaddrs_storage *last;
+ 	struct ifaddrs_storage *hash[IFADDRS_HASH_SIZE];
++	size_t count;
+ };
+ 
+ static void netns_freeifaddrs(struct netns_ifaddrs *ifp)
+@@ -196,12 +200,19 @@ static int nl_msg_to_ifaddr(void *pctx, bool *netnsid_aware, struct nlmsghdr *h)
+ 			return 0;
+ 	}
+ 
++	if (ctx->count >= IFADDRS_MAX_ENTRIES) {
++		errno = E2BIG;
++		return -1;
++	}
++
+ 	ifs = calloc(1, sizeof(struct ifaddrs_storage) + stats_len);
+ 	if (!ifs) {
+ 		errno = ENOMEM;
+ 		return -1;
+ 	}
+ 
++	ctx->count++;
++
+ 	if (h->nlmsg_type == RTM_NEWLINK) {
+ 		ifs->index = ifi->ifi_index;
+ 		ifs->ifa.ifa_ifindex = ifi->ifi_index;

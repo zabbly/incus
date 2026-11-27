@@ -1,0 +1,34 @@
+From 9bffe0be545f63b8f2ee13fd5577163ccb1d3bb6 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:29:18 -0500
+Subject: [PATCH] incusd/project: Treat volatile.selinux.context as a
+ restricted key
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The key is read back as the instance's SELinux context at start, so
+letting restricted clients set it bypassed the security.selinux.level
+restriction.
+
+This addresses GHSA-5pf7-5wqc-rp52 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 9fa441e8bd7f7c6c802db775c8d52e7cbb39a7cc)
+---
+ internal/server/project/permissions.go | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/internal/server/project/permissions.go b/internal/server/project/permissions.go
+index 9a79145670..4246496498 100644
+--- a/internal/server/project/permissions.go
++++ b/internal/server/project/permissions.go
+@@ -344,7 +344,7 @@ func isVolatileConfigRestricted(project api.Project, instanceType instancetype.T
+ 
+ // isSafeVolatileKey returns whether a volatile.* key may be set in restricted projects.
+ func isSafeVolatileKey(key string) bool {
+-	if slices.Contains([]string{"volatile.apply_template", "volatile.base_image", "volatile.last_state.power", "volatile.selinux.context"}, key) {
++	if slices.Contains([]string{"volatile.apply_template", "volatile.base_image", "volatile.last_state.power"}, key) {
+ 		return true
+ 	}
+ 

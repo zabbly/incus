@@ -1,0 +1,38 @@
+From 527a624f7876b3b6819549f28ac3f4b7a6fc86f6 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:02:21 -0500
+Subject: [PATCH] incusd/operations: Read the run hook under the lock
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The hook is cleared once the operation is done, so a cancel racing the
+start goroutine left it calling nil.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 781f8881925f4971ccf79bddd7c94a563e067823)
+---
+ internal/server/operations/operations.go | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/internal/server/operations/operations.go b/internal/server/operations/operations.go
+index ef3a34eabb..3a4483799a 100644
+--- a/internal/server/operations/operations.go
++++ b/internal/server/operations/operations.go
+@@ -306,9 +306,12 @@ func (op *Operation) Start() error {
+ 
+ 	op.status = api.Running
+ 
+-	if op.onRun != nil {
++	// Capture the handler under the lock, done() clears it once the operation finishes.
++	onRun := op.onRun
++
++	if onRun != nil {
+ 		go func(op *Operation) {
+-			err := op.onRun(op)
++			err := onRun(op)
+ 			if err != nil {
+ 				op.lock.Lock()
+ 				op.status = api.Failure

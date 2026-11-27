@@ -1,0 +1,115 @@
+From ba07913637fb9c5f37b9cc08f62457db1f49750a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:39:50 -0500
+Subject: [PATCH] incusd/forknet: Enter the network namespace through init's
+ pidfd
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The connect helper opened /proc/<pid>/ns/net by number, so an init
+that exited in the meantime could hand it a host process' namespace.
+
+This addresses GHSA-fg2p-r659-c4q8 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 4f29a762b850b08b2f489aaf342df40cdc1e942d)
+---
+ cmd/incusd/main_forknet.go                    | 27 ++++++++++++++-----
+ .../server/instance/drivers/driver_lxc.go     | 12 +++++++--
+ 2 files changed, 30 insertions(+), 9 deletions(-)
+
+diff --git a/cmd/incusd/main_forknet.go b/cmd/incusd/main_forknet.go
+index 4989244c75..28702b5310 100644
+--- a/cmd/incusd/main_forknet.go
++++ b/cmd/incusd/main_forknet.go
+@@ -20,6 +20,9 @@ package main
+ #include "memory_utils.h"
+ #include "process_utils.h"
+ 
++extern int pidfd_nsfd(int pidfd, pid_t pid);
++extern bool change_namespaces(int pidfd, int nsfd, unsigned int flags);
++
+ static int dosetns_file(char *file, char *nstype)
+ {
+ 	__do_close int ns_fd = -EBADF;
+@@ -63,9 +66,19 @@ static void forkdonetdetach(char *file) {
+ 	// Jump back to Go for the rest
+ }
+ 
+-static void forkdonetconnect(char *file) {
+-	// Attach to the network namespace.
+-	if (dosetns_file(file, "net") < 0) {
++static void forkdonetconnect(char *pidstr, char *pidfdstr) {
++	__do_close int ns_fd = -EBADF;
++	pid_t pid = atoi(pidstr);
++	int pidfd = atoi(pidfdstr);
++
++	// Enter the namespace through the pidfd so a recycled PID can't redirect us.
++	ns_fd = pidfd_nsfd(pidfd, pid);
++	if (ns_fd < 0) {
++		fprintf(stderr, "Failed to open the container namespaces: %s\n", strerror(-ns_fd));
++		_exit(1);
++	}
++
++	if (!change_namespaces(pidfd, ns_fd, CLONE_NEWNET)) {
+ 		fprintf(stderr, "Failed setns to container network namespace: %s\n", strerror(errno));
+ 		_exit(1);
+ 	}
+@@ -212,7 +225,7 @@ void forknet(void)
+ 	if (strcmp(command, "detach") == 0)
+ 		forkdonetdetach(cur);
+ 	else if (strcmp(command, "connect") == 0)
+-		forkdonetconnect(cur);
++		forkdonetconnect(cur, advance_arg(true));
+ }
+ */
+ import "C"
+@@ -296,8 +309,8 @@ func (c *cmdForknet) command() *cobra.Command {
+ 
+ 	// connect
+ 	cmdConnect := &cobra.Command{}
+-	cmdConnect.Use = "connect <netns file> <address> <port>"
+-	cmdConnect.Args = cobra.ExactArgs(3)
++	cmdConnect.Use = "connect <PID> <PIDFd> <address> <port>"
++	cmdConnect.Args = cobra.ExactArgs(4)
+ 	cmdConnect.RunE = c.runConnect
+ 	cmd.AddCommand(cmdConnect)
+ 
+@@ -1368,7 +1381,7 @@ func (c *cmdForknet) runDetach(_ *cobra.Command, args []string) error {
+ }
+ 
+ func (c *cmdForknet) runConnect(_ *cobra.Command, args []string) error {
+-	addr := net.JoinHostPort(args[1], args[2])
++	addr := net.JoinHostPort(args[2], args[3])
+ 
+ 	// Establish the connection (we're inside the instance's network namespace).
+ 	conn, err := net.Dial("tcp", addr)
+diff --git a/internal/server/instance/drivers/driver_lxc.go b/internal/server/instance/drivers/driver_lxc.go
+index eeb05f6393..5aaf5b1089 100644
+--- a/internal/server/instance/drivers/driver_lxc.go
++++ b/internal/server/instance/drivers/driver_lxc.go
+@@ -8266,13 +8266,21 @@ func (d *lxc) PortForwardConn(address string, port int) (net.Conn, error) {
+ 	childFile := os.NewFile(uintptr(fds[1]), "forknet-child")
+ 	defer func() { _ = childFile.Close() }()
+ 
++	// The pidfd pins the namespace to the current init, a reused PID would otherwise be followed.
++	pidFd, err := d.InitPidFd()
++	if err != nil {
++		return nil, err
++	}
++
++	defer logger.WarnOnError(pidFd.Close, "Failed to close PID fd")
++
+ 	// Spawn forknet to establish the connection from within the network namespace.
+ 	var stderr bytes.Buffer
+ 
+ 	forknet := exec.Cmd{
+ 		Path:       d.state.OS.ExecPath,
+-		Args:       []string{d.state.OS.ExecPath, "forknet", "connect", "--", fmt.Sprintf("/proc/%d/ns/net", d.InitPID()), address, strconv.Itoa(port)},
+-		ExtraFiles: []*os.File{childFile},
++		Args:       []string{d.state.OS.ExecPath, "forknet", "connect", "--", strconv.Itoa(d.InitPID()), "4", address, strconv.Itoa(port)},
++		ExtraFiles: []*os.File{childFile, pidFd},
+ 		Stderr:     &stderr,
+ 	}
+ 

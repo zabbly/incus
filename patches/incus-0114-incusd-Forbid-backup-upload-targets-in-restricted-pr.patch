@@ -1,0 +1,93 @@
+From 23ffe37ed28a79be6d814babc9cc70cacb020e78 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:58:42 -0500
+Subject: [PATCH] incusd: Forbid backup upload targets in restricted projects
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The target URL of a backup request was never checked, so a restricted
+client could make the daemon upload to any address it can reach.
+
+This addresses GHSA-chhj-pwx6-9cx3 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 1d192ca17aea84026cd504dd4c2a02920fd1908a)
+---
+ cmd/incusd/instance_backup.go          |  9 +++++++++
+ cmd/incusd/storage_volumes_backup.go   |  9 +++++++++
+ internal/server/project/permissions.go | 21 +++++++++++++++++++++
+ 3 files changed, 39 insertions(+)
+
+diff --git a/cmd/incusd/instance_backup.go b/cmd/incusd/instance_backup.go
+index 59f1ac55a3..6a344f7b8e 100644
+--- a/cmd/incusd/instance_backup.go
++++ b/cmd/incusd/instance_backup.go
+@@ -308,6 +308,15 @@ func instanceBackupsPost(d *Daemon, r *http.Request) response.Response {
+ 		return response.BadRequest(errors.New("application/octet-stream is not a valid content type when a target is defined"))
+ 	}
+ 
++	if req.Target != nil {
++		err = s.DB.Cluster.Transaction(r.Context(), func(ctx context.Context, tx *db.ClusterTx) error {
++			return project.AllowBackupTarget(tx, projectName)
++		})
++		if err != nil {
++			return response.SmartError(err)
++		}
++	}
++
+ 	if req.CompressionAlgorithm != "" {
+ 		err := validate.IsCompressionAlgorithm(req.CompressionAlgorithm)
+ 		if err != nil {
+diff --git a/cmd/incusd/storage_volumes_backup.go b/cmd/incusd/storage_volumes_backup.go
+index 777ff399bf..c7169eda0d 100644
+--- a/cmd/incusd/storage_volumes_backup.go
++++ b/cmd/incusd/storage_volumes_backup.go
+@@ -460,6 +460,15 @@ func storagePoolVolumeTypeCustomBackupsPost(d *Daemon, r *http.Request) response
+ 		return response.BadRequest(errors.New("application/octet-stream is not a valid content type when a target is defined"))
+ 	}
+ 
++	if req.Target != nil {
++		err = s.DB.Cluster.Transaction(r.Context(), func(ctx context.Context, tx *db.ClusterTx) error {
++			return project.AllowBackupTarget(tx, request.ProjectParam(r))
++		})
++		if err != nil {
++			return response.SmartError(err)
++		}
++	}
++
+ 	if req.CompressionAlgorithm != "" {
+ 		err := validate.IsCompressionAlgorithm(req.CompressionAlgorithm)
+ 		if err != nil {
+diff --git a/internal/server/project/permissions.go b/internal/server/project/permissions.go
+index a03dcc98a2..4858460e2d 100644
+--- a/internal/server/project/permissions.go
++++ b/internal/server/project/permissions.go
+@@ -2119,6 +2119,27 @@ func AllowBackupCreation(tx *db.ClusterTx, projectName string) error {
+ 	return nil
+ }
+ 
++// AllowBackupTarget returns an error if the project is restricted, as the server would upload the
++// backup to an arbitrary remote URL.
++func AllowBackupTarget(tx *db.ClusterTx, projectName string) error {
++	ctx := context.Background()
++	dbProject, err := cluster.GetProject(ctx, tx.Tx(), projectName)
++	if err != nil {
++		return err
++	}
++
++	project, err := dbProject.ToAPI(ctx, tx.Tx())
++	if err != nil {
++		return err
++	}
++
++	if util.IsTrue(project.Config["restricted"]) {
++		return api.StatusErrorf(http.StatusForbidden, "Restricted projects aren't allowed to upload backups to a remote target")
++	}
++
++	return nil
++}
++
+ // AllowSnapshotCreation returns an error if any project-specific restriction is violated
+ // when creating a new snapshot in a project.
+ func AllowSnapshotCreation(p *api.Project) error {

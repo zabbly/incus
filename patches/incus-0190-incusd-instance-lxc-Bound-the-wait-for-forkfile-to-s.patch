@@ -1,0 +1,66 @@
+From 0102beef6cd81577649c286333fec8ac692d4330 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:09:27 -0500
+Subject: [PATCH] incusd/instance/lxc: Bound the wait for forkfile to stop
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A graceful stop waited forever for forkfile to exit, and forkfile only
+exits once its last SFTP client has gone, so one idle client blocked the
+snapshot task for every project. The wait is now bounded and forkfile
+is killed when it runs out.
+
+This addresses GHSA-23fc-ggg4-5r2r (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 006d58a4798ff7b89494b902f22465d68194dbbf)
+---
+ .../server/instance/drivers/driver_lxc.go     | 24 +++++++++++++++++--
+ 1 file changed, 22 insertions(+), 2 deletions(-)
+
+diff --git a/internal/server/instance/drivers/driver_lxc.go b/internal/server/instance/drivers/driver_lxc.go
+index b21aef0455..4a23085dbd 100644
+--- a/internal/server/instance/drivers/driver_lxc.go
++++ b/internal/server/instance/drivers/driver_lxc.go
+@@ -8329,10 +8329,30 @@ func (d *lxc) PortForwardConn(address string, port int) (net.Conn, error) {
+ 
+ // stopForkFile attempts to send SIGTERM (if force is true) or SIGINT to forkfile then waits for it to exit.
+ func (d *lxc) stopForkfile(force bool) {
++	var pid int64
++
+ 	// Make sure that when the function exits, no forkfile is running by acquiring the lock (which indicates
+ 	// that forkfile isn't running and holding the lock) and then releasing it.
+ 	defer func() {
+-		unlock, err := locking.Lock(context.TODO(), d.forkfileRunningLockName())
++		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
++		defer cancel()
++
++		unlock, err := locking.Lock(ctx, d.forkfileRunningLockName())
++		if err == nil {
++			unlock()
++			return
++		}
++
++		// Its clients decide how long a graceful stop takes, don't let them hold things up forever.
++		if pid > 0 {
++			d.logger.Warn("Killing forkfile that didn't stop in time", logger.Ctx{"pid": pid})
++			_ = unix.Kill(int(pid), unix.SIGKILL)
++		}
++
++		ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
++		defer cancel()
++
++		unlock, err = locking.Lock(ctx, d.forkfileRunningLockName())
+ 		if err != nil {
+ 			return
+ 		}
+@@ -8345,7 +8365,7 @@ func (d *lxc) stopForkfile(force bool) {
+ 		return
+ 	}
+ 
+-	pid, err := strconv.ParseInt(strings.TrimSpace(string(content)), 10, 64)
++	pid, err = strconv.ParseInt(strings.TrimSpace(string(content)), 10, 64)
+ 	if err != nil {
+ 		return
+ 	}

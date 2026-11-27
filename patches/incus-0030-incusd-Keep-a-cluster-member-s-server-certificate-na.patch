@@ -1,0 +1,106 @@
+From 53d3b833f2098873e223c6df65c22d1d52bc1dc5 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Fri, 23 Oct 2026 22:56:36 -0400
+Subject: [PATCH] incusd: Keep a cluster member's server certificate name in
+ sync
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A member's server certificate is removed by name on member removal, but
+renaming a member never renamed its certificate, so a renamed member's
+certificate stayed trusted after removal.
+
+Rename the server certificate with the node, reject name changes on
+server certificates through the trust API, and add a startup patch to
+repair members renamed before the upgrade.
+
+This addresses GHSA-9m5m-cr24-m367 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 47a05fd5d48ccfe35018fcbe3576437658c241f7)
+---
+ cmd/incusd/certificates.go |  5 +++++
+ cmd/incusd/patches.go      | 19 +++++++++++++++++++
+ internal/server/db/node.go |  8 ++++++++
+ 3 files changed, 32 insertions(+)
+
+diff --git a/cmd/incusd/certificates.go b/cmd/incusd/certificates.go
+index 0db908db96..e356025e6d 100644
+--- a/cmd/incusd/certificates.go
++++ b/cmd/incusd/certificates.go
+@@ -1072,6 +1072,11 @@ func doCertificateUpdate(d *Daemon, dbInfo api.Certificate, req api.CertificateP
+ 			return response.BadRequest(errors.New("The certificate type cannot be changed"))
+ 		}
+ 
++		// A server certificate's name is tied to its cluster member.
++		if dbInfo.Type == api.CertificateTypeServer && dbInfo.Name != req.Name {
++			return response.BadRequest(errors.New("The name of a server certificate cannot be changed"))
++		}
++
+ 		reqDBType, err := certificate.FromAPIType(req.Type)
+ 		if err != nil {
+ 			return response.BadRequest(err)
+diff --git a/cmd/incusd/patches.go b/cmd/incusd/patches.go
+index 3499477328..a63b37bbc2 100644
+--- a/cmd/incusd/patches.go
++++ b/cmd/incusd/patches.go
+@@ -112,6 +112,7 @@ var patches = []patch{
+ 	{name: "network_ovn_acl_address_sets", stage: patchPostDaemonStorage, run: patchGenericNetwork(patchNetworkOVNACLAddressSets)},
+ 	{name: "auth_openfga_security_tags", stage: patchPostNetworks, run: patchGenericAuthorization},
+ 	{name: "instance_idmap_base_non_isolated", stage: patchPostDaemonStorage, run: patchInstanceIdmapBaseNonIsolated},
++	{name: "clustering_server_cert_name", stage: patchPostDaemonStorage, run: patchClusteringServerCertName},
+ }
+ 
+ type patchRun func(name string, d *Daemon) error
+@@ -813,6 +814,24 @@ func patchGenericNetwork(f func(name string, d *Daemon) error) func(name string,
+ 	}
+ }
+ 
++// patchClusteringServerCertName repairs the member's own server certificate name, which an
++// earlier rename left stale, so that removing a renamed member deletes its certificate.
++func patchClusteringServerCertName(_ string, d *Daemon) error {
++	s := d.State()
++	if !s.ServerClustered {
++		return nil
++	}
++
++	fingerprint := s.ServerCert().Fingerprint()
++	serverName := s.ServerName
++
++	return s.DB.Cluster.Transaction(context.TODO(), func(ctx context.Context, tx *db.ClusterTx) error {
++		stmt := `UPDATE certificates SET name=? WHERE fingerprint=? AND type=?`
++		_, err := tx.Tx().ExecContext(ctx, stmt, serverName, fingerprint, certificate.TypeServer)
++		return err
++	})
++}
++
+ func patchClusteringDropDatabaseRole(_ string, d *Daemon) error {
+ 	return d.State().DB.Cluster.Transaction(context.TODO(), func(ctx context.Context, tx *db.ClusterTx) error {
+ 		members, err := tx.GetNodes(ctx)
+diff --git a/internal/server/db/node.go b/internal/server/db/node.go
+index 7980a19fdd..3d2f1fde92 100644
+--- a/internal/server/db/node.go
++++ b/internal/server/db/node.go
+@@ -14,6 +14,7 @@ import (
+ 	"strings"
+ 	"time"
+ 
++	"github.com/lxc/incus/v7/internal/server/certificate"
+ 	"github.com/lxc/incus/v7/internal/server/db/cluster"
+ 	"github.com/lxc/incus/v7/internal/server/db/query"
+ 	localUtil "github.com/lxc/incus/v7/internal/server/util"
+@@ -449,6 +450,13 @@ func (c *ClusterTx) RenameNode(ctx context.Context, old string, newName string)
+ 		return fmt.Errorf("expected to update one row, not %d", n)
+ 	}
+ 
++	// Keep the server certificate in sync as it's tied to the node through its name.
++	stmt = `UPDATE certificates SET name=? WHERE name=? AND type=?`
++	_, err = c.tx.Exec(stmt, newName, old, certificate.TypeServer)
++	if err != nil {
++		return fmt.Errorf("failed to update server certificate name: %w", err)
++	}
++
+ 	return nil
+ }
+ 

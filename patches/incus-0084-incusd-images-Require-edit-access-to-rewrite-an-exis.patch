@@ -1,0 +1,88 @@
+From 5882d7b8b1759561177eb6f4f4e6d224b457f6f3 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:35:58 -0500
+Subject: [PATCH] incusd/images: Require edit access to rewrite an existing
+ image on copy
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Copying an image that already exists in the project updated its record
+with the request's flags and properties after only checking the
+project's create entitlement.
+
+This addresses GHSA-8553-6xmq-7g3g (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 0ab59c961617f3eb5142d9ba68308466d624e33f)
+---
+ cmd/incusd/images.go | 28 ++++++++++++++++++++++++++--
+ 1 file changed, 26 insertions(+), 2 deletions(-)
+
+diff --git a/cmd/incusd/images.go b/cmd/incusd/images.go
+index 2fc6b48f29..553cf8e885 100644
+--- a/cmd/incusd/images.go
++++ b/cmd/incusd/images.go
+@@ -573,6 +573,20 @@ func imgPostInstanceInfo(ctx context.Context, s *state.State, r *http.Request, r
+ 	return &info, nil
+ }
+ 
++// imageCheckExistingEditable refuses to rewrite an existing image the caller may not edit.
++func imageCheckExistingEditable(ctx context.Context, s *state.State, r *http.Request, created bool, projectName string, fingerprint string) error {
++	if created || r == nil {
++		return nil
++	}
++
++	imageProjectName, err := projectutils.ImageProject(ctx, s.DB.Cluster, projectName)
++	if err != nil {
++		return err
++	}
++
++	return s.Authorizer.CheckPermission(ctx, r, auth.ObjectImage(imageProjectName, fingerprint), auth.EntitlementCanEdit)
++}
++
+ func imgPostRemoteInfo(ctx context.Context, s *state.State, r *http.Request, req api.ImagesPost, op *operations.Operation, project string, budget int64) (*api.Image, error) {
+ 	var err error
+ 	var hash string
+@@ -585,7 +599,7 @@ func imgPostRemoteInfo(ctx context.Context, s *state.State, r *http.Request, req
+ 		return nil, errors.New("must specify one of alias or fingerprint for init from image")
+ 	}
+ 
+-	info, _, err := imageDownload(ctx, r, s, op, &imageDownloadArgs{
++	info, created, err := imageDownload(ctx, r, s, op, &imageDownloadArgs{
+ 		Server:            req.Source.Server,
+ 		Protocol:          req.Source.Protocol,
+ 		Certificate:       req.Source.Certificate,
+@@ -607,6 +621,11 @@ func imgPostRemoteInfo(ctx context.Context, s *state.State, r *http.Request, req
+ 		return info, nil
+ 	}
+ 
++	err = imageCheckExistingEditable(ctx, s, r, created, project, info.Fingerprint)
++	if err != nil {
++		return nil, err
++	}
++
+ 	err = s.DB.Cluster.Transaction(ctx, func(ctx context.Context, tx *db.ClusterTx) error {
+ 		var id int
+ 
+@@ -718,7 +737,7 @@ func imgPostURLInfo(ctx context.Context, s *state.State, r *http.Request, req ap
+ 	}
+ 
+ 	// Download the image itself.
+-	info, _, err := imageDownload(ctx, r, s, op, &imageDownloadArgs{
++	info, created, err := imageDownload(ctx, r, s, op, &imageDownloadArgs{
+ 		Server:      imageURL,
+ 		Protocol:    "direct",
+ 		Alias:       hash,
+@@ -731,6 +750,11 @@ func imgPostURLInfo(ctx context.Context, s *state.State, r *http.Request, req ap
+ 		return nil, err
+ 	}
+ 
++	err = imageCheckExistingEditable(ctx, s, r, created, project, info.Fingerprint)
++	if err != nil {
++		return nil, err
++	}
++
+ 	// Apply user provided attributes and overrides.
+ 	err = s.DB.Cluster.Transaction(ctx, func(ctx context.Context, tx *db.ClusterTx) error {
+ 		var id int

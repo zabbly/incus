@@ -1,0 +1,214 @@
+From 2b1cf47616964c5fb4da66f176955317a19347d8 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Sun, 22 Nov 2026 07:44:58 -0500
+Subject: [PATCH] incusd/instance/qemu: Take the VM disk format from config at
+ startup
+
+The metadata image helper read the format from the disk's own bytes, so
+a guest that wrote a qcow2 header into its raw root disk had that header
+honoured at the next start, letting it name a host path as a backing or
+external data file.
+
+Take the format from the volume config, as the publish and NBD paths
+already do, and force the raw format when reading a raw volume's size.
+
+This addresses GHSA-4375-qwr5-8vjj (CVE pending)
+
+(cherry picked from commit 06e7033baabd01146093985152e0f7d9bb3470e7)
+---
+ .../server/device/config/device_runconfig.go  |  1 +
+ internal/server/device/disk.go                |  1 +
+ .../server/instance/drivers/driver_qemu.go    | 46 +++++++------------
+ .../server/storage/drivers/utils_qcow2.go     | 18 ++++++++
+ 4 files changed, 36 insertions(+), 30 deletions(-)
+
+diff --git a/internal/server/device/config/device_runconfig.go b/internal/server/device/config/device_runconfig.go
+index 81a98fecc5..69efcc7b7a 100644
+--- a/internal/server/device/config/device_runconfig.go
++++ b/internal/server/device/config/device_runconfig.go
+@@ -25,6 +25,7 @@ type MountEntryItem struct {
+ 	DevPath      string      // Describes the block special device or remote filesystem to be mounted.
+ 	DataFilePath string      // Describes the block special device to be used as a data file for qcow2.
+ 	BackingPath  []string    // Describes the block special device to be mounted as backing drive for qcow2.
++	Qcow2        bool        // Whether the disk is qcow2 formatted, from the volume config rather than its content.
+ 	TargetPath   string      // Describes the mount point (target) for the filesystem.
+ 	FSType       string      // Describes the type of the filesystem.
+ 	Opts         []string    // Describes the mount options associated with the filesystem.
+diff --git a/internal/server/device/disk.go b/internal/server/device/disk.go
+index d83a7b8cfe..8366c801e7 100644
+--- a/internal/server/device/disk.go
++++ b/internal/server/device/disk.go
+@@ -1763,6 +1763,7 @@ func (d *disk) startVM() (*deviceConfig.RunConfig, error) {
+ 
+ 				mount.Opts = append(mount.Opts, d.detectVMPoolMountOpts()...)
+ 				mount.BackingPath = append(mount.BackingPath, mountInfo.BackingPath...)
++				mount.Qcow2 = mountInfo.Qcow2
+ 			}
+ 
+ 			if util.IsTrue(d.config["readonly"]) {
+diff --git a/internal/server/instance/drivers/driver_qemu.go b/internal/server/instance/drivers/driver_qemu.go
+index 3a4c52dadc..1e6001f095 100644
+--- a/internal/server/instance/drivers/driver_qemu.go
++++ b/internal/server/instance/drivers/driver_qemu.go
+@@ -5386,17 +5386,18 @@ func rawImageOpts(rawPath string, prefix string) (string, error) {
+ }
+ 
+ // rawImageInfo returns the image information of a raw volume, local or RBD.
++// The raw format is forced, as the content of the volume is tenant controlled.
+ func rawImageInfo(rawPath string) (*storageDrivers.ImageInfo, error) {
+ 	if !isRBDPath(rawPath) {
+-		return storageDrivers.Qcow2Info(rawPath)
++		return storageDrivers.RawInfo(rawPath)
+ 	}
+ 
+-	imageOpts, err := rawImageOpts(rawPath, "")
++	imageOpts, err := rawImageOpts(rawPath, "file.")
+ 	if err != nil {
+ 		return nil, err
+ 	}
+ 
+-	imgJSON, err := subprocess.RunCommand("qemu-img", "info", "-U", "--output=json", "--image-opts", imageOpts)
++	imgJSON, err := subprocess.RunCommand("qemu-img", "info", "-U", "--output=json", "--image-opts", fmt.Sprintf("driver=raw,%s", imageOpts))
+ 	if err != nil {
+ 		return nil, err
+ 	}
+@@ -5455,24 +5456,20 @@ func (d *qemu) removeImageMetadata(devName string) error {
+ 	return nil
+ }
+ 
+-// ensureMetadataImage creates the metadata file if needed.
+-func (d *qemu) ensureMetadataImage(rawPath string, devName string) (string, string, error) {
++// ensureMetadataImage creates the metadata file if needed. The qcow2 argument must come from the
++// volume config, never from the disk's own content, which the tenant controls.
++func (d *qemu) ensureMetadataImage(rawPath string, devName string, qcow2 bool) (string, string, error) {
+ 	if rawPath == "" {
+ 		return "", "", errors.New("Raw disk path is empty")
+ 	}
+ 
+-	imgInfo, err := rawImageInfo(rawPath)
+-	if err != nil {
+-		return "", "", err
+-	}
+-
+-	if imgInfo.Format == storageDrivers.BlockVolumeTypeQcow2 {
++	if qcow2 {
+ 		// Image is qcow2 already, don't touch anything
+ 		return rawPath, "", nil
+ 	}
+ 
+ 	qcow2Dir := d.imageMetadataDir()
+-	err = os.MkdirAll(qcow2Dir, 0o700)
++	err := os.MkdirAll(qcow2Dir, 0o700)
+ 	if err != nil {
+ 		return "", "", fmt.Errorf("Failed creating metadata image directory: %w", err)
+ 	}
+@@ -5600,7 +5597,7 @@ func (d *qemu) addRootDriveConfig(qemuDev map[string]any, mountInfo *storagePool
+ 		return nil, errors.New("No root disk path available from mount")
+ 	}
+ 
+-	devPath, dataFilePath, err := d.ensureMetadataImage(mountInfo.DiskPath, rootDriveConf.DevName)
++	devPath, dataFilePath, err := d.ensureMetadataImage(mountInfo.DiskPath, rootDriveConf.DevName, mountInfo.Qcow2)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+@@ -5614,6 +5611,7 @@ func (d *qemu) addRootDriveConfig(qemuDev map[string]any, mountInfo *storagePool
+ 		Opts:         rootDriveConf.Opts,
+ 		TargetPath:   rootDriveConf.TargetPath,
+ 		Limits:       rootDriveConf.Limits,
++		Qcow2:        mountInfo.Qcow2 || dataFilePath != "",
+ 	}
+ 
+ 	if d.storagePool.Driver().Info().Remote {
+@@ -5824,7 +5822,7 @@ func (d *qemu) addDriveConfig(qemuDev map[string]any, bootIndexes map[string]int
+ 
+ 	// Dependent disks on RBD get a metadata image like the root disk so they can hold persistent bitmaps.
+ 	if isRBDImage && d.isDependentDisk(driveConf.DevName) && driveConf.FSType != "iso9660" && !slices.Contains(driveConf.Opts, "ro") {
+-		qcow2Path, dataFilePath, err := d.ensureMetadataImage(driveConf.DevPath, driveConf.DevName)
++		qcow2Path, dataFilePath, err := d.ensureMetadataImage(driveConf.DevPath, driveConf.DevName, driveConf.Qcow2)
+ 		if err != nil {
+ 			return nil, err
+ 		}
+@@ -5832,6 +5830,7 @@ func (d *qemu) addDriveConfig(qemuDev map[string]any, bootIndexes map[string]int
+ 		if dataFilePath != "" {
+ 			driveConf.DevPath = qcow2Path
+ 			driveConf.DataFilePath = dataFilePath
++			driveConf.Qcow2 = true
+ 			isRBDImage = false
+ 		}
+ 	}
+@@ -5879,7 +5878,7 @@ func (d *qemu) addDriveConfig(qemuDev map[string]any, bootIndexes map[string]int
+ 
+ 			// Dependent disks get a metadata image like the root disk so they can hold persistent bitmaps.
+ 			if d.isDependentDisk(driveConf.DevName) && driveConf.FSType != "iso9660" && !slices.Contains(driveConf.Opts, "ro") {
+-				qcow2Path, dataFilePath, err := d.ensureMetadataImage(srcDevPath, driveConf.DevName)
++				qcow2Path, dataFilePath, err := d.ensureMetadataImage(srcDevPath, driveConf.DevName, driveConf.Qcow2)
+ 				if err != nil {
+ 					return nil, err
+ 				}
+@@ -5887,6 +5886,7 @@ func (d *qemu) addDriveConfig(qemuDev map[string]any, bootIndexes map[string]int
+ 				if dataFilePath != "" {
+ 					driveConf.DevPath = qcow2Path
+ 					driveConf.DataFilePath = dataFilePath
++					driveConf.Qcow2 = true
+ 					srcDevPath = qcow2Path
+ 				}
+ 			}
+@@ -6107,12 +6107,7 @@ func (d *qemu) addDriveConfig(qemuDev map[string]any, bootIndexes map[string]int
+ 				_ = m.RemoveFDFromFDSet(nodeName)
+ 			})
+ 
+-			isQcow2, err := d.isQCOW2(srcDevPath)
+-			if err != nil {
+-				return fmt.Errorf("Failed checking disk format: %w", err)
+-			}
+-
+-			if isQcow2 {
++			if driveConf.Qcow2 {
+ 				srcDevPathInfo, err := os.Stat(srcDevPath)
+ 				if err != nil {
+ 					return fmt.Errorf("Invalid source path %q: %w", srcDevPath, err)
+@@ -13009,15 +13004,6 @@ func (d *qemu) ExportQcow2Block(diskName string, blockIndex int) (func(), string
+ 	}, exportDiskPath, nil
+ }
+ 
+-func (d *qemu) isQCOW2(devPath string) (bool, error) {
+-	imgInfo, err := storageDrivers.Qcow2Info(devPath)
+-	if err != nil {
+-		return false, err
+-	}
+-
+-	return imgInfo.Format == storageDrivers.BlockVolumeTypeQcow2, nil
+-}
+-
+ func (d *qemu) qcow2BlockDev(m *qmp.Monitor, nodeName string, aioMode string, directCache bool, noFlushCache bool, permissions int, readonly bool, backingPaths []string, iter int) (string, error) {
+ 	devName := backingPaths[0]
+ 	backingNodeName := fmt.Sprintf("%s_backing%d", nodeName, iter)
+diff --git a/internal/server/storage/drivers/utils_qcow2.go b/internal/server/storage/drivers/utils_qcow2.go
+index bae4b98cce..f54a56df50 100644
+--- a/internal/server/storage/drivers/utils_qcow2.go
++++ b/internal/server/storage/drivers/utils_qcow2.go
+@@ -190,6 +190,24 @@ func Qcow2IsStandalone(path string) (bool, error) {
+ 	return true, nil
+ }
+ 
++// RawInfo returns information about a volume read as raw. The format is forced, so that a
++// tenant-crafted header in the volume's own content can't make qemu-img follow a host path.
++func RawInfo(path string) (*ImageInfo, error) {
++	imgJSON, err := subprocess.RunCommand("qemu-img", "info", "-U", "--output=json", "-f", "raw", path)
++	if err != nil {
++		return nil, err
++	}
++
++	imgInfo := ImageInfo{}
++
++	err = json.Unmarshal([]byte(imgJSON), &imgInfo)
++	if err != nil {
++		return nil, fmt.Errorf("Failed unmarshalling image info %q: %w (%q)", path, err, imgJSON)
++	}
++
++	return &imgInfo, nil
++}
++
+ // Qcow2Info returns information about a qcow2 image.
+ func Qcow2Info(path string) (*ImageInfo, error) {
+ 	imgJSON, err := subprocess.RunCommand("qemu-img", "info", "-U", "--output=json", path)

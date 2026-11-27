@@ -1,0 +1,106 @@
+From d6840248fe3da4d9df9755fe71d47356e733b394 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:59:27 -0500
+Subject: [PATCH] incusd/project: Count stored images against limits.disk
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The limit is documented to cover images but only new uploads were
+checked against it, each on its own, so any number of images below the
+limit could be stored.
+
+This addresses GHSA-9pvj-5r2h-r873 (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit b16c43e9680229a86455de0bdc19437eaf12c6df)
+---
+ internal/server/project/permissions.go | 28 ++++++++++++++++++++++----
+ test/suites/projects.sh                |  7 ++++---
+ 2 files changed, 28 insertions(+), 7 deletions(-)
+
+diff --git a/internal/server/project/permissions.go b/internal/server/project/permissions.go
+index 6baac4ece0..3e9ee4efe8 100644
+--- a/internal/server/project/permissions.go
++++ b/internal/server/project/permissions.go
+@@ -1689,10 +1689,11 @@ func projectHasLimitsOrRestrictions(project api.Project) bool {
+ // Hold information associated with the project, such as profiles and
+ // instances.
+ type projectInfo struct {
+-	Project   api.Project
+-	Profiles  []api.Profile
+-	Instances []api.Instance
+-	Volumes   []db.StorageVolumeArgs
++	Project    api.Project
++	Profiles   []api.Profile
++	Instances  []api.Instance
++	Volumes    []db.StorageVolumeArgs
++	ImagesSize int64
+ }
+ 
+ // Fetch the given project from the database along with its profiles, instances
+@@ -1791,6 +1792,21 @@ func fetchProject(tx *db.ClusterTx, projectName string, skipIfNoLimits bool) (*p
+ 		Volumes:   volumes,
+ 	}
+ 
++	// The project's own images count against its disk limit.
++	if projectName == api.ProjectDefaultName || util.IsTrue(project.Config["features.images"]) {
++		images, err := cluster.GetImages(ctx, tx.Tx(), cluster.ImageFilter{Project: &projectName})
++		if err != nil {
++			return nil, fmt.Errorf("Fetch project images from database: %w", err)
++		}
++
++		for _, image := range images {
++			info.ImagesSize, err = addLimit(info.ImagesSize, image.Size)
++			if err != nil {
++				return nil, fmt.Errorf("Invalid size for image %q in project %q: %w", image.Fingerprint, projectName, err)
++			}
++		}
++	}
++
+ 	return info, nil
+ }
+ 
+@@ -1837,6 +1853,10 @@ func getTotalsAcrossProjectEntities(info *projectInfo, keys []string, skipUnset
+ 
+ 	for _, key := range keys {
+ 		totals[key] = 0
++		if key == "limits.disk" {
++			totals[key] = info.ImagesSize
++		}
++
+ 		if key == "limits.disk" || strings.HasPrefix(key, projectLimitDiskPool) {
+ 			poolName := ""
+ 			fields := strings.SplitN(key, projectLimitDiskPool, 2)
+diff --git a/test/suites/projects.sh b/test/suites/projects.sh
+index 956ca268e3..ea9256fcd2 100644
+--- a/test/suites/projects.sh
++++ b/test/suites/projects.sh
+@@ -769,7 +769,7 @@ test_projects_limits() {
+     ! incus storage volume create "${pool}" v2 || false
+ 
+     # Disk limits can be updated if they stay within limits.
+-    incus project set p1 limits.disk 540MiB
++    incus project set p1 limits.disk 541MiB
+     incus profile device set default root size=190MiB
+     incus config device set c2 root size 200MiB
+ 
+@@ -804,7 +804,8 @@ test_projects_limits() {
+         # Relax all constraints except the disk limits, which won't be enough for the
+         # image to be downloaded.
+         incus profile device set default root size=500KiB
+-        incus project set p1 limits.disk 351MiB
++        disk_usage="$(incus query /1.0/projects/p1/state | jq -r ".resources.disk | (.usage // .Usage)")"
++        incus project set p1 limits.disk "$((disk_usage + 102400))B"
+         incus project unset p1 limits.containers
+         incus project unset p1 limits.cpu
+         incus project unset p1 limits.memory
+@@ -1112,7 +1113,7 @@ test_projects_usage() {
+ 
+     incus project info test-usage --format csv | grep -q "CONTAINERS,UNLIMITED,1"
+     incus project info test-usage --format csv | grep -q "CPU,5,1"
+-    incus project info test-usage --format csv | grep -q "DISK,10.00GiB,300.00MiB"
++    incus project info test-usage --format csv | grep -qE "DISK,10.00GiB,30[0-9]\.[0-9]+MiB"
+     incus project info test-usage --format csv | grep -q "INSTANCES,UNLIMITED,1"
+     incus project info test-usage --format csv | grep -q "MEMORY,1.00GiB,512.00MiB"
+     incus project info test-usage --format csv | grep -q "NETWORKS,3,0"

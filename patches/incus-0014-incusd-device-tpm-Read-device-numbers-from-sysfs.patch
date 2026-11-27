@@ -1,0 +1,118 @@
+From 2f70fbbeb98d34dd3521ea70a6afd4313ad50a4b Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 18:54:01 -0500
+Subject: [PATCH] incusd/device/tpm: Read device numbers from sysfs
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The resource manager node was derived from the raw device numbers with
+a wrong minor constant and the raw major, giving a non-functional node
+for TPM index 0 and the resource manager of TPM index 0 for index 244.
+
+This addresses GHSA-wgg4-rrw6-c64w (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 90ebc49e762c715d49557356409a16dc8704cc61)
+---
+ internal/server/device/tpm.go | 54 +++++++++++++++++++++++++----------
+ 1 file changed, 39 insertions(+), 15 deletions(-)
+
+diff --git a/internal/server/device/tpm.go b/internal/server/device/tpm.go
+index 49cd0faaa5..084c21b9b0 100644
+--- a/internal/server/device/tpm.go
++++ b/internal/server/device/tpm.go
+@@ -266,9 +266,7 @@ func (d *tpm) startContainer() (*deviceConfig.RunConfig, error) {
+ 		return nil, fmt.Errorf("Failed to save swtpm state for device %q: %w", d.name, err)
+ 	}
+ 
+-	const TPM_MINOR = 244
+-	const TPM_NUM_DEVICES = 65536
+-	var major, minor, minorRM int
++	reverter.Add(func() { _ = os.Remove(pidPath) })
+ 
+ 	// We need to capture the output of the TPM emulator since it contains the device path. To do
+ 	// that, we wait until something has been written to the log file (stdout redirect), and then
+@@ -293,37 +291,47 @@ func (d *tpm) startContainer() (*deviceConfig.RunConfig, error) {
+ 
+ 	// The output will be something like:
+ 	//   New TPM device: /dev/tpm1 (major/minor = 253/1)
+-	// We just need the major/minor numbers.
+-	fields := strings.Split(string(line), " ")
+-
++	// The device numbers come from sysfs as the resource manager has its own major.
++	fields := strings.Fields(string(line))
+ 	if len(fields) < 7 {
+ 		return nil, errors.New("Failed to get TPM device information")
+ 	}
+ 
++	var index int
++	_, err = fmt.Sscanf(fields[3], "/dev/tpm%d", &index)
++	if err != nil {
++		return nil, fmt.Errorf("Failed to retrieve TPM device index: %w", err)
++	}
++
++	var major, minor uint32
+ 	_, err = fmt.Sscanf(fields[6], "%d/%d)", &major, &minor)
+ 	if err != nil {
+ 		return nil, fmt.Errorf("Failed to retrieve major/minor number: %w", err)
+ 	}
+ 
+-	// Return error as we were unable to retrieve information regarding the TPM device.
+-	if major == 0 && minor == 0 {
+-		return nil, errors.New("Failed to get TPM device information")
++	sysMajor, sysMinor, err := tpmSysfsDevNum(fmt.Sprintf("/sys/class/tpm/tpm%d/dev", index))
++	if err != nil {
++		return nil, err
+ 	}
+ 
+-	if minor == TPM_MINOR {
+-		minorRM = TPM_NUM_DEVICES
+-	} else {
+-		minorRM = TPM_NUM_DEVICES + minor
++	// Make sure sysfs describes the device swtpm reported.
++	if sysMajor != major || sysMinor != minor {
++		return nil, fmt.Errorf("TPM device %d doesn't match the reported device numbers", index)
++	}
++
++	majorRM, minorRM, err := tpmSysfsDevNum(fmt.Sprintf("/sys/class/tpmrm/tpmrm%d/dev", index))
++	if err != nil {
++		return nil, err
+ 	}
+ 
+ 	runConf := deviceConfig.RunConfig{}
+ 
+-	err = unixDeviceSetupCharNum(d.state, d.inst.DevicesPath(), "unix", d.name, d.config, uint32(major), uint32(minor), d.config["path"], false, &runConf)
++	err = unixDeviceSetupCharNum(d.state, d.inst.DevicesPath(), "unix", d.name, d.config, major, minor, d.config["path"], false, &runConf)
+ 	if err != nil {
+ 		return nil, fmt.Errorf("Failed to setup unix device: %w", err)
+ 	}
+ 
+-	err = unixDeviceSetupCharNum(d.state, d.inst.DevicesPath(), "unix", d.name, d.config, uint32(major), uint32(minorRM), d.config["pathrm"], false, &runConf)
++	err = unixDeviceSetupCharNum(d.state, d.inst.DevicesPath(), "unix", d.name, d.config, majorRM, minorRM, d.config["pathrm"], false, &runConf)
+ 	if err != nil {
+ 		return nil, fmt.Errorf("Failed to setup unix device: %w", err)
+ 	}
+@@ -333,6 +341,22 @@ func (d *tpm) startContainer() (*deviceConfig.RunConfig, error) {
+ 	return &runConf, nil
+ }
+ 
++// tpmSysfsDevNum returns the device numbers from a sysfs dev file.
++func tpmSysfsDevNum(path string) (uint32, uint32, error) {
++	content, err := os.ReadFile(path)
++	if err != nil {
++		return 0, 0, fmt.Errorf("Failed to read %q: %w", path, err)
++	}
++
++	var major, minor uint32
++	_, err = fmt.Sscanf(strings.TrimSpace(string(content)), "%d:%d", &major, &minor)
++	if err != nil {
++		return 0, 0, fmt.Errorf("Failed to parse %q: %w", path, err)
++	}
++
++	return major, minor, nil
++}
++
+ func (d *tpm) startVM() (*deviceConfig.RunConfig, error) {
+ 	tpmDevPath := d.statePath()
+ 	runPath := d.runPath()

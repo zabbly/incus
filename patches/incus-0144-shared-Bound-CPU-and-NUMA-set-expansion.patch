@@ -1,0 +1,82 @@
+From a6481ef49c98cfc89baa66fa427ebb88bbe96b8e Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:07:11 -0500
+Subject: [PATCH] shared: Bound CPU and NUMA set expansion
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A range like 0-8000000 was expanded entry by entry before being
+checked against anything, costing the daemon memory and time decided
+by the client.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 17c42edc46f883d00665579a94cf361dfae5045a)
+---
+ shared/resources/cpu.go     |  8 ++++++++
+ shared/validate/validate.go | 10 ++++++++++
+ 2 files changed, 18 insertions(+)
+
+diff --git a/shared/resources/cpu.go b/shared/resources/cpu.go
+index 2afcc43251..ca5fcad492 100644
+--- a/shared/resources/cpu.go
++++ b/shared/resources/cpu.go
+@@ -47,6 +47,9 @@ func GetCPUIsolated() []int64 {
+ 	return isolatedCpusInt
+ }
+ 
++// maxRangedListSize bounds the entries a CPU or NUMA set may expand to.
++const maxRangedListSize = 65536
++
+ // parseRangedListToInt64Slice takes an `input` of the form "1,2,8-10,5-7" and returns a slice of int64s
+ // containing the expanded list of numbers. In this example, the returned slice would be [1,2,8,9,10,5,6,7].
+ // The elements in the output slice are meant to represent hardware entity identifiers (e.g, either CPU or NUMA node IDs).
+@@ -71,6 +74,11 @@ func parseRangedListToInt64Slice(input string) ([]int64, error) {
+ 				return nil, fmt.Errorf("Invalid CPU/NUMA set value: %w", err)
+ 			}
+ 
++			// Refuse what no system can have before expanding.
++			if high >= maxRangedListSize || int64(len(res))+high-low+1 > maxRangedListSize {
++				return nil, fmt.Errorf("Invalid CPU/NUMA set value: %q", input)
++			}
++
+ 			for i := low; i <= high; i++ {
+ 				res = append(res, i)
+ 			}
+diff --git a/shared/validate/validate.go b/shared/validate/validate.go
+index 16d4bdd53d..3a2908a31c 100644
+--- a/shared/validate/validate.go
++++ b/shared/validate/validate.go
+@@ -928,6 +928,9 @@ func IsYAML(value string) error {
+ 	return nil
+ }
+ 
++// maxCPUSetSize bounds the entries a CPU set may expand to.
++const maxCPUSetSize = 65536
++
+ // IsValidCPUSet checks value is a valid CPU set.
+ func IsValidCPUSet(value string) error {
+ 	// Validate the CPU set syntax.
+@@ -949,6 +952,7 @@ func IsValidCPUSet(value string) error {
+ 	// Handle complex values.
+ 	cpus := make(map[int64]int)
+ 	chunks := strings.SplitSeq(value, ",")
++	count := int64(0)
+ 
+ 	for chunk := range chunks {
+ 		if strings.Contains(chunk, "-") {
+@@ -968,6 +972,12 @@ func IsValidCPUSet(value string) error {
+ 				return fmt.Errorf("Invalid cpuset value: %s", value)
+ 			}
+ 
++			// Refuse what no system can have before expanding.
++			count += high - low + 1
++			if high >= maxCPUSetSize || count > maxCPUSetSize {
++				return fmt.Errorf("Invalid cpuset value: %s", value)
++			}
++
+ 			for i := low; i <= high; i++ {
+ 				cpus[i]++
+ 			}

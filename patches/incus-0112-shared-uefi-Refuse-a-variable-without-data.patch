@@ -1,0 +1,45 @@
+From 2298b49ec8233d0d663091a8e75ba841689df40c Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:02:21 -0500
+Subject: [PATCH] shared/uefi: Refuse a variable without data
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit cf176395585800a77c1a9d4fbb706cf6524921b1)
+---
+ shared/uefi/dissectors.go | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/shared/uefi/dissectors.go b/shared/uefi/dissectors.go
+index 294f24c378..fa5d794185 100644
+--- a/shared/uefi/dissectors.go
++++ b/shared/uefi/dissectors.go
+@@ -1,10 +1,12 @@
+ package uefi
+ 
+ import (
++	"bytes"
+ 	"encoding/base64"
+ 	"encoding/json"
+ 	"errors"
+ 	"fmt"
++	"reflect"
+ 	"strconv"
+ 	"strings"
+ )
+@@ -31,6 +33,11 @@ func wrap[T any](f func(*reader) (T, error), g func(*writer, T) error) dissector
+ 			return v, nil
+ 		},
+ 		format: func(in json.RawMessage) ([]byte, error) {
++			// A list may be empty, anything else needs its data.
++			if string(bytes.TrimSpace(in)) == "null" && reflect.TypeFor[T]().Kind() != reflect.Slice {
++				return nil, errors.New("Missing variable data")
++			}
++
+ 			w := newWriter()
+ 			var v T
+ 			err := json.Unmarshal(in, &v)

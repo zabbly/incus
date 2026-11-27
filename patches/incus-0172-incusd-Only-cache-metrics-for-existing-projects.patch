@@ -1,0 +1,54 @@
+From f6863d9d7fb361054060a7732ffece92d408f6dc Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:08:10 -0500
+Subject: [PATCH] incusd: Only cache metrics for existing projects
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Any project name given to the metrics endpoint got a permanent cache
+entry, so a client could grow the daemon's memory without bound.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit fbc4793a246094c722f05e4d5877ed07d8c8c4d6)
+---
+ cmd/incusd/api_metrics.go | 17 ++++++++++++++++-
+ 1 file changed, 16 insertions(+), 1 deletion(-)
+
+diff --git a/cmd/incusd/api_metrics.go b/cmd/incusd/api_metrics.go
+index 2394d32117..fce459769b 100644
+--- a/cmd/incusd/api_metrics.go
++++ b/cmd/incusd/api_metrics.go
+@@ -117,7 +117,15 @@ func metricsGet(d *Daemon, r *http.Request) response.Response {
+ 	err := s.DB.Cluster.Transaction(r.Context(), func(ctx context.Context, tx *db.ClusterTx) error {
+ 		// Figure out the projects to retrieve.
+ 		if projectName != "" {
+-			projectNames = []string{projectName}
++			// Only existing projects get a cache entry.
++			exists, err := dbCluster.ProjectExists(ctx, tx.Tx(), projectName)
++			if err != nil {
++				return err
++			}
++
++			if exists {
++				projectNames = []string{projectName}
++			}
+ 		} else {
+ 			// Get all project names if no specific project requested.
+ 			projects, err := dbCluster.GetProjects(ctx, tx.Tx())
+@@ -320,6 +328,13 @@ func metricsGet(d *Daemon, r *http.Request) response.Response {
+ 		metricsCache = map[string]metricsCacheEntry{}
+ 	}
+ 
++	// Drop the entries of projects that aren't scraped anymore.
++	for project, entry := range metricsCache {
++		if entry.expiry.Before(time.Now()) {
++			delete(metricsCache, project)
++		}
++	}
++
+ 	updatedProjects := []string{}
+ 	for project, entries := range newMetrics {
+ 		metricsCache[project] = metricsCacheEntry{

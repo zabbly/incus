@@ -1,0 +1,50 @@
+From 5f408839f6e8097038f13b4fa1715c34906bf293 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Fri, 23 Oct 2026 22:53:19 -0400
+Subject: [PATCH] incusd/auth/oidc: Bind JWT access tokens to the client and a
+ subject
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Without a configured audience, any JWT signed by the issuer was accepted,
+so a token issued to another client authenticated its bearer, and a
+provider-signed JWT with no subject logged in as the empty user.
+
+Require a JWT access token to name our client ID and carry a subject.
+
+This addresses GHSA-cp5w-98j2-x2hv (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit dad9b3673016afb8587e85c20de34793623ade9e)
+---
+ internal/server/auth/oidc/oidc.go | 15 +++++++++++++--
+ 1 file changed, 13 insertions(+), 2 deletions(-)
+
+diff --git a/internal/server/auth/oidc/oidc.go b/internal/server/auth/oidc/oidc.go
+index 934bfee7a3..71058fde9c 100644
+--- a/internal/server/auth/oidc/oidc.go
++++ b/internal/server/auth/oidc/oidc.go
+@@ -327,9 +327,20 @@ func (o *Verifier) verifyTokens(ctx context.Context, r *http.Request, accessToke
+ 		}
+ 
+ 		claims = &oidc.AccessTokenClaims{TokenClaims: idClaims.TokenClaims, Claims: idClaims.Claims}
+-	} else if o.audience != "" && !slices.Contains(claims.GetAudience(), o.audience) {
++	} else if o.audience != "" {
+ 		// Check that the access token includes the configured audience.
+-		return nil, errors.New("Provided OIDC token doesn't allow the configured audience")
++		if !slices.Contains(claims.GetAudience(), o.audience) {
++			return nil, errors.New("Provided OIDC token doesn't allow the configured audience")
++		}
++	} else if !slices.Contains(claims.GetAudience(), o.clientID) && claims.AuthorizedParty != o.clientID && claims.ClientID != o.clientID {
++		// Without a configured audience, only accept tokens issued for our own client ID.
++		return nil, errors.New("Provided OIDC token wasn't issued for the configured client ID")
++	}
++
++	// Provider-signed JWTs that don't identify a user can't be used to authenticate.
++	err = oidc.CheckSubject(claims)
++	if err != nil {
++		return nil, err
+ 	}
+ 
+ 	// Check if we have a subnet restriction.

@@ -1,0 +1,113 @@
+From caa062f5fb60dab74106f65bbcbebe9950e8184c Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Tue, 6 Oct 2026 06:25:37 -0400
+Subject: [PATCH] incusd/instances: Enforce restricted.snapshots on copy,
+ migration and import
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The restriction was only checked when creating a snapshot directly, so
+copying, migrating or importing an instance with snapshots into a
+project with restricted.snapshots=block would still create them.
+
+This addresses GHSA-m976-4gjw-7vhp (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 6dd96326db867b68ff5bd6693fbd1681ffc7e603)
+---
+ cmd/incusd/instance.go                        |  9 +++++++++
+ cmd/incusd/instances_post.go                  | 20 +++++++++++++++++++
+ .../server/instance/drivers/driver_lxc.go     |  8 ++++++++
+ .../server/instance/drivers/driver_qemu.go    |  8 ++++++++
+ 4 files changed, 45 insertions(+)
+
+diff --git a/cmd/incusd/instance.go b/cmd/incusd/instance.go
+index fdc37fd594..bf0701e7c6 100644
+--- a/cmd/incusd/instance.go
++++ b/cmd/incusd/instance.go
+@@ -469,6 +469,15 @@ func instanceCreateAsCopy(s *state.State, opts instanceCreateAsCopyOpts, op *ope
+ 			}
+ 		}()
+ 
++		// Snapshots may not be allowed in the target project.
++		if len(snapshots) > 0 {
++			p := inst.Project()
++			err = project.AllowSnapshotCreation(&p)
++			if err != nil {
++				return nil, err
++			}
++		}
++
+ 		instDevices := inst.LocalDevices()
+ 		for _, srcSnap := range snapshots {
+ 			snapLocalDevices := srcSnap.LocalDevices().Clone()
+diff --git a/cmd/incusd/instances_post.go b/cmd/incusd/instances_post.go
+index d777256626..92a51be141 100644
+--- a/cmd/incusd/instances_post.go
++++ b/cmd/incusd/instances_post.go
+@@ -995,6 +995,26 @@ func createFromBackup(s *state.State, r *http.Request, projectName string, data
+ 		}
+ 	}
+ 
++	// Snapshots may not be allowed in the project.
++	if len(bInfo.Snapshots) > 0 {
++		err = s.DB.Cluster.Transaction(r.Context(), func(ctx context.Context, tx *db.ClusterTx) error {
++			dbProject, err := dbCluster.GetProject(ctx, tx.Tx(), projectName)
++			if err != nil {
++				return err
++			}
++
++			p, err := dbProject.ToAPI(ctx, tx.Tx())
++			if err != nil {
++				return err
++			}
++
++			return project.AllowSnapshotCreation(p)
++		})
++		if err != nil {
++			return response.SmartError(err)
++		}
++	}
++
+ 	// Override config.
+ 	configMap := map[string]string{}
+ 	if config != "" {
+diff --git a/internal/server/instance/drivers/driver_lxc.go b/internal/server/instance/drivers/driver_lxc.go
+index bbcc2d70d4..a2beff58fe 100644
+--- a/internal/server/instance/drivers/driver_lxc.go
++++ b/internal/server/instance/drivers/driver_lxc.go
+@@ -7262,6 +7262,14 @@ func (d *lxc) MigrateReceive(args instance.MigrateReceiveArgs) error {
+ 		// A zero length Snapshots slice indicates volume only migration in
+ 		// VolumeTargetArgs. So if VolumeOnly was requested, do not populate them.
+ 		if args.Snapshots {
++			// Snapshots may not be allowed in the project.
++			if len(snapshots) > 0 && args.ClusterMoveSourceName != d.name {
++				err := project.AllowSnapshotCreation(&d.project)
++				if err != nil {
++					return err
++				}
++			}
++
+ 			volTargetArgs.Snapshots = make([]*migration.Snapshot, 0, len(snapshots))
+ 			for _, snap := range snapshots {
+ 				volTargetArgs.Snapshots = append(volTargetArgs.Snapshots, &migration.Snapshot{Name: snap.Name})
+diff --git a/internal/server/instance/drivers/driver_qemu.go b/internal/server/instance/drivers/driver_qemu.go
+index 521f5ebb4f..db62baf649 100644
+--- a/internal/server/instance/drivers/driver_qemu.go
++++ b/internal/server/instance/drivers/driver_qemu.go
+@@ -10295,6 +10295,14 @@ func (d *qemu) MigrateReceive(args instance.MigrateReceiveArgs) error {
+ 		// A zero length Snapshots slice indicates volume only migration in
+ 		// VolumeTargetArgs. So if VolumeOnly was requested, do not populate them.
+ 		if args.Snapshots {
++			// Snapshots may not be allowed in the project.
++			if len(snapshots) > 0 && args.ClusterMoveSourceName != d.name {
++				err := project.AllowSnapshotCreation(&d.project)
++				if err != nil {
++					return err
++				}
++			}
++
+ 			volTargetArgs.Snapshots = make([]*migration.Snapshot, 0, len(snapshots))
+ 			for _, snap := range snapshots {
+ 				migrationSnapshot := &migration.Snapshot{Name: snap.Name}

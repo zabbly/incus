@@ -1,0 +1,145 @@
+From 78429b78241ff2081312063e6a13074f98ff6e5a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:01:17 -0500
+Subject: [PATCH] incusd: Bound directory listings on the file API
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A directory listing was read in full into the daemon with no limit,
+and the instance decides how many entries it holds. Cap the listing at
+32MiB of transfer and stop it when the request goes away.
+
+This addresses GHSA-v855-hxm9-5pwg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit 36bed83b1667ce4957fc1a796afebcc3fda7948a)
+---
+ cmd/incusd/instance_file.go        | 51 +++++++++++++++++++++++++++---
+ cmd/incusd/storage_volumes_file.go |  9 ++++--
+ 2 files changed, 53 insertions(+), 7 deletions(-)
+
+diff --git a/cmd/incusd/instance_file.go b/cmd/incusd/instance_file.go
+index b90174d7e0..823dd5f392 100644
+--- a/cmd/incusd/instance_file.go
++++ b/cmd/incusd/instance_file.go
+@@ -6,11 +6,13 @@ import (
+ 	"fmt"
+ 	"io"
+ 	"io/fs"
++	"net"
+ 	"net/http"
+ 	"os"
+ 	"path/filepath"
+ 	"slices"
+ 	"strings"
++	"sync/atomic"
+ 	"time"
+ 
+ 	"github.com/pkg/sftp"
+@@ -153,18 +155,54 @@ func instanceFileGet(s *state.State, inst instance.Instance, path string, r *htt
+ 	defer reverter.Fail()
+ 
+ 	// Get a SFTP client.
+-	client, err := inst.FileSFTP()
++	conn, err := inst.FileSFTPConn()
++	if err != nil {
++		return response.InternalError(err)
++	}
++
++	client, listing, err := fileSFTPListingClient(conn)
+ 	if err != nil {
+ 		return response.InternalError(err)
+ 	}
+ 
+ 	reverter.Add(func() { _ = client.Close() })
+ 
+-	return fileSFTPGet(client, path, r, reverter, func() {
++	return fileSFTPGet(client, listing, path, r, reverter, func() {
+ 		s.Events.SendLifecycle(inst.Project().Name, lifecycle.InstanceFileRetrieved.Event(inst, logger.Ctx{"path": path}))
+ 	})
+ }
+ 
++// sftpListingConn bounds what is read back while a directory is being listed.
++type sftpListingConn struct {
++	net.Conn
++
++	listing   atomic.Bool
++	remaining atomic.Int64
++}
++
++// Read reads from the connection, failing once a listing has returned too much.
++func (c *sftpListingConn) Read(p []byte) (int, error) {
++	n, err := c.Conn.Read(p)
++	if c.listing.Load() && c.remaining.Add(-int64(n)) < 0 {
++		return n, errors.New("Directory listing too large")
++	}
++
++	return n, err
++}
++
++// fileSFTPListingClient returns a SFTP client whose directory listings can be bounded.
++func fileSFTPListingClient(conn net.Conn) (*sftp.Client, *sftpListingConn, error) {
++	listing := &sftpListingConn{Conn: conn}
++
++	client, err := sftp.NewClientPipe(listing, conn)
++	if err != nil {
++		_ = conn.Close()
++		return nil, nil, err
++	}
++
++	return client, listing, nil
++}
++
+ // swagger:operation HEAD /1.0/instances/{name}/files instances instance_files_head
+ //
+ //	Get metadata for a file
+@@ -373,7 +411,7 @@ func instanceFileDelete(s *state.State, inst instance.Instance, path string, r *
+ 	})
+ }
+ 
+-func fileSFTPGet(client *sftp.Client, path string, r *http.Request, reverter *revert.Reverter, onSuccess func()) response.Response {
++func fileSFTPGet(client *sftp.Client, listing *sftpListingConn, path string, r *http.Request, reverter *revert.Reverter, onSuccess func()) response.Response {
+ 	// Get the file stats.
+ 	stat, err := client.Lstat(path)
+ 	if err != nil {
+@@ -462,8 +500,11 @@ func fileSFTPGet(client *sftp.Client, path string, r *http.Request, reverter *re
+ 	case "directory":
+ 		dirEnts := []string{}
+ 
+-		// List the directory.
+-		entries, err := client.ReadDir(path)
++		// List the directory, the instance decides how long it is.
++		listing.remaining.Store(32 * 1024 * 1024)
++		listing.listing.Store(true)
++		entries, err := client.ReadDirContext(r.Context(), path)
++		listing.listing.Store(false)
+ 		if err != nil {
+ 			return response.SmartError(err)
+ 		}
+diff --git a/cmd/incusd/storage_volumes_file.go b/cmd/incusd/storage_volumes_file.go
+index 8225aab1ab..663e9f11d0 100644
+--- a/cmd/incusd/storage_volumes_file.go
++++ b/cmd/incusd/storage_volumes_file.go
+@@ -191,14 +191,19 @@ func storageVolumeFileGet(s *state.State, vol storageDrivers.Volume, volumeProje
+ 	reverter := revert.New()
+ 	defer reverter.Fail()
+ 
+-	client, err := vol.FileSFTP(s)
++	conn, err := vol.FileSFTPConn(s)
++	if err != nil {
++		return response.SmartError(err)
++	}
++
++	client, listing, err := fileSFTPListingClient(conn)
+ 	if err != nil {
+ 		return response.SmartError(err)
+ 	}
+ 
+ 	reverter.Add(func() { _ = client.Close() })
+ 
+-	return fileSFTPGet(client, path, r, reverter, func() {
++	return fileSFTPGet(client, listing, path, r, reverter, func() {
+ 		s.Events.SendLifecycle(volumeProjectName, lifecycle.StorageVolumeFileRetrieved.Event(vol, string(vol.Type()), volumeProjectName, nil, logger.Ctx{"path": path}))
+ 	})
+ }

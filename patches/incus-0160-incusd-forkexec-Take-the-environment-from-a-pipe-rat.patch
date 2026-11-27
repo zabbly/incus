@@ -1,0 +1,192 @@
+From 73669de784c61cdab2f4e63f63f2000b00bb2e43 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 20:10:43 -0500
+Subject: [PATCH] incusd/forkexec: Take the environment from a pipe rather than
+ the command line
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The exec environment was passed as arguments to the helper, where any
+local user could read it from the process list for as long as the
+command ran.
+
+This addresses GHSA-44g3-g988-46rg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit de9926f862cef06c2b824a7599a8cc5076dff20f)
+---
+ cmd/incusd/main_forkexec.go                   | 63 ++++++++++++++++---
+ .../server/instance/drivers/driver_lxc.go     | 35 ++++++++---
+ 2 files changed, 81 insertions(+), 17 deletions(-)
+
+diff --git a/cmd/incusd/main_forkexec.go b/cmd/incusd/main_forkexec.go
+index 45645aa858..586834a921 100644
+--- a/cmd/incusd/main_forkexec.go
++++ b/cmd/incusd/main_forkexec.go
+@@ -140,6 +140,7 @@ restart:
+ #define EXEC_STDOUT_FD 4
+ #define EXEC_STDERR_FD 5
+ #define EXEC_PIPE_FD 6
++#define EXEC_ENV_FD 7
+ #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+ 
+ // We use a separate function because cleanup macros are called during stack
+@@ -150,7 +151,10 @@ restart:
+ __attribute__ ((noinline)) static int __forkexec(void)
+ {
+ 	__do_close int status_pipe = EXEC_PIPE_FD;
++	__do_close int env_fd = EXEC_ENV_FD;
+ 	__do_free_string_list char **argvp = NULL, **envvp = NULL;
++	__do_free char *env_buf = NULL;
++	size_t env_len = 0, env_size = 0;
+ 	call_cleaner(lxc_container_put) struct lxc_container *c = NULL;
+ 	const char *config_path = NULL, *lxcpath = NULL, *name = NULL;
+ 	char *cwd = NULL;
+@@ -188,6 +192,55 @@ __attribute__ ((noinline)) static int __forkexec(void)
+ 	if (coresched != 0 && coresched != 1)
+ 		_exit(EXIT_FAILURE);
+ 
++	// The environment comes NUL separated over a pipe so that it stays off the command line.
++	for (;;) {
++		ssize_t bytes;
++
++		if (env_len == env_size) {
++			char *new_buf;
++
++			env_size = env_size ? env_size * 2 : 4096;
++			new_buf = realloc(env_buf, env_size);
++			if (!new_buf)
++				return log_error(EXIT_FAILURE, "Failed to allocate the env buffer");
++
++			env_buf = new_buf;
++		}
++
++		bytes = read(env_fd, env_buf + env_len, env_size - env_len);
++		if (bytes < 0) {
++			if (errno == EINTR)
++				continue;
++
++			return log_errno(EXIT_FAILURE, "Failed to read the env pipe");
++		}
++
++		if (bytes == 0)
++			break;
++
++		env_len += bytes;
++	}
++
++	close(env_fd);
++	env_fd = -EBADF;
++
++	for (size_t off = 0; off < env_len; ) {
++		char *entry = env_buf + off;
++		size_t entry_len = strnlen(entry, env_len - off);
++
++		if (entry_len == env_len - off)
++			return log_error(EXIT_FAILURE, "Invalid env entry");
++
++		if (!strncmp(entry, "HOME=", STRLITERALLEN("HOME=")))
++			attach_options.initial_cwd = entry + STRLITERALLEN("HOME=");
++
++		ret = push_vargs(&envvp, entry);
++		if (ret < 0)
++			return log_error(ret, "Failed to add %s to env array", entry);
++
++		off += entry_len + 1;
++	}
++
+ 	for (char *arg = NULL, *section = NULL; (arg = advance_arg(false)); ) {
+ 		if (!strcmp(arg, "--") && (!section || strcmp(section, "cmd"))) {
+ 			section = NULL;
+@@ -199,13 +252,7 @@ __attribute__ ((noinline)) static int __forkexec(void)
+ 			continue;
+ 		}
+ 
+-		if (!strcmp(section, "env")) {
+-			if (!strncmp(arg, "HOME=", STRLITERALLEN("HOME=")))
+-				attach_options.initial_cwd = arg + STRLITERALLEN("HOME=");
+-			ret = push_vargs(&envvp, arg);
+-			if (ret < 0)
+-				return log_error(ret, "Failed to add %s to env array", arg);
+-		} else if (!strcmp(section, "cmd")) {
++		if (!strcmp(section, "cmd")) {
+ 			ret = push_vargs(&argvp, arg);
+ 			if (ret < 0)
+ 				return log_error(ret, "Failed to add %s to arg array", arg);
+@@ -343,7 +390,7 @@ type cmdForkexec struct {
+ func (c *cmdForkexec) command() *cobra.Command {
+ 	// Main subcommand
+ 	cmd := &cobra.Command{}
+-	cmd.Use = "forkexec <container name> <containers path> <config> <cwd> <uid> <gid> <coresched> -- env [key=value...] -- cmd <args...>"
++	cmd.Use = "forkexec <container name> <containers path> <config> <cwd> <uid> <gid> <coresched> -- cmd <args...>"
+ 	cmd.Short = "Execute a task inside the container"
+ 	cmd.Long = `Description:
+   Execute a task inside the container
+diff --git a/internal/server/instance/drivers/driver_lxc.go b/internal/server/instance/drivers/driver_lxc.go
+index 22cb1abb07..6ca6158c21 100644
+--- a/internal/server/instance/drivers/driver_lxc.go
++++ b/internal/server/instance/drivers/driver_lxc.go
+@@ -8458,11 +8458,16 @@ func (d *lxc) Exec(req api.InstanceExecPost, stdin *os.File, stdout *os.File, st
+ 		}
+ 	}
+ 
+-	// Prepare the environment
+-	envSlice := []string{}
+-
++	// Prepare the environment, passed NUL separated over a pipe to keep it off the command line.
++	envBuf := []byte{}
+ 	for k, v := range req.Environment {
+-		envSlice = append(envSlice, fmt.Sprintf("%s=%s", k, v))
++		entry := fmt.Sprintf("%s=%s", k, v)
++		if strings.ContainsRune(entry, 0) {
++			return nil, fmt.Errorf("Invalid environment variable %q", k)
++		}
++
++		envBuf = append(envBuf, entry...)
++		envBuf = append(envBuf, 0)
+ 	}
+ 
+ 	// Setup logfile
+@@ -8489,10 +8494,6 @@ func (d *lxc) Exec(req api.InstanceExecPost, stdin *os.File, stdout *os.File, st
+ 
+ 	args = append(args, "0")
+ 
+-	args = append(args, "--")
+-	args = append(args, "env")
+-	args = append(args, envSlice...)
+-
+ 	args = append(args, "--")
+ 	args = append(args, "cmd")
+ 	args = append(args, req.Command...)
+@@ -8551,13 +8552,29 @@ func (d *lxc) Exec(req api.InstanceExecPost, stdin *os.File, stdout *os.File, st
+ 		return nil, err
+ 	}
+ 
+-	cmd.ExtraFiles = []*os.File{stdin, stdout, stderr, wStatus}
++	// Setup the environment PIPE
++	rEnv, wEnv, err := os.Pipe()
++	if err != nil {
++		return nil, err
++	}
++
++	cmd.ExtraFiles = []*os.File{stdin, stdout, stderr, wStatus, rEnv}
+ 	err = cmd.Start()
+ 	_ = wStatus.Close()
++	_ = rEnv.Close()
+ 	if err != nil {
++		_ = wEnv.Close()
+ 		return nil, err
+ 	}
+ 
++	_, err = wEnv.Write(envBuf)
++	_ = wEnv.Close()
++	if err != nil {
++		_ = cmd.Process.Kill()
++		_ = cmd.Wait()
++		return nil, fmt.Errorf("Failed to pass the environment to forkexec: %w", err)
++	}
++
+ 	attachedPid := linux.ReadPid(rStatus)
+ 	if attachedPid <= 0 {
+ 		_ = cmd.Wait()

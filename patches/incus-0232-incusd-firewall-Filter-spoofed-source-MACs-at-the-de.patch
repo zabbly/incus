@@ -1,0 +1,113 @@
+From f5979e18bed8352dc5efbd78b40e972e047997fb Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Sun, 22 Nov 2026 07:54:41 -0500
+Subject: [PATCH] incusd/firewall: Filter spoofed source MACs at the device
+ ingress
+
+The bridge hooks holding the MAC filter run after the bridge has already
+recorded the frame's source against the sending port, so an instance
+could move a neighbour's entry to its own port and take that
+neighbour's inbound traffic.
+
+Drop frames with a foreign source MAC at the device's own ingress, which
+runs before the bridge records anything.
+
+This addresses GHSA-48vp-j46r-q79m (CVE pending)
+
+(cherry picked from commit 59597eefffd7f90294b7696e78fa210b99c7d1d4)
+---
+ .../firewall/drivers/drivers_nftables.go      | 51 +++++++++++++++++++
+ .../drivers/drivers_nftables_templates.go     | 11 ++++
+ 2 files changed, 62 insertions(+)
+
+diff --git a/internal/server/firewall/drivers/drivers_nftables.go b/internal/server/firewall/drivers/drivers_nftables.go
+index 8b843aa847..3db1ec5f7c 100644
+--- a/internal/server/firewall/drivers/drivers_nftables.go
++++ b/internal/server/firewall/drivers/drivers_nftables.go
+@@ -463,6 +463,52 @@ func (d Nftables) InstanceSetupBridgeFilter(projectName string, instanceName str
+ 		return fmt.Errorf("Failed adding bridge filter rules for instance device %q (%s): %w", deviceLabel, tplFields["family"], err)
+ 	}
+ 
++	// The bridge hooks run after the frame has been recorded against this port, so the source MAC
++	// also has to be filtered at the device's ingress.
++	if tplFields["macFiltering"] != nil {
++		err = d.instanceSetupSrcMACFilter(deviceLabel, hostName, hwAddr)
++		if err != nil {
++			return err
++		}
++	} else {
++		err = d.removeChains([]string{"netdev"}, deviceLabel, "srcmac")
++		if err != nil {
++			return fmt.Errorf("Failed clearing source MAC filter for instance device %q: %w", deviceLabel, err)
++		}
++	}
++
++	return nil
++}
++
++// instanceSetupSrcMACFilter installs the device ingress chain dropping spoofed source MACs.
++func (d Nftables) instanceSetupSrcMACFilter(deviceLabel string, hostName string, hwAddr string) error {
++	tplFields := map[string]any{
++		"namespace":      nftablesNamespace,
++		"chainSeparator": nftablesChainSeparator,
++		"family":         "netdev",
++		"deviceLabel":    deviceLabel,
++		"hostName":       hostName,
++		"hwAddr":         hwAddr,
++	}
++
++	// Replace any existing chain in the same transaction so a failure leaves it untouched.
++	existingChains, err := d.findChains([]string{"netdev"}, deviceLabel, "srcmac")
++	if err != nil {
++		return err
++	}
++
++	preamble := []string{}
++	for _, chain := range existingChains {
++		preamble = append(preamble, fmt.Sprintf("flush chain %s %s %s", chain.Family, nftablesNamespace, chain.Name), fmt.Sprintf("delete chain %s %s %s", chain.Family, nftablesNamespace, chain.Name))
++	}
++
++	tplFields["preamble"] = preamble
++
++	err = d.applyNftConfig(nftablesInstanceSrcMACFilter, tplFields)
++	if err != nil {
++		return fmt.Errorf("Failed adding source MAC filter for instance device %q: %w", deviceLabel, err)
++	}
++
+ 	return nil
+ }
+ 
+@@ -476,6 +522,11 @@ func (d Nftables) InstanceClearBridgeFilter(projectName string, instanceName str
+ 		return fmt.Errorf("Failed clearing bridge filter rules for instance device %q: %w", deviceLabel, err)
+ 	}
+ 
++	err = d.removeChains([]string{"netdev"}, deviceLabel, "srcmac")
++	if err != nil {
++		return fmt.Errorf("Failed clearing source MAC filter for instance device %q: %w", deviceLabel, err)
++	}
++
+ 	return nil
+ }
+ 
+diff --git a/internal/server/firewall/drivers/drivers_nftables_templates.go b/internal/server/firewall/drivers/drivers_nftables_templates.go
+index 88b6280672..7b5423d50b 100644
+--- a/internal/server/firewall/drivers/drivers_nftables_templates.go
++++ b/internal/server/firewall/drivers/drivers_nftables_templates.go
+@@ -199,6 +199,17 @@ table {{.family}} {{.namespace}} {
+ }
+ `))
+ 
++// nftablesInstanceSrcMACFilter drops frames whose source MAC isn't the instance's. It hooks the
++// device's own ingress, which runs before the bridge records where a frame came from, so a
++// spoofed source can't be learned on this port.
++var nftablesInstanceSrcMACFilter = template.Must(template.New("nftablesInstanceSrcMACFilter").Parse(`
++chain srcmac{{.chainSeparator}}{{.deviceLabel}} {
++	type filter hook ingress device "{{.hostName}}" priority -100; policy accept;
++
++	ether saddr != {{.hwAddr}} drop
++}
++`))
++
+ // nftablesInstanceBridgeFilter defines the rules needed for MAC, IPv4 and IPv6 bridge security filtering.
+ // To prevent instances from using IPs that are different from their assigned IPs we use ARP and NDP filtering
+ // to prevent neighbor advertisements that are not allowed. However in order for DHCPv4 & DHCPv6 to work back to

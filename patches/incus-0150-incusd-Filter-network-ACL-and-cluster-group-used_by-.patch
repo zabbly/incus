@@ -1,0 +1,52 @@
+From 20474a94c5b513c207e039214c722bcacbae3cf0 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Wed, 4 Nov 2026 19:59:27 -0500
+Subject: [PATCH] incusd: Filter network ACL and cluster group used_by by what
+ the caller may view
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This addresses GHSA-44g3-g988-46rg (CVE pending)
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+(cherry picked from commit fe16ca724c3d922b419294aa9caed4a3080d5722)
+---
+ cmd/incusd/api_cluster_group.go | 2 ++
+ cmd/incusd/network_acls.go      | 3 +++
+ 2 files changed, 5 insertions(+)
+
+diff --git a/cmd/incusd/api_cluster_group.go b/cmd/incusd/api_cluster_group.go
+index d9040ff51e..dfbfd97511 100644
+--- a/cmd/incusd/api_cluster_group.go
++++ b/cmd/incusd/api_cluster_group.go
+@@ -377,6 +377,8 @@ func clusterGroupGet(d *Daemon, r *http.Request) response.Response {
+ 			return err
+ 		}
+ 
++		apiGroup.UsedBy = project.FilterUsedBy(s.Authorizer, r, apiGroup.UsedBy)
++
+ 		return nil
+ 	})
+ 	if err != nil {
+diff --git a/cmd/incusd/network_acls.go b/cmd/incusd/network_acls.go
+index b086085197..8eb242e4d9 100644
+--- a/cmd/incusd/network_acls.go
++++ b/cmd/incusd/network_acls.go
+@@ -247,6 +247,7 @@ func networkACLsGet(d *Daemon, r *http.Request) response.Response {
+ 
+ 				netACLInfo := netACL.Info()
+ 				netACLInfo.UsedBy, _ = netACL.UsedBy() // Ignore errors in UsedBy, will return nil.
++				netACLInfo.UsedBy = project.FilterUsedBy(s.Authorizer, r, netACLInfo.UsedBy)
+ 
+ 				if clauses != nil && len(clauses.Clauses) > 0 {
+ 					match, err := filter.Match(*netACLInfo, *clauses)
+@@ -498,6 +499,8 @@ func networkACLGet(d *Daemon, r *http.Request) response.Response {
+ 		return response.SmartError(err)
+ 	}
+ 
++	info.UsedBy = project.FilterUsedBy(s.Authorizer, r, info.UsedBy)
++
+ 	return response.SyncResponseETag(true, info, netACL.Etag())
+ }
+ 
