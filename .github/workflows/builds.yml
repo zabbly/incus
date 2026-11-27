@@ -331,6 +331,228 @@ jobs:
           git cherry-pick 0e8f8635b873e588c3e7a1e6eef88eb18c8bea2e  # incusd: Reject null snapshot entries on backup import
           git cherry-pick a985b8ec80b4645064cfb099322f6e9a9a0e8199  # incusd: Authorize effective project on resource creation
           git cherry-pick 0dc65cba78bd9c8da636b418e85d082f76294ad4  # incusd/instance/qemu: Confine NBD migration sockets to the run directory
+          git cherry-pick ae25b82a1e2f1077643830ad56f62a975ba13b3d  # github: Fix linux-modules-extra installation
+          git cherry-pick da1be1fc2d1b921237aa5e1c9f4c90ceb7163823  # incusd/storage/btrfs: Skip quotas on ISO volumes
+          git cherry-pick 7f249375baee745a06b239eca87fb43ef28968ab  # incusd: Check certificate ownership on every non-admin update
+          git cherry-pick ca0edc34b58832734fe28ae58e8f64f6957547e2  # incusd/auth/tls: Only inherit default project objects through a project using them
+          git cherry-pick 23016e76ad1b51a2616fe76455bdb3c5ee562d67  # incusd/operations: Strip the state secret from renders too
+          git cherry-pick 13528d3baaa376faeff2217a7bff903f3b270a2e  # incusd: Limit non-streaming bodies on large request endpoints
+          git cherry-pick e8b83d450122afc28f06ffcc6b0cad4cd88db5ac  # incusd: Forbid push mode migration in restricted projects
+          git cherry-pick 58e7173015a1ca847e0497158d81bfac04c0b4ca  # incusd/migration: Bound the size of protocol messages
+          git cherry-pick a3025a05111326de06afe53d9169a56a5b7ca2dd  # incusd/instance/qemu: Reject quotes and line breaks in qemu.conf values
+          git cherry-pick fcacdf635a0d6bf81b075cc25a108cc8cb2b3dbb  # incusd/device/tpm: Read device numbers from sysfs
+          git cherry-pick 6debba48bf060877b55cfbe8b0cf87d3217bb28b  # incusd/device/nic_bridged: Restrict host-side routes in restricted projects
+          git cherry-pick 7bbbe70ddff51af7c63f7113b37571c57a1c13d5  # incusd/storage: Validate snapshot names received through migration
+          git cherry-pick b2837791f21da8b896cfa390864cc88d8c7147a3  # incusd/metrics: Escape label values
+          git cherry-pick 6e86eed5e7fcb09ac37c3e34a95bdbda7e7f056d  # incusd/instances: Enforce restricted.snapshots on copy, migration and import
+          git cherry-pick fc012a05d57680d7a7cdcaadf5cfcbe01de13412  # incusd/storage: Reject a symlinked block file when unpacking backups and images
+          git cherry-pick 9fb1ae9aea8f76ffdcf05f23d682c4824158554f  # incusd/instance/lxc: Enable the devices cgroup for all containers
+          git cherry-pick 79b2b509ca170c28f5e8b07a058cf795c8758d09  # incusd: Ignore client-supplied forwarded requestor headers
+          git cherry-pick 30a12a75d2188d310589ce0cba6f99785628f50d  # incusd: Block remote clients during startup
+          git cherry-pick 1e67294f6aafd19a99cd3e8a6126611e69c6a2bb  # incusd: Don't let the owner re-key a CA-trusted restricted certificate
+          git cherry-pick 8fe61fc7640f6a926cdb8ad3543c49c63c1982e0  # incusd: Don't resolve locale or NSS modules from the instance
+          git cherry-pick 1cdbbbe4eb91f8eb3b729ab0619b78f426b21aca  # incusd: Don't leak descriptors into the intercepted mount.fuse
+          git cherry-pick a9f3680cf08ce7b7372736650f744eec4fbd3033  # incusd/rsync: Only accept the rsync helper on the transfer socket
+          git cherry-pick 8d92cbbf614cc7585c4909afe4b2978c46b4406a  # incusd: Harden forkproxy unix socket handling
+          git cherry-pick df90ec3ae9355b94e62012d4300c89b3e6aefb47  # incusd/seccomp: Validate the notification before acting on mknod
+          git cherry-pick 3ef2fa74e9b5f12d4426ca03360bd5eff40ff21a  # incusd: Lock read-only on hot-plugged idmapped disks
+          git cherry-pick ac7b6a12c583df70fef09b6955cb72908f183965  # incusd/storage: Resolve bucket backup before export
+          git cherry-pick 8b86fe879e442a6e5cba7297f078b4d3cd95cfff  # incusd: Validate the image fingerprint before recording it
+          git cherry-pick 356a18f5e5f5527a396be4bafdf3726fc6be3588  # incusd/storage: Validate initial.mode as an octal mode
+          git cherry-pick 8c227e97907e8360230f3f979c8c34eea336c454  # incusd: Restrict image delta base to an owned fingerprint
+          git cherry-pick a882a59ef2a63db8becf5a1daaeebc69db5ae86c  # incusd: Lock the instance during rename
+          git cherry-pick e3ea72d9be9977f015a0515f4eb07b2cbfa524fc  # incusd/storage: Reject rootfs content in a split image metadata tarball
+          git cherry-pick 1693dcb0b0d1262f2f49b9e9d3eb1e2258897df8  # incusd/device: Reject ".." components in device mount paths
+          git cherry-pick 35e3a12fbc54c5b319aee3a4e46a2f61f1ac161a  # incusd/device: Mount disk staging bind mounts nosuid
+          git cherry-pick ea31f2aa1cd855e5cfcd3233b48515c0e6502fc3  # incusd/storage: Reject non-self-contained VM images on unpack
+          git cherry-pick 3f89b6e0e51517c13d74ab2dca26f09c72e7fb81  # incusd/device: Forbid guest root on restricted VM disk shares
+          git cherry-pick 733953b45b854e59917634daf641051e2271241d  # incusd/project: Forbid raw.idmap mapping onto container root in restricted projects
+          git cherry-pick 2eda10be3dbdf20d436a41535b3bb401994e9507  # incusd/project: Fail closed when the checked profile or instance is gone
+          git cherry-pick 2e46cc24dbffaada92aa64dd504ce539543df2cc  # incusd: Serialize instance rewrites on volume rename and profile update
+          git cherry-pick 976727f6c89274efda6e67f17ba7052b85f41330  # incusd/instance: Return a copy of the local config from Render
+          git cherry-pick 037b2ab3a55788d96bdaa12d6d5bbc9b1d959a15  # incusd: Check project restrictions after the move pool override
+          git cherry-pick 4b082e9c4dd62d5509e742f7ae51cefd9a9c1050  # incusd: Keep the imported root disk on the import pool
+          git cherry-pick 4b841b3ca9a3f2c3879af32d890abd15f57f734e  # incusd/instance/qemu: Keep secrets out of the QMP log
+          git cherry-pick e41c5f172ce8fe1c68ff912465a669339372ed53  # incusd/storage: Validate bucket key names and credentials
+          git cherry-pick c66a86810c44d34f906e453c5cc646cda0d67fb6  # incusd: Validate instance and bucket backup names
+          git cherry-pick a95b0cb6ae2794981268be35b6a1f803bb4c3fce  # incusd: Don't follow a symlinked exec output directory
+          git cherry-pick e216fa7d106eceaa8a1d987fc82ab9fe7272bfda  # incusd: Migrate the requested volume on a cross-member move
+          git cherry-pick 855bebe65bbb4ede20c5bd6634f0acc02509dcb7  # incusd: Require edit access on the target of a refresh
+          git cherry-pick f96424a09be2a5ae9cf9248af9955cf1d9cc3b71  # incusd: Only restore an instance from its own snapshots
+          git cherry-pick 99143c0622e3f63f212b1bc0a92363666a6c64e0  # incusd/project: Keep container runtime state out of restricted projects
+          git cherry-pick ae1a99b576635096efa674807adb6a78dd24f327  # incusd/device: Check the interface an instance hands back
+          git cherry-pick a893cf34d65ee6ffe57ab58bed0d83bc6a0c4ee2  # incusd/device: Count NICs on managed networks as VLAN interface users
+          git cherry-pick 14739d97dc1f295d7e68cdf5e40a2f2212ecec06  # incusd/network/ovn: Forbid host interfaces and tunnels in restricted projects
+          git cherry-pick 074ee607aae96aa96c1597d28a2afcd6114cc2d7  # incusd/network: Keep long VLAN interface names unique per parent
+          git cherry-pick f1048cb61048b064d0153fca4dafed1f7bec48de  # incusd/storage: Keep the full name on loaded bucket backups
+          git cherry-pick 9560d36f8580d144a53996d5ead3fed0e0911d98  # incusd: Only reuse public images from other projects on refresh
+          git cherry-pick e922a410f7f039be2b0af36b2770b5bd816afd5d  # incusd: Limit image token callers to the raw upload
+          git cherry-pick 92268e03995fa08b5ecbf3a8b36ca334b81c5bf7  # client/oci: Fingerprint the manifest and pin the copy to it
+          git cherry-pick 2241e9c9e2376cbe1f6a34513f28fdcd948fc8f6  # incusd: Store downloaded images under the hash of their content
+          git cherry-pick b06c1ab70f4f69c386cc9130bcfd0e9b6280a22d  # incusd/network: Check the client ID length when parsing leases
+          git cherry-pick 4c9c5599222a4ab549781198deeff77f2e09d553  # incusd/images: Use the reused image's fingerprint on transfer
+          git cherry-pick 3feb3a82131da5e1e6dead8d7b87e08db4a6ae6d  # incusd: Reject template entries without a definition
+          git cherry-pick 904b370cf0c40bf8ad7ef233854315793cd4935a  # incusd/images: Create the properties map when the metadata has none
+          git cherry-pick 920f773cc6f8fe9e923c3ba273bfbc388ba72540  # incusd: Create the expanded config map on backup import
+          git cherry-pick efb275c8b8c29a16983e3b38bc34f669034b9d85  # shared/ws: Stop reading a websocket once a read failed
+          git cherry-pick b956087ba75c55da831110eb48137791f54befd7  # incusd: Validate the syscall allow and deny lists
+          git cherry-pick 4e0bf3dbed7e8fe0cc4d2d46fe296b0310a2a360  # incusd: Forbid backup upload targets in restricted projects
+          git cherry-pick 96d492badf56480479281c03e1810347e2c83bd1  # incusd/images: Check the export target against the project's image servers
+          git cherry-pick 5ee662005b45e75ed889a03e9e2a5879c0313e15  # incusd/firewall: Drop unwanted frames before the bridge filter accepts
+          git cherry-pick 674df127d9a9524ee5fdf8eafb66fee02c955b22  # incusd/project: Reject a negative limits.processes in the aggregate check
+          git cherry-pick 0aeb09bc90d94cd035e28c8ecafc6e3a2db65c24  # incusd/project: Refuse overflowing aggregate limit totals
+          git cherry-pick c2d01bcb01104d7251f5376e02aac6d6becbe9e0  # incusd/project: Treat a zero disk size as unset in the aggregate check
+          git cherry-pick 9c53ae2216761a873c5c1e21451d04c88544f6fb  # incusd/project: Count stored images against limits.disk
+          git cherry-pick 05f1dbf23dd33bb795bfe8d14855851a492f17b6  # incusd/images: Apply the project disk budget on image refresh
+          git cherry-pick 818e25d6bbc1e68b2afb0986236e4d8a7862904a  # incusd: Read the file path from the URL only
+          git cherry-pick 6cfd9f038198e53eea2d2adb365cd4903afca29e  # incusd/instance: Re-check project limits when recording an update
+          git cherry-pick a8b379e23c5ac6b2446fa90abf9fb37aa38d2b51  # incusd/guestapi: Limit request body size
+          git cherry-pick 9ca18751cf30f75ccfb59f8b739b1444d3760dad  # incusd/netutils: Bound the number of interfaces and addresses collected
+          git cherry-pick 6748cb37b793d919940ce3d0c781450e2d77893d  # incusd/util: Stop following redirects after ten hops
+          git cherry-pick 68e2e24cb2d1123addb56f704475f0fdaab4f15b  # incusd: Bound directory listings on the file API
+          git cherry-pick 149ad26e578fe6304737b9a81ad5d22cd4b20d86  # incusd/images: Stream split publish files through the hash
+          git cherry-pick c332192a8a388ca08da021eccf5f45dfcd7ba179  # shared/archive: Limit xz decompression memory
+          git cherry-pick 5be23843d56fa765e36d261b9d24f883e8af45c7  # incusd/device: Bound VLAN list expansion
+          git cherry-pick 938ec22caa31b63f486307cea7f3f3d0198df8e4  # incusd/network: Bound port range expansion
+          git cherry-pick afefa6bb8b4caf26f359637292b13df43c58895b  # incusd: Filter network integration used_by by what the caller may view
+          git cherry-pick 847dfd80bf5131c503010a7272171b8c1fc48f4e  # incusd: Filter network ACL and cluster group used_by by what the caller may view
+          git cherry-pick 0db658fb13528aae91d453ff4a042bd3ba4af86d  # incusd/network/acl: Notify cluster members when only bridge NICs use the ACL
+          git cherry-pick 392b99f0c3fb089141b23269a248d5fac7b75b00  # incusd/storage: Remove a bucket's backups with the bucket
+          git cherry-pick 70698d6d5207c857a936db4bc9e9c6a67c0b16f8  # incusd/network/ovn: Keep a forward whose address an instance NIC still uses
+          git cherry-pick 91c94005eed4ddf2872e1557f6c8751ca11bb55c  # incusd: Name automatic volume snapshots from the volume's own snapshots
+          git cherry-pick 8c0916812e48fddf88cf9beda4bb770c72cca207  # incusd/device/nic_bridged: Only count running instances of other projects as conflicts
+          git cherry-pick 3b4ac1650988cee9e32280473da1fa244199915c  # incusd/instance/lxc: Give exec a real file for every unused stream
+          git cherry-pick 54843464ef4698ae60b470b7941ad5229690e99f  # incusd/forkexec: Take the environment from a pipe rather than the command line
+          git cherry-pick d568ed4d40e0d2ce2aebc506790160fd926b516b  # incusd: Fail a volume migration on an unexpected control message
+          git cherry-pick 7e4d9de5ae7ceb827ad174c01afdb8eed3f5a927  # shared/osarch: Bound the OS release file reads
+          git cherry-pick 72f026a8072283355ba9ee0c674d15ccd6766ad3  # shared/archive: Bound the captured error output
+          git cherry-pick e05af6bc5e04f07af5118888742f4c8cbd952b4d  # incusd/rsync: Bound the captured rsync output
+          git cherry-pick e3b7b00a4d5e91cb4665e7073aac9996d78b1703  # incusd/instance/qemu: Bound the VM console log
+          git cherry-pick 7091c763841d2bc4e68a3fece443508a774c2f01  # incusd/instancewriter: Bound the hard link map
+          git cherry-pick 3a8a60721615c70929cc43249f35105a6dc06c2f  # incusd: Only cache metrics for existing projects
+          git cherry-pick d4a70610a074bfd5b962bd762d83185f15bdca28  # incusd/filter: Bound the size of filter regular expressions
+          git cherry-pick b2a8722b68179fa2f0e6f44661a7f4b177235e5e  # incusd/util: Harden template rendering
+          git cherry-pick a97b5a24bd5d85f7fb8430fbb51b8c912edbf53c  # incusd/project: Check restrictions on snapshots received through copy and migration
+          git cherry-pick 6c9b6a9de7d647f7e651b3104159e73aa235a546  # incusd/events: Keep server-wide events to privileged viewers
+          git cherry-pick f03af922097f0d6b337f9d632f7096a0d30acaf4  # incusd: Keep balancing CPUs when one instance has an invalid CPU set
+          git cherry-pick 7792419163e6bb80f1e11b0201f8891692b3b68e  # incusd/endpoints: Let the kernel pick the vsock port
+          git cherry-pick 3fe1260f2bad6b60ec2a7e14d6450c15d7fad6f5  # incusd: Don't make instance hooks wait for autostart to finish
+          git cherry-pick 7df1eb644b694367bd2d52f8774693c97c5a7b93  # incusd: Read the network creation request before taking the lock
+          git cherry-pick 8533f65c0e0bc2f9f1b84f8b3befb353367b0baa  # shared/idmap: Bound the number of entries in a textual ID map
+          git cherry-pick 0cbf6fc4ed8403ee6d7d970dd0e590e1e2fd2569  # incusd: Refuse dates the database can't read back
+          git cherry-pick 6519b199dca43e035f6a13b5f21e9fec7fbc83d9  # incusd: Start without a device monitor when none can be created
+          git cherry-pick be141333056beef606f3ca326153c4d484b5de2e  # incusd/instance/lxc: Bound the wait for forkfile to stop
+          git cherry-pick 6a82860ef988f855d171c1526e82d691b4a846dc  # incusd: Match profile filters outside the database transaction
+          git cherry-pick fee5edf39427441b7d72ba1ffde1548d4ff9f6f0  # incusd: Don't hold the publish lock during the instance export
+          git cherry-pick e6166b4d64a21d66079bbf3a3fa0701a47affaf5  # incusd: Require console access to read the console log
+          git cherry-pick a2b2e60c98a0b5c4c4183a9fbd1c81bde1aaf0c4  # incusd: Re-read the certificate record after the update body
+          git cherry-pick 4418ec3d8805eb58aeccf286016b5e01eec0ef6c  # incusd: Close the connections of a certificate that lost trust
+          git cherry-pick 791e136e07d4a59b5862aef01bf6e4601e63d719  # incusd/auth/oidc: Ignore an unverified email claim for the user name
+          git cherry-pick 0b9a52fe0aa268525b4d125d75e34a2cb14e5c65  # incusd: Check the alias entitlement on image upload
+          git cherry-pick 9c4ffd572f532cd89285137652d982a67e203e6b  # incusd/forkfile: Don't spin on a closed listener
+          git cherry-pick ea32cd5f84adb097065af958eb003d1ab8fdfd49  # incusd: Stop forkfile when its PID file can't be written
+          git cherry-pick d8239e2b6ce6040c5fea4e211757a2c4b18f1b44  # incusd/forkzfs: Exit when the mount namespace can't be unshared
+          git cherry-pick 219b481888b15b1137a7e0459d9eb1ebc6aa012b  # incusd/linux: Decode escaped mount points from mountinfo
+          git cherry-pick a042728c75a200961c5cdc8f9dae863c43f4aaae  # incusd/apparmor: Remove the profile file without AppArmor too
+          git cherry-pick 4d85bab2ae3227432977321686927f87aeac091f  # incus/image: Check the fingerprint before using it as a file name
+          git cherry-pick b9efad24272f61082d7e983c5c91f84891ea76d8  # incusd/project: Cap limits.cpu.allowance percentages in restricted projects
+          git cherry-pick ee7478e55d712d8b36e9fa6fa5b339a9ac1f3276  # incusd/instance: Reject empty and relative snapshot names
+          git cherry-pick 2aa69ff73a63995cb2d2e4d6dfd3844e812b82f1  # incusd/project: Keep projects, ACLs and network peers in filtered used_by lists
+          git cherry-pick 22cbc93e05551d2bc8dfc7ed0d0568916c3aa558  # incusd/events: Close listeners outside of the server lock
+          git cherry-pick 89167e3ef67ac0d05416fd23c663f1d78efcf57f  # incusd/util: Stop the rendering of a template past the output limit
+          git cherry-pick cb6abb4f97dfbc243bd5e814d5fdfca4f0be3f9a  # incusd/rsync: Apply the output bound to copied streams
+          git cherry-pick ff759a7fdb10be2dc8f98401f22cf12f7ebf6885  # incusd/auth: Keep metrics certificates to metrics access
+          git cherry-pick a5e3f1b1aa0d8fc0343c93258e1ce8d15eb15647  # incusd: Identify CA-issued certificates by their signed body
+          git cherry-pick 2c35e159f6d4f6428cf13454f36b0e2a29bf1a09  # incusd/auth/oidc: Bind JWT access tokens to the client and a subject
+          git cherry-pick 047b8bb48d7882eb652d179df79e13018d23a0ab  # incusd: Stop restricted clients rewriting their certificate projects
+          git cherry-pick bba52ab089593ae397f3ddf13c69e7c7b77858dc  # incusd: Keep a cluster member's server certificate name in sync
+          git cherry-pick 82ea0b379028eb59c37aaf2c007178842340b2ba  # incusd: Confine backup and publish walks to the volume
+          git cherry-pick ef9dc701dcfed329c718fb382b6b2a301e494782  # incusd/storage: Match the volume content type on file, SFTP and NBD
+          git cherry-pick 3a5ff37786da214f442435c0ef2033576900f2f9  # incusd/storage: Reject a custom volume refresh that changes content type
+          git cherry-pick 3052b5d67388a2f37da627c5af95cf11abf15849  # incusd/storage: Serialize custom volume content against access
+          git cherry-pick b619668f169868930f6668ad2a264884ff2c85d0  # incusd: Lock the instance during rebuild
+          git cherry-pick 87d014f467bc92f4f93f531747b449fe8ffbd4b2  # incusd: Keep instance volume directories root-owned on receive
+          git cherry-pick e396cb0bc83a85caf1a467371fa8816433a56487  # incusd/device: Treat a source as external ceph only without a pool
+          git cherry-pick 52b4ea80f3ff63378f5d5d96592ba28c8b243c6d  # incusd: Don't let an image plant a liblxc config file
+          git cherry-pick 478c77f0695e0319aeae794e297788304809eb28  # incusd/network/ovn: Validate pinned uplink addresses against the ranges
+          git cherry-pick 58840b40b155aeca57a3e221953ce51fd0cedecd  # incusd/seccomp: Keep intercepted syscall strings NUL-terminated
+          git cherry-pick 49c8491e562bc892529e4ccfe922fa4873758d5b  # incusd/storage: Keep the pool config out of exports and migrations
+          git cherry-pick 918e11a3ef59e7af1feec22050415509c0e4e243  # incusd: Hide credentials in the server config from non-editors
+          git cherry-pick bc802a61b91046938e865f9c7dfd35d050f0f3bc  # incusd/db: Scope backup records to their owner
+          git cherry-pick 9ff8c48f19f774394121d3da06b51620aaa37033  # incusd: Only serve custom volumes on the file and SFTP endpoints
+          git cherry-pick 788372d73dd8857e6512598d236b36300c211fb4  # incusd: Serve the targeted member's volume on the file and SFTP endpoints
+          git cherry-pick 4661ec009a35e3d02777458e458ddcef62da99ec  # incusd: Check the project's cluster groups on backup import
+          git cherry-pick 86e9ecb06d455c55b507513a6e5e0fc4871705d9  # incusd: Check the project's cluster groups on volume and bucket placement
+          git cherry-pick 66edaf8acee07c3d4811417e37d732def23e5300  # incusd: Refuse access to the volumes holding the daemon's data
+          git cherry-pick 096ec038a2c8e6e7183967c3f09867418b9f03df  # incusd: Check image access when creating or rebuilding from a local image
+          git cherry-pick f01ed15fa267cfe56862acd1c1bb8734c5d57542  # incusd: Check access to profiles and volumes attached through an update
+          git cherry-pick 1449bf6debb45c800dbb13940363159fc9e998be  # incusd: Require edit access to migrate a snapshot
+          git cherry-pick 82eb8df0c0149cd34d85fdb6e062fe64d640a811  # incusd/images: Require edit access to rewrite an existing image on copy
+          git cherry-pick 95ce1fc40a2fd597db5b08b71f4999dc3a1abded  # incusd/network/ovn: Only remove VLAN interfaces the network created
+          git cherry-pick 0200cbf8bbb7560ecdd0ae28abfad08d612236c0  # incusd/device: Validate the NIC host_name option
+          git cherry-pick 944bfef35b6f15051267ad6fcd8fe1a078cea825  # incusd/network: Check restricted.networks.zones on network zone keys
+          git cherry-pick 205933ab657be1f5da36b2470bdfab0b01460150  # incusd: Give image upload tokens their own operation type
+          git cherry-pick b34ee24889ea51fd14faf82381618360092b1c66  # incusd: Never replace stored image files on upload
+          git cherry-pick f3adcc6ed94ae3037eaec49bce6bd19754fc0885  # incusd: Remove replaced image volumes only once unreferenced
+          git cherry-pick c3a7a7224b08df32836eb16a3f15ff24bdfbc071  # incusd/operations: Read the run hook under the lock
+          git cherry-pick e1edadfc20e445554f5d21ed058a7cef5cb91946  # incusd/db: Give every loaded instance a config map
+          git cherry-pick 96d2b9137da44ac66e9ca634299baadf7a7cd0f2  # incusd: Validate volatile hardware addresses
+          git cherry-pick 282b8559eb40997745c2fded64249fa80c0feff8  # incusd/network: Keep instances from claiming other instances' DNS names
+          git cherry-pick 8b99d5b2957fae77454b0a3c5d8bcdba4b9180b1  # incusd/network/zone: Keep zone inputs to a single zone file line
+          git cherry-pick 9cfaba4bd399c4b1bebfa9de8fdb243cf59a6230  # incusd: Contact the image server outside of the database transaction
+          git cherry-pick 01f33b1c7bcbc067691f1e3741110e24824080d3  # incusd/storage: Bound a backup's block image to the volume size
+          git cherry-pick 5e65d076b930a920d8d0e64a25e04298802aa832  # incusd/storage: Bound a unified VM image's content to the volume size
+          git cherry-pick fb02bbfd68344edbc99fb53b943717bacdd16b92  # incusd: Don't close a nil pipe reader on backup failure
+          git cherry-pick bc669c52d9f5dc5926d6f74a6f9cfc8b4f8c6e4d  # incusd: Don't leak the backup tarball writer on failure
+          git cherry-pick 73cb9b8dcfd3182d83dc92d43345ed2f2caaa6c9  # incusd/backup: Hold stored backups and squashfs conversion to the disk budget
+          git cherry-pick 45861137d19109921ea6145982c6494adfec105c  # incusd/profiles: Validate changed devices against instances before saving
+          git cherry-pick 8e70d29e575b2fa222706862b97dec62d2bd8944  # incusd/instance/qemu: Bound the agent upgrade handshake
+          git cherry-pick df8fc705907443aa92d56944d6c437974e0fbb63  # incusd/guestapi: Bound the command line read when finding the caller
+          git cherry-pick fa1afc1bd223f59f89dff0c2a0a27c7f3fab9114  # incusd/backup: Bound the upload target's responses and stalls
+          git cherry-pick dc5fe5717e5d86ca0f680973af896d0e24b0ec38  # incusd/apparmor: Bound the qemu-img output kept in memory
+          git cherry-pick 74faa4d4667bd51f255c0320a6921038fc7bfa29  # shared: Bound CPU and NUMA set expansion
+          git cherry-pick a80cb22961a9c8be028ee8f4f38a112b9fe20a53  # incusd/images: Expire and bound image tokens
+          git cherry-pick a48a84e9b9b3f4fb9fc79ba6e1ff62aa09d93bde  # client/oci: Check the unpacked size against the image budget
+          git cherry-pick 4d8a39c1da63bdcb3dfd1fdc43913f36dade283d  # incusd: Judge all-projects network listings by the caller's projects
+          git cherry-pick d980c98669d29c979f5071bd29e0a32f62e64047  # incusd: Keep other projects' instances out of profile update errors
+          git cherry-pick c9151ebce1efdf0d86b7ce3badcf6a0d30324079  # incusd: Apply profile patches on every cluster member
+          git cherry-pick 850ae3affe894729db6a77a6ba8e8c78f27f45ca  # incusd/network/ovn: Skip addresses in use by forwards when allocating uplink IPs
+          git cherry-pick 937ca7398c1860e07c2b49dc26a42c15df759b6e  # incusd/network/acl: Resolve the ACL project per NIC rather than per instance
+          git cherry-pick be67d589fdf2a25d355740b2304a00b94dbec55b  # incusd/network/acl: Track bridged NICs that name their bridge as parent
+          git cherry-pick 28f33d0313ba8c9c81dc2fb0a5c013c3752d33ad  # client: Bound the messages read on ping-only websockets
+          git cherry-pick 2238c5402770e8bc4d83150f68388abd1ca0d8aa  # client: Bound the responses read from untrusted servers
+          git cherry-pick 7f021305373346683b7597e1d4704b1367d7f0b4  # incusd/instance/qemu: Bound the QMP log
+          git cherry-pick 19c9283adc6cdc75184ab8c775c3bde0bc74a521  # incusd: Only send the snapshots the source offered
+          git cherry-pick f96e0af84a98136c3f7e861cbf818b079b4bb6af  # incusd: Bound reads of files supplied by images and backups
+          git cherry-pick 5da9a2840634682f8a226ccaab42bbdf731bbb2a  # incusd/endpoints: Keep accepting on the local socket after a failed accept
+          git cherry-pick 3b0ea857aa41aea19f77b712ef55ad5231959345  # incusd/instance/qemu: Bound the TCP agent probe
+          git cherry-pick 75f769f4b24d2d783dbfa17322e3da5430e03722  # incusd: Keep one tenant's snapshots from blocking everyone else's
+          git cherry-pick d352f65807c9ec67e04882d13cdbeb6024ff10e2  # incusd: Cancel an image download that stops receiving data
+          git cherry-pick fa4eb26fdade54150d13ed1f3e95e1652e339dc5  # incusd: Check trust token expiry for remote operations
+          git cherry-pick e30f42bca8ae55637b54e34de44e1e259b76595b  # incusd/cluster: Give joined members the cluster CA symlink
+          git cherry-pick 5c7f0ae2f4a426799ca82a4c7018256642732603  # incusd: Keep the CA and CRL across server certificate updates
+          git cherry-pick 6e0ef10a323bef94fb1a147fd5c88febdbe74639  # incusd: Reload the trust cache when a project is deleted or renamed
+          git cherry-pick 134f77cfd9e128ce84a40afaddb895418f2fa422  # incusd/auth/oidc: Don't accept an ID token in place of the access token
+          git cherry-pick 8010f5c07f3c3a632a1ef97d445e9d2b9af06e26  # incusd/forkproxy: Bound what a proxy device holds on the host
+          git cherry-pick ed53ee92faec256050c34e567045059b45e475b7  # incusd/instance/lxc: Don't cache a failed idmapped mount probe
+          git cherry-pick 06c9f202363b573ef852331b16e74efcfe29486d  # incusd/backup: Bound backup parsing to the project's disk budget
+          git cherry-pick c1adfe0ee75fc375457c18ac23d2354770389f25  # incusd/project: Check pool disk limits on volume update
+          git cherry-pick 5954208133524ac7292de1e47b569ac577d26a4a  # incus/file: Track symlinks created during a recursive pull by identity
+          git cherry-pick 5054350bfd10172497d29fe06eb6e943bf36a3ea  # incus/webui: Keep the access token off the browser command line
+          git cherry-pick f0e2aa82f82f49030631500b46a28788d9833c5e  # incusd/storage/btrfs: Confine received subvolumes to the volume
+          git cherry-pick 6fdebef2211614434473cdb5e728d50e24bfb4ce  # incusd/images: Hold received image data to the project budget
+          git cherry-pick e8c24a46805120b0fca661734249f180bc113177  # incusd/images: Don't hold the image lock during downloads
+          git cherry-pick 9c04cfa7a0521c368be8c4f75ecfd1cebf61d3fb  # incusd/forkfile: Only open regular files and directories
+          git cherry-pick 4f964199efdc46b546e5aa72d769415621dc987c  # incusd/instance/qemu: Take the VM disk format from config at startup
+          git cherry-pick 46a27063989be74c3070ccde27920623c7299c41  # incusd/storage/zfs: Don't take the dataset type or mount point from a stream
+          git cherry-pick 418405bbe03c82a553e14b2771be693f9ebb96cb  # incusd/firewall: Filter spoofed source MACs at the device ingress
+          git cherry-pick da73664aa751548244902a6733d215859888e157  # i18n: Update translation templates
+          git cherry-pick 7ceb89efebbabb75b2f05e8717c1aef9de922aeb  # incusd/instance/qemu: Pass SMBIOS type 11 entries via files
+          git cherry-pick b94fe40d143dce5a590ca56389564c4486be217f  # incusd/storage: Check bucket access against the project holding the bucket
+          git cherry-pick 1598cfaa8479a16cdf0dd94d17fda6690682c30f  # incusd/instance: Only render regular files as templates
+          git cherry-pick 28a0a9de73e1124487ffc1924156e2669413c1cc  # incusd/instance/lxc: Reject line breaks in LXC config values
+          git cherry-pick 9132bf9a23fd7bd9ec34b936160d6d6a1e279c9d  # incusd/instance/lxc: Keep instance and image environment out of the start helper
+          git cherry-pick 840fd7d249b22e6d99e285b119185fab640bd394  # incusd: Bind guest API connections to the peer's pidfd
 
           go build -o "/opt/incus/bin/fuidshift" github.com/lxc/incus/v6/cmd/fuidshift
           go build -o "/opt/incus/bin/incus" github.com/lxc/incus/v6/cmd/incus
